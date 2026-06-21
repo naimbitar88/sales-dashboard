@@ -63,8 +63,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .btn.primary:hover{filter:brightness(1.06);color:#fff}
 
 .chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px}
-.chip{cursor:pointer;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid var(--border);color:var(--text3);background:transparent;font-weight:500}
+.filters{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:4px 16px;margin-bottom:16px;box-shadow:var(--shadow)}
+.frow{display:grid;grid-template-columns:74px 1fr;align-items:start;gap:14px;padding:13px 0}
+.frow+.frow{border-top:1px solid var(--border)}
+.flabel{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--text4);font-weight:700;padding-top:8px}
+.fchips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{cursor:pointer;font-size:12.5px;line-height:1;padding:7px 14px;border-radius:999px;border:1px solid var(--border);color:var(--text3);background:transparent;font-weight:500;transition:.12s;white-space:nowrap}
+.chip:hover{border-color:var(--accent);color:var(--text)}
 .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.chip.on:hover{color:#fff}
 .chip.acct{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* KPI */
@@ -86,6 +93,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 [data-theme="light"] .panel{border-color:#93C5FD}
 [data-theme="light"] .kpi{border-color:#93C5FD}
 [data-theme="light"] .chip:not(.on){border-color:#93C5FD}
+[data-theme="light"] .filters{border-color:#93C5FD}
 
 /* bar list */
 .barrow{margin-bottom:10px;cursor:default}
@@ -229,7 +237,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .pdfbtn{display:inline-flex;align-items:center;justify-content:center;font-size:11px;padding:2px 7px;border-radius:6px;cursor:pointer;background:transparent;border:1px solid var(--border2);color:var(--text4);transition:.12s;flex-shrink:0;margin-left:6px}
 .pdfbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--card2)}
 /* ── customer data-files status box (top of each customer page) ── */
-.dsf{display:flex;flex-direction:column;gap:9px}
+.dsf{display:flex;flex-wrap:wrap;gap:8px}
+.dsf-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 13px;background:var(--card2);border:1px solid var(--border2);border-radius:10px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text2);transition:.12s;white-space:nowrap}
+.dsf-pill:hover,.dsf-pill.drag{border-color:var(--accent);color:var(--text)}
+.dsf-pill .dsf-ic{font-size:15px}
+.dsf-pill .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dsf-pill.ok .dot{background:var(--good)}
+.dsf-pill.nodata .dot{background:var(--warn)}
+.dsf-pill.missing .dot{background:var(--text4)}
+.dsf-pill .act{font-size:12px;color:var(--text4);font-weight:600}
+[data-theme="light"] .dsf-pill{border-color:#93C5FD}
 .dsf-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;background:var(--card2);border:1px solid var(--border2);border-radius:10px;flex-wrap:wrap}
 .dsf-left{display:flex;align-items:center;gap:9px;min-width:0}
 .dsf-ic{font-size:16px;flex-shrink:0}
@@ -336,16 +353,38 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     </div>
     <div class="tools">
       <button class="btn" id="themeBtn">🌙 Dark</button>
-      <button class="btn" id="csvBtn">⬇︎ CSV</button>
-      <button class="btn primary" id="coReportBtn">📄 Company report</button>
       <button class="btn" id="newBtn">↻ New file</button>
     </div>
   </div>
 
-  <div class="chips" id="monthChips"></div>
-  <div class="chips" id="acctChips"></div>
+  <section class="filters">
+    <div class="frow"><span class="flabel">Month</span><div class="fchips" id="monthChips"></div></div>
+    <div class="frow"><span class="flabel">Account</span><div class="fchips" id="acctChips"></div></div>
+  </section>
+
+  <!-- data files (customer view only): reference files loaded for this customer -->
+  <div class="panel hide" id="custDataStatus">
+    <div class="head"><span class="eyebrow">📋 Data files</span><span class="hint" id="custDataStatusHint"></span></div>
+    <div class="dsf" id="custDataStatusRows"></div>
+    <!-- dedicated inputs so upload works from the customer view (shared inputs sit in
+         display:none panels, which breaks tapping on iOS) -->
+    <input type="file" id="dsTargetInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
+    <input type="file" id="dsARInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
+    <input type="file" id="dsStockInput" accept=".txt,.TXT" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
+  </div>
 
   <div class="kpis" id="kpis"></div>
+
+  <!-- all-accounts report toolbar (mirrors the per-customer one) -->
+  <div class="panel" id="allToolbar">
+    <div class="head"><span class="eyebrow">🧰 Reports</span><span class="hint">generate a report across all accounts</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn primary" id="allWeeklyBtn">📅 Weekly PDF</button>
+      <button class="btn" id="allStockBtn">📦 Stock PDF</button>
+      <button class="btn" id="allOverdueBtn">💰 Overdue PDF</button>
+      <button class="btn" id="allTargetBtn">🎯 Target vs Delivery PDF</button>
+    </div>
+  </div>
 
   <!-- latest delivery: all accounts -->
   <div class="panel" id="latestPanelAll"></div>
@@ -430,16 +469,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
         <button class="btn" id="targetPdfBtn">🎯 Target vs Delivery PDF</button>
       </div>
     </div>
-    <!-- data files at a glance: which reference files are loaded for this customer -->
-    <div class="panel" id="custDataStatus">
-      <div class="head"><span class="eyebrow">📋 Data files</span><span class="hint" id="custDataStatusHint"></span></div>
-      <div class="dsf" id="custDataStatusRows"></div>
-      <!-- dedicated inputs so upload works from the customer view (the shared target/AR
-           inputs sit in panels that are display:none here, which breaks tapping on iOS) -->
-      <input type="file" id="dsTargetInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
-      <input type="file" id="dsARInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
-      <input type="file" id="dsStockInput" accept=".txt,.TXT" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
-    </div>
     <!-- latest delivery: customer -->
     <div class="panel" id="custLatestPanel"></div>
     <!-- customer target card: driven by global TARGET, sits right after monthly volume -->
@@ -512,7 +541,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 21 Jun 2026 · 22:10</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 21 Jun 2026 · 23:55</div>
 </div>
 
 <div id="report"></div>
@@ -527,12 +556,14 @@ const COMPANY_RULES = [
   { group:'Universal Beverages', test:/universal|a\s*m\s*i\s*t/i },   // Universal + AMIT
   { group:'Gulf Union',          test:/gulf\s*union/i },
   { group:'Al Sayer',            test:/al[\s-]?sayer/i },             // Mohammad Naser … Al-Sayer
-  { group:'Al Esayi Beverages Company', test:/esayi/i },              // Al Esayi → full company name
+  { group:'Al Esayi', test:/esayi/i },              // Al Esayi → full company name
   { group:'Al Jabr',             test:/canned\s*soft\s*drink/i },     // "Canned Soft Drinks …" → Al Jabr
   { group:'Aqua Brown',          test:/aqua\s*brown|anorka/i },       // Anorka is Aqua Brown
   { group:'Arrow',               test:/\barrow\b/i },
   { group:'Abi Ramia',           test:/international\s+factory/i },
   { group:'Ball India',          test:/kenya\s*breweries|\budv\b/i }, // consolidated under Ball India
+  { group:'Crown Dairy',         test:/crown\s*dairy/i },             // Crown Dairy Industries -> Crown Dairy
+  { group:'Camel Step',          test:/came?l?\s*step/i },            // Came/Camel Step Corporation -> Camel Step
 ];
 function companyOf(raw){
   const s=String(raw||'').trim();
@@ -792,12 +823,11 @@ function render(){
 
   // month chips
   const mchips=['All',...monthsPresent()];
-  document.getElementById('monthChips').innerHTML='<span class="eyebrow" style="margin-right:4px">Month</span>'+
-    mchips.map(m=>'<span class="chip'+(MONTH===m?' on':'')+'" data-m="'+m+'">'+m+'</span>').join('');
+  document.getElementById('monthChips').innerHTML=mchips.map(m=>'<span class="chip'+(MONTH===m?' on':'')+'" data-m="'+m+'">'+m+'</span>').join('');
 
   // account chips (ranked by total volume, stable across the month filter)
   const allAccts=sorted(sumBy(DATA.rows,'account')).map(x=>x[0]);
-  document.getElementById('acctChips').innerHTML='<span class="eyebrow" style="margin-right:4px">Account</span>'+
+  document.getElementById('acctChips').innerHTML=
     '<span class="chip'+(ACCOUNT==='All'?' on':'')+'" data-a="All">All accounts</span>'+
     allAccts.map(a=>'<span class="chip acct'+(ACCOUNT===a?' on':'')+'" data-a="'+esc(a)+'" title="'+esc(a)+'">'+esc(a)+'</span>').join('');
 
@@ -850,6 +880,8 @@ function render(){
   document.getElementById('targetPanelAll').classList.toggle('hide', isCust);
   document.getElementById('arPanelAll').classList.toggle('hide', isCust);
   document.getElementById('custView').classList.toggle('hide', !isCust);
+  document.getElementById('custDataStatus').classList.toggle('hide', !isCust);
+  document.getElementById('allToolbar').classList.toggle('hide', isCust);
 
   // Keep the upload panels before "Monthly volume" in BOTH views.
   // Customer view: move the shared monthly panel after the customer overdue card
@@ -919,7 +951,6 @@ function render(){
     renderAR();
   }
 
-  document.getElementById('coReportBtn').textContent = isCust ? '📄 Customer PDF' : '📄 Company report';
 }
 
 function sizeBadge(s){const lbl=SIZE_LABEL[s]||(REAL.includes(s)?s+'ml':s);return '<span class="szb" style="background:'+sizeColor(s)+'22;color:'+sizeColor(s)+'">'+esc(lbl)+'</span>';}
@@ -1223,7 +1254,7 @@ function buildReportHTML(scope, only){
   if(!total) return null;
 
   /* ── ALL-ACCOUNTS path: keep original matrix-table report ── */
-  if(scope==='__ALL__'){
+  if(scope==='__ALL__' && !only){
     const monthVol=mp.map(m=>[m,rs.filter(r=>r.month===m).reduce((s,r)=>s+r.qty,0)]);
     const peak=[...monthVol].sort((a,b)=>b[1]-a[1])[0];
     const skuCount=new Set(rs.map(r=>r.product)).size;
@@ -1268,6 +1299,8 @@ function buildReportHTML(scope, only){
   const labelCount=new Set(rs.map(r=>r.label)).size;
   const sizeCount=new Set(rs.map(r=>r.size).filter(s=>REAL.includes(s))).size;
   const skuCount=new Set(rs.map(r=>r.product)).size;
+  const isAll = scope==='__ALL__';
+  const dispName = isAll ? 'All Accounts' : scope;
   const allTotal=DATA.rows.reduce((s,r)=>s+r.qty,0);
   const sharePct=allTotal?(total/allTotal*100).toFixed(1):'0.0';
 
@@ -1316,6 +1349,28 @@ function buildReportHTML(scope, only){
   // delivered is scoped to the target month (deliveredTotalFromSales / deliveredFromSales),
   // per-size targets are keyed by LABEL, and an invalid size-target set is hidden with a warning.
   function tgtBody(){
+    if(isAll){
+      if(!TARGET||!TARGET.customers||!TARGET.customers.length) return '<div style="font-size:8pt;color:#9CA3AF">No target data uploaded.</div>';
+      const rows=TARGET.customers.map(c=>{const del=deliveredTotalFromSales(c.account||c.name);const tg=c.tgt||0;return{nm:c.name,del,tg,pct:tg>0?del/tg*100:0,rem:tg-del};}).sort((a,b)=>b.tg-a.tg);
+      const tDel=rows.reduce((s,r)=>s+r.del,0),tTg=rows.reduce((s,r)=>s+r.tg,0),tPct=tTg>0?tDel/tTg*100:0,tcol=tPct>=100?'#059669':'#DC2626';
+      const body=rows.map(r=>{const col=r.pct>=100?'#059669':'#DC2626';return '<tr style="border-bottom:1px solid #F3F5F9">'
+        +'<td style="padding:4px 8px;color:#374151">'+rE(r.nm)+'</td>'
+        +'<td style="padding:4px 8px;text-align:right;font-variant-numeric:tabular-nums">'+r.del.toFixed(2)+' MM</td>'
+        +'<td style="padding:4px 8px;text-align:right;font-variant-numeric:tabular-nums">'+r.tg.toFixed(2)+' MM</td>'
+        +'<td style="padding:4px 8px;text-align:right;font-weight:700;color:'+col+'">'+(r.tg>0?r.pct.toFixed(1):'\u2014')+'%</td>'
+        +'<td style="padding:4px 8px;text-align:right;font-weight:700;color:'+col+'">'+r.rem.toFixed(2)+' MM</td></tr>';}).join('');
+      return '<table style="width:100%;border-collapse:collapse;font-size:8pt"><thead><tr>'
+        +'<th style="'+TH+';text-align:left">Customer</th><th style="'+TH+';text-align:right">Delivered</th>'
+        +'<th style="'+TH+';text-align:right">Target</th><th style="'+TH+';text-align:right">Achieved</th>'
+        +'<th style="'+TH+';text-align:right">Remaining</th></tr></thead><tbody>'+body+'</tbody>'
+        +'<tfoot><tr style="border-top:1.5px solid #E5E7EB">'
+        +'<td style="padding:4px 8px;font-weight:700">Total</td>'
+        +'<td style="padding:4px 8px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums">'+tDel.toFixed(2)+' MM</td>'
+        +'<td style="padding:4px 8px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums">'+tTg.toFixed(2)+' MM</td>'
+        +'<td style="padding:4px 8px;text-align:right;font-weight:700;color:'+tcol+'">'+tPct.toFixed(1)+'%</td>'
+        +'<td style="padding:4px 8px;text-align:right;font-weight:700;color:'+tcol+'">'+(tTg-tDel).toFixed(2)+' MM</td>'
+        +'</tr></tfoot></table>';
+    }
     if(!TARGET||!TARGET.customers) return '<div style="font-size:8pt;color:#9CA3AF">No target data uploaded.</div>';
     const custLow=scope.toLowerCase();
     const tc=TARGET.customers.find(c=>(c.account||'').toLowerCase()===custLow)
@@ -1372,6 +1427,24 @@ function buildReportHTML(scope, only){
 
   // Overdues
   function arBody(){
+    if(isAll){
+      if(!AR||!AR.customers||!AR.customers.length) return '<div style="font-size:8pt;color:#9CA3AF">No AR data uploaded.</div>';
+      const rows=AR.customers.map(c=>({nm:c.name,bal:c.total||0,ov:c.overdue||0})).sort((a,b)=>b.ov-a.ov);
+      const tBal=rows.reduce((s,r)=>s+r.bal,0),tOv=rows.reduce((s,r)=>s+r.ov,0);
+      const body=rows.map(r=>'<tr style="border-bottom:1px solid #F3F5F9">'
+        +'<td style="padding:4px 8px;color:#374151">'+rE(r.nm)+'</td>'
+        +'<td style="padding:4px 8px;text-align:right;font-variant-numeric:tabular-nums">'+fmtC(r.bal)+'</td>'
+        +'<td style="padding:4px 8px;text-align:right;font-variant-numeric:tabular-nums'+(r.ov>0?';color:#DC2626;font-weight:700':'')+'">'+fmtC(r.ov)+'</td></tr>').join('');
+      return '<div style="display:flex;gap:10px;margin-bottom:12px">'
+        +'<div style="flex:1;background:#F8FAFC;border:1px solid #EAEEF4;border-radius:10px;padding:9px 13px"><div style="font-size:13pt;font-weight:800;font-variant-numeric:tabular-nums;color:#0F172A">'+fmtC(tBal)+'</div><div style="font-size:6.5pt;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-top:4px">Total balance SAR</div></div>'
+        +'<div style="flex:1;background:#F8FAFC;border:1px solid #EAEEF4;border-radius:10px;padding:9px 13px"><div style="font-size:13pt;font-weight:800;font-variant-numeric:tabular-nums;color:#DC2626">'+fmtC(tOv)+'</div><div style="font-size:6.5pt;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-top:4px">Total overdue SAR</div></div></div>'
+        +'<table style="width:100%;border-collapse:collapse;font-size:8pt"><thead><tr>'
+        +'<th style="'+TH+';text-align:left">Customer</th><th style="'+TH+';text-align:right">Balance SAR</th>'
+        +'<th style="'+TH+';text-align:right">Overdue SAR</th></tr></thead><tbody>'+body+'</tbody>'
+        +'<tfoot><tr style="border-top:1.5px solid #E5E7EB"><td style="padding:4px 8px;font-weight:700">Total</td>'
+        +'<td style="padding:4px 8px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums">'+fmtC(tBal)+'</td>'
+        +'<td style="padding:4px 8px;text-align:right;font-weight:700;color:#DC2626;font-variant-numeric:tabular-nums">'+fmtC(tOv)+'</td></tr></tfoot></table>';
+    }
     if(!AR||!AR.customers) return '<div style="font-size:8pt;color:#9CA3AF">No AR data uploaded.</div>';
     const custLow=scope.toLowerCase();
     const ac=AR.customers.find(c=>c.name.toLowerCase()===custLow)
@@ -1412,6 +1485,24 @@ function buildReportHTML(scope, only){
   // Stock Available by size — mirrors the dashboard's "By size" stock view:
   // available cans per size, average monthly delivery, and months of supply.
   function stockBody(){
+    if(isAll){
+      const agg={}; Object.keys(STOCK).forEach(a=>{const bs=(STOCK[a]&&STOCK[a].bySize)||{};Object.keys(bs).forEach(sz=>{if(bs[sz]>0)agg[sz]=(agg[sz]||0)+bs[sz];});});
+      const szo=Object.keys(agg).sort((a,b)=>(parseInt(a)||9999)-(parseInt(b)||9999));
+      if(!szo.length) return '<div style="font-size:8pt;color:#9CA3AF">No stock data uploaded.</div>';
+      const nMonths=mp.length||1, totalAvail=szo.reduce((s,sz)=>s+agg[sz],0);
+      const avgMoSize=sz=>rs.filter(r=>r.size===sz).reduce((s,r)=>s+r.qty,0)/nMonths;
+      const rows=szo.map(sz=>{const qty=agg[sz],avg=avgMoSize(sz),mos=avg>0?qty/avg:null;
+        return '<tr style="border-bottom:1px solid #F3F5F9"><td style="padding:4px 8px">'+szBadge(sz)+'</td>'
+          +'<td style="padding:4px 8px;text-align:right;font-variant-numeric:tabular-nums">'+fmtC(qty)+'</td>'
+          +'<td style="padding:4px 8px;text-align:right;font-variant-numeric:tabular-nums">'+(avg>0?fmtC(avg):'\u2014')+'</td>'
+          +'<td style="padding:4px 8px;text-align:right;font-variant-numeric:tabular-nums">'+(mos!=null?mos.toFixed(1)+' mo':'\u2014')+'</td></tr>';}).join('');
+      return '<table style="width:100%;border-collapse:collapse;font-size:8pt"><thead><tr>'
+        +'<th style="'+TH+';text-align:left">Size</th><th style="'+TH+';text-align:right">Available stock</th>'
+        +'<th style="'+TH+';text-align:right">Avg / month</th><th style="'+TH+';text-align:right">Months of supply</th></tr></thead>'
+        +'<tbody>'+rows+'</tbody><tfoot><tr style="border-top:1.5px solid #E5E7EB">'
+        +'<td style="padding:4px 8px;font-weight:700">Net available</td>'
+        +'<td style="padding:4px 8px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums">'+fmtC(totalAvail)+'</td><td></td><td></td></tr></tfoot></table>';
+    }
     const stk=STOCK[scope];
     if(!stk) return '<div style="font-size:8pt;color:#9CA3AF">No stock data uploaded for this customer.</div>';
     const bySize=stk.bySize||{};
@@ -1459,6 +1550,16 @@ function buildReportHTML(scope, only){
 
   // Stock by size → SKU (for the focused Stock PDF)
   function stockSkuBody(){
+    if(isAll){
+      const agg={}; Object.keys(STOCK).forEach(a=>{const bss=(STOCK[a]&&STOCK[a].bySizeSku)||{};Object.keys(bss).forEach(sz=>{const m=bss[sz]||{};Object.keys(m).forEach(sku=>{if(m[sku]>0){agg[sz]=agg[sz]||{};agg[sz][sku]=(agg[sz][sku]||0)+m[sku];}});});});
+      const szo=Object.keys(agg).sort((a,b)=>(parseInt(a)||9999)-(parseInt(b)||9999));
+      if(!szo.length) return '<div style="font-size:8pt;color:#9CA3AF">No stock data uploaded.</div>';
+      const blocks=szo.map(sz=>{const skus=Object.entries(agg[sz]).filter(([,q])=>q>0).sort((a,b)=>b[1]-a[1]);if(!skus.length)return '';
+        const szTot=skus.reduce((s,[,q])=>s+q,0);
+        const rows=skus.map(([sku,q])=>'<tr style="border-bottom:1px solid #F3F5F9"><td style="padding:4px 8px;color:#374151">'+rE(sku)+'</td><td style="padding:4px 8px;text-align:right;font-variant-numeric:tabular-nums">'+fmtC(q)+'</td></tr>').join('');
+        return '<div style="margin-bottom:11px;page-break-inside:auto"><div style="margin-bottom:5px;page-break-after:avoid">'+szBadge(sz)+'<span style="float:right;font-size:8pt;color:#475569;font-weight:700;font-variant-numeric:tabular-nums">'+fmtC(szTot)+' cans</span></div><table style="width:100%;border-collapse:collapse;font-size:8pt"><thead><tr><th style="'+TH+';text-align:left">SKU</th><th style="'+TH+';text-align:right">Available stock</th></tr></thead><tbody>'+rows+'</tbody></table></div>';}).filter(Boolean).join('');
+      return blocks||'<div style="font-size:8pt;color:#9CA3AF">No stock available.</div>';
+    }
     const stk=STOCK[scope];
     if(!stk) return '<div style="font-size:8pt;color:#9CA3AF">No stock data uploaded for this customer.</div>';
     const bss=stk.bySizeSku||{};
@@ -1487,18 +1588,21 @@ function buildReportHTML(scope, only){
   // Header figure (top-right) adapts to the report kind
   let headNum=fmtC(total), headLbl='Cans delivered YTD';
   if(only==='stock'){
-    const bs=(STOCK[scope]&&STOCK[scope].bySize)||{};
-    const tot=Object.keys(bs).reduce((s,k)=>s+(bs[k]>0?bs[k]:0),0);
+    let tot=0;
+    if(isAll){ Object.keys(STOCK).forEach(a=>{const bs=(STOCK[a]&&STOCK[a].bySize)||{};Object.keys(bs).forEach(k=>{if(bs[k]>0)tot+=bs[k];});}); }
+    else { const bs=(STOCK[scope]&&STOCK[scope].bySize)||{}; tot=Object.keys(bs).reduce((s,k)=>s+(bs[k]>0?bs[k]:0),0); }
     headNum=fmtC(tot); headLbl='Cans in stock';
   } else if(only==='overdue'){
     let ov=0;
-    if(AR&&AR.customers){ const lc=scope.toLowerCase();
+    if(isAll){ if(AR&&AR.customers) ov=AR.customers.reduce((s,c)=>s+(c.overdue||0),0); }
+    else if(AR&&AR.customers){ const lc=scope.toLowerCase();
       const ac=AR.customers.find(c=>c.name.toLowerCase()===lc)||AR.customers.find(c=>(c.account||'').toLowerCase()===lc);
       if(ac) ov=ac.overdue||0; }
     headNum=fmtC(ov); headLbl='Total overdue SAR';
   } else if(only==='target'){
     let pct=null;
-    if(TARGET&&TARGET.customers){ const lc=scope.toLowerCase();
+    if(isAll){ if(TARGET&&TARGET.customers){ let d=0,t=0; TARGET.customers.forEach(c=>{d+=deliveredTotalFromSales(c.account||c.name);t+=(c.tgt||0);}); if(t>0) pct=d/t*100; } }
+    else if(TARGET&&TARGET.customers){ const lc=scope.toLowerCase();
       const tc=TARGET.customers.find(c=>(c.account||'').toLowerCase()===lc)
         ||TARGET.customers.find(c=>c.name.toLowerCase()===lc)
         ||TARGET.customers.find(c=>{const a=(c.account||'').toLowerCase(),n=c.name.toLowerCase();
@@ -1535,13 +1639,13 @@ function buildReportHTML(scope, only){
              + sect('Stock Available by Size',stkMeta,stockBody());
   }
 
-  return '<!DOCTYPE html>\n<html lang="en"><head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>'+rE(scope)+' \u2014 '+KIND+'</title>\n<style>\n*{margin:0;padding:0;box-sizing:border-box}\nbody{font-family:\'Helvetica Neue\',Arial,sans-serif;color:#0F172A;font-size:8.5pt;line-height:1.4;background:#F4F6FA;-webkit-print-color-adjust:exact;print-color-adjust:exact}\n@media print{@page{size:A4 portrait;margin:1.1cm}.no-print{display:none!important}body{background:#F4F6FA}tr{page-break-inside:avoid}}\n.no-print{position:fixed;top:0;left:0;right:0;padding:10px 16px;background:#EFF6FF;border-bottom:1px solid #BFDBFE;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:99}\n.no-print span{font-size:12px;color:#1E40AF}\n.no-print button{background:#1D4ED8;color:#fff;border:none;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer}\n.page{max-width:900px;margin:0 auto;padding:56px 6px 6px}\n@media print{.page{padding:0}}\n</style>\n</head>\n<body>\n<div class="no-print">\n  <span>&#128196; <b>'+rE(scope)+'</b> \u2014 '+KIND+' \u00b7 Ready to save as PDF</span>\n  <button onclick="window.print()">&#128424; Save as PDF</button>\n</div>\n<div class="page">\n'
+  return '<!DOCTYPE html>\n<html lang="en"><head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>'+rE(dispName)+' \u2014 '+KIND+'</title>\n<style>\n*{margin:0;padding:0;box-sizing:border-box}\nbody{font-family:\'Helvetica Neue\',Arial,sans-serif;color:#0F172A;font-size:8.5pt;line-height:1.4;background:#F4F6FA;-webkit-print-color-adjust:exact;print-color-adjust:exact}\n@media print{@page{size:A4 portrait;margin:1.1cm}.no-print{display:none!important}body{background:#F4F6FA}tr{page-break-inside:avoid}}\n.no-print{position:fixed;top:0;left:0;right:0;padding:10px 16px;background:#EFF6FF;border-bottom:1px solid #BFDBFE;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:99}\n.no-print span{font-size:12px;color:#1E40AF}\n.no-print button{background:#1D4ED8;color:#fff;border:none;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer}\n.page{max-width:900px;margin:0 auto;padding:56px 6px 6px}\n@media print{.page{padding:0}}\n</style>\n</head>\n<body>\n<div class="no-print">\n  <span>&#128196; <b>'+rE(dispName)+'</b> \u2014 '+KIND+' \u00b7 Ready to save as PDF</span>\n  <button onclick="window.print()">&#128424; Save as PDF</button>\n</div>\n<div class="page">\n'
     /* Header */
     +'<div style="background:#fff;border:1px solid #E5E7EB;border-top:3px solid #1D4ED8;border-radius:14px;box-shadow:0 1px 2px rgba(15,23,42,.05);padding:13px 18px;margin-bottom:11px">'
     +'<table style="width:100%;border-collapse:collapse"><tr>'
     +'<td style="vertical-align:top">'
     +'<div style="font-size:7pt;font-weight:700;color:#64748B;letter-spacing:.16em;text-transform:uppercase;margin-bottom:4px">'+KIND+'</div>'
-    +'<div style="font-size:21pt;font-weight:900;line-height:1.05;color:#102A56">'+rE(scope)+'</div>'
+    +'<div style="font-size:21pt;font-weight:900;line-height:1.05;color:#102A56">'+rE(dispName)+'</div>'
     +'</td>'
     +'<td style="vertical-align:top;text-align:right">'
     +'<div style="font-size:16pt;font-weight:900;color:#1D4ED8;font-variant-numeric:tabular-nums">'+headNum+'</div>'
@@ -1552,7 +1656,7 @@ function buildReportHTML(scope, only){
     +sections
     /* Footer */
     +'<div style="margin-top:8px;padding-top:8px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:6.5pt;color:#9CA3AF">'
-    +'<span>Confidential \u00b7 prepared exclusively for '+rE(scope)+' \u00b7 empty can supply.</span>'
+    +'<span>Confidential \u00b7 prepared exclusively for '+rE(dispName)+' \u00b7 empty can supply.</span>'
     +'<span>\u00a9 '+new Date().getFullYear()+' \u00b7 '+KIND+' issued '+issueDate+'</span></div>'
     +'</div>'
     +'<script>window.addEventListener(\'load\',function(){setTimeout(function(){window.print();},600);});<\/script>'
@@ -1574,7 +1678,7 @@ function downloadPDF(scope, only){
   const mp  =monthsPresent();
   const kindSuffix = only==='stock'?'_Stock' : only==='overdue'?'_Overdue' : only==='target'?'_Target_vs_Delivered' : '_Weekly_Update';
   const fname=(scope==='__ALL__'
-      ? 'All_Accounts_'+mp[0]+'-'+mp[mp.length-1]+'_Report'
+      ? (only ? 'All_Accounts'+kindSuffix : 'All_Accounts_'+mp[0]+'-'+mp[mp.length-1]+'_Report')
       : title.replace(/[^a-z0-9]+/ig,'_')+kindSuffix)+'.html';
   // Open in a new tab (desktop) — fall back to a download if the popup is blocked (iOS).
   const w=window.open(url,'_blank');
@@ -1957,28 +2061,17 @@ function renderCustDataStatus(){
   document.getElementById('custDataStatusHint').textContent=okCount+' of '+files.length+' loaded · '+ACCOUNT;
 
   document.getElementById('custDataStatusRows').innerHTML=files.map(f=>{
-    // Reusable upload/replace tap target (drag-drop too), wired to the same loader.
-    // Uploading always overwrites the saved copy, so the same control replaces a file.
-    const ctrl=(cls,text)=>'<label for="'+f.input+'" class="'+cls+'" '
+    const cls=f.s.state==='ok'?'ok':(f.s.state==='nodata'?'nodata':'missing');
+    const act=f.s.state==='missing'?'⬆':'↻';
+    const when=f.s.ts?uploadedLabel(f.s.ts).replace(/^uploaded /,''):'';
+    const title=f.s.state==='ok'?('Uploaded '+when):(f.s.state==='nodata'?('Uploaded '+when+' · not in this file'):'Not uploaded — tap to add');
+    // Whole pill is the upload/replace tap target (drag-drop too), wired to the loader.
+    return '<label for="'+f.input+'" class="dsf-pill '+cls+'" title="'+title+'" '
       +'ondragover="event.preventDefault();this.classList.add(\'drag\')" '
       +'ondragleave="this.classList.remove(\'drag\')" '
       +'ondrop="event.preventDefault();this.classList.remove(\'drag\');if(event.dataTransfer.files[0])'+f.loader+'(event.dataTransfer.files[0])">'
-      +text+'</label>';
-    let right;
-    if(f.s.state==='ok'){
-      const when=uploadedLabel(f.s.ts).replace(/^uploaded /,'');
-      right='<span class="dsf-stat ok"><span class="dot"></span>✓ Uploaded</span>'
-        +(when?'<span class="dsf-when">'+when+'</span>':'')+ctrl('dsf-replace','↻ Replace');
-    } else if(f.s.state==='nodata'){
-      const when=uploadedLabel(f.s.ts).replace(/^uploaded /,'');
-      right='<span class="dsf-stat nodata"><span class="dot"></span>Uploaded · not in this file</span>'
-        +(when?'<span class="dsf-when">'+when+'</span>':'')+ctrl('dsf-replace','↻ Replace');
-    } else {
-      right=ctrl('dsf-up','⬆ Tap to upload');
-    }
-    return '<div class="dsf-row">'
-      +'<div class="dsf-left"><span class="dsf-ic">'+f.ic+'</span><span class="dsf-nm">'+f.nm+'</span></div>'
-      +'<div class="dsf-right">'+right+'</div></div>';
+      +'<span class="dsf-ic">'+f.ic+'</span><span class="dsf-nm">'+f.nm+'</span>'
+      +'<span class="dot"></span><span class="act">'+act+'</span></label>';
   }).join('');
 }
 
@@ -2585,7 +2678,6 @@ document.getElementById('monthChips').onclick=e=>{const c=e.target.closest('.chi
 document.getElementById('acctChips').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;setAccount(c.dataset.a);};
 document.getElementById('acctSearch').oninput=e=>{const v=view();const total=v.reduce((s,r)=>s+r.qty,0);renderAccts(sorted(sumBy(v,'account')),total,e.target.value);};
 document.getElementById('newBtn').onclick=()=>{DATA=null;MONTH='All';ACCOUNT='All';TARGET=null;AR=null;Object.keys(STOCK).forEach(k=>delete STOCK[k]);document.getElementById('app').classList.add('hide');document.getElementById('upload').classList.remove('hide');fileInput.value='';};
-document.getElementById('csvBtn').onclick=()=>downloadCSV(ACCOUNT==='All'?'__ALL__':ACCOUNT);
 /* ── PDF button helpers ── */
 function triggerPDF(scope, btn, only){
   // Show loading state, then generate (setTimeout lets the UI repaint first)
@@ -2596,15 +2688,16 @@ function triggerPDF(scope, btn, only){
     finally{ if(btn){ btn.textContent=orig; btn.disabled=false; } }
   }, 40);
 }
-document.getElementById('coReportBtn').onclick=function(){
-  triggerPDF(ACCOUNT==='All'?'__ALL__':ACCOUNT, this);
-};
 document.getElementById('custPdfBtn').onclick=function(){
   triggerPDF(ACCOUNT==='All'?'__ALL__':ACCOUNT, this);
 };
 document.getElementById('stockPdfBtn').onclick=function(){ if(ACCOUNT!=='All') triggerPDF(ACCOUNT, this, 'stock'); };
 document.getElementById('overduePdfBtn').onclick=function(){ if(ACCOUNT!=='All') triggerPDF(ACCOUNT, this, 'overdue'); };
 document.getElementById('targetPdfBtn').onclick=function(){ if(ACCOUNT!=='All') triggerPDF(ACCOUNT, this, 'target'); };
+document.getElementById('allWeeklyBtn').onclick=function(){ triggerPDF('__ALL__', this); };
+document.getElementById('allStockBtn').onclick=function(){ triggerPDF('__ALL__', this, 'stock'); };
+document.getElementById('allOverdueBtn').onclick=function(){ triggerPDF('__ALL__', this, 'overdue'); };
+document.getElementById('allTargetBtn').onclick=function(){ triggerPDF('__ALL__', this, 'target'); };
 // PDF icons on each account bar in the overview
 document.getElementById('accts').addEventListener('click',e=>{
   const btn=e.target.closest('[data-pdf]');
