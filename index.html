@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Customer Sales Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ───────────────────────── THEME TOKENS ───────────────────────── */
+:root,[data-theme="dark"]{
+  --bg:#0D1117; --bg2:#161B22; --card:#161B22; --card2:#1C2230;
+  --border:#21262D; --border2:#30363D;
+  --text:#E6EDF3; --text2:#C9D1D9; --text3:#8B949E; --text4:#6E7681;
+  --accent:#58A6FF; --accent2:#388BFD; --track:#21262D;
+  --good:#3FB950; --bad:#F85149; --warn:#D29922; --purple:#BC8CFF;
+  --dz-bg:#1C2A3A; --dz-bd:#388BFD;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+[data-theme="light"]{
+  --bg:#F4F6FA; --bg2:#FFFFFF; --card:#FFFFFF; --card2:#F8FAFC;
+  --border:#E5E7EB; --border2:#D1D5DB;
+  --text:#0F172A; --text2:#374151; --text3:#6B7280; --text4:#9CA3AF;
+  --accent:#1D4ED8; --accent2:#2563EB; --track:#E5E7EB;
+  --good:#059669; --bad:#DC2626; --warn:#D97706; --purple:#7C3AED;
+  --dz-bg:#EFF6FF; --dz-bd:#2563EB;
+  --shadow:0 1px 2px rgba(15,23,42,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+.num{font-variant-numeric:tabular-nums}
+.eyebrow{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--text4);font-weight:700}
+.hide{display:none!important}
+
+/* ───────────────────────── UPLOAD ───────────────────────── */
+#upload{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.up-card{width:100%;max-width:460px;text-align:center}
+.up-card .logo{font-size:36px;margin-bottom:14px}
+.up-card h1{font-size:25px;font-weight:800}
+.up-card .sub{font-size:13px;color:var(--text3);margin-top:8px}
+.up-card .sub2{font-size:13px;color:var(--text4);margin-bottom:22px}
+.dz{cursor:pointer;border:2px dashed var(--dz-bd);background:var(--dz-bg);border-radius:14px;padding:40px 20px;transition:.15s}
+.dz:hover{filter:brightness(1.08)}
+.dz.drag{border-color:var(--warn);background:var(--card2)}
+.dz .ic{font-size:26px}
+.dz .main{font-size:15px;font-weight:700;color:var(--accent);margin-top:8px}
+.dz .small{font-size:12px;color:var(--text4);margin-top:4px}
+.errbox{display:flex;gap:10px;text-align:left;margin-top:16px;padding:12px 14px;background:rgba(248,81,73,.10);border:1px solid var(--bad);border-radius:10px;font-size:13px;color:var(--bad)}
+.cols{text-align:left;margin-top:18px;padding:16px;background:var(--card);border:1px solid var(--border);border-radius:12px}
+.cols .row{display:flex;align-items:center;gap:10px;margin-bottom:7px;font-size:12.5px;color:var(--text3)}
+.cols code{font-size:11.5px;color:var(--accent);background:var(--card2);padding:2px 7px;border-radius:5px}
+.cols .note{font-size:11.5px;color:var(--text4);margin-top:8px}
+
+/* ───────────────────────── APP CHROME ───────────────────────── */
+#app{max-width:1180px;margin:0 auto;padding:18px clamp(12px,3.5vw,30px) 60px}
+.topbar{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.topbar h1{font-size:20px;font-weight:800}
+.topbar .sub{font-size:12.5px;color:var(--text3);margin-top:2px}
+.topbar .date{font-size:12px;color:var(--text4);margin-top:3px}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+.btn{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--text2);background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 12px;display:inline-flex;align-items:center;gap:6px;transition:.12s}
+.btn:hover{border-color:var(--accent2);color:var(--text)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.06);color:#fff}
+
+.chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{cursor:pointer;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid var(--border);color:var(--text3);background:transparent;font-weight:500}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.chip.acct{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px 15px;box-shadow:var(--shadow)}
+.kpi .lab{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.kpi .dot{width:7px;height:7px;border-radius:2px;background:var(--accent)}
+.kpi .val{font-size:23px;font-weight:800;line-height:1}
+.kpi .sub{font-size:11.5px;color:var(--text3);margin-top:6px}
+
+/* panels & grid */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+.panel .head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;gap:10px}
+.panel .head .hint{font-size:11px;color:var(--text4)}
+
+/* bar list */
+.barrow{margin-bottom:10px;cursor:default}
+.barrow.click{cursor:pointer}
+.barrow.click:hover .nm{color:var(--accent)}
+.barrow .top{display:flex;justify-content:space-between;gap:10px;margin-bottom:4px}
+.barrow .nm{font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.barrow .vv{font-size:12px;color:var(--text3);flex-shrink:0}
+.track{height:7px;background:var(--track);border-radius:4px;overflow:hidden}
+.fill{height:100%;border-radius:4px}
+
+/* monthly columns */
+.tchart{width:100%;overflow:visible;display:block}
+.tchart .line{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+.tchart .dot{fill:var(--accent);stroke:var(--bg2);stroke-width:2.5}
+.tchart .vol-lbl{font-size:10px;fill:var(--text3);text-anchor:middle;font-variant-numeric:tabular-nums}
+.tchart .mom-lbl{font-size:9px;font-weight:700;text-anchor:middle}
+.tchart .mom-lbl.up{fill:var(--good)} .tchart .mom-lbl.down{fill:var(--bad)} .tchart .mom-lbl.mut{fill:var(--text4)}
+.tchart .mon-lbl{font-size:11px;fill:var(--text4);text-anchor:middle;font-weight:600}
+.tchart .grid{stroke:var(--border);stroke-width:0.5}
+/* monthly volume bar chart (overview panel) */
+.months{display:flex;align-items:flex-end;gap:8px;height:160px;padding-top:8px}
+.mcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px}
+.mcol .bar{width:100%;max-width:46px;border-radius:5px 5px 0 0;transition:.15s}
+.mcol .mv{font-size:10px;color:var(--text3);font-variant-numeric:tabular-nums}
+.mcol .ml{font-size:11px;color:var(--text4);font-weight:600}
+
+/* movers */
+.mv-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:620px){.mv-grid{grid-template-columns:1fr}}
+.mv-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.mv-item:last-child{border-bottom:none}
+.mv-item .d{font-weight:700;font-variant-numeric:tabular-nums}
+.up{color:var(--good)} .down{color:var(--bad)}
+.scrollx{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.momt{width:100%;border-collapse:collapse;font-size:12px}
+.momt th{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--text4);text-align:right;padding:6px 9px;border-bottom:1px solid var(--border2);font-weight:700;white-space:nowrap}
+.momt th.l{text-align:left}
+.momt td{padding:5px 9px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--text2)}
+.momt td.l{text-align:left;color:var(--text);white-space:normal;max-width:240px}
+.momt td.mut{color:var(--text4)}
+.momt tbody tr:hover{background:var(--card2)}
+.cv{font-size:12px;font-variant-numeric:tabular-nums;color:var(--text2)}
+.cv.mut{color:var(--text4)}
+.cm{font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+.cm.up{color:var(--good)} .cm.down{color:var(--bad)} .cm.mut{color:var(--text4)}
+.ytd{vertical-align:middle}
+.ytd .cv{display:block;font-size:12px;font-weight:700;color:var(--text)}
+.ytd .cpct{display:block;font-size:10px;color:var(--text4);margin-top:1px}
+.verdict{font-weight:800;font-size:13px;padding:3px 11px;border-radius:999px}
+.vnote{font-size:12px;color:var(--text3)}
+.momlab{font-size:9px;font-weight:700;font-variant-numeric:tabular-nums;min-height:11px}
+
+/* search + select */
+.searchwrap{position:relative;margin-bottom:10px}
+.searchwrap input{width:100%;padding:9px 12px;border-radius:9px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:13px}
+.searchwrap input::placeholder{color:var(--text4)}
+
+/* size badge */
+.szb{font-weight:700;font-size:11px;padding:2px 8px;border-radius:5px}
+
+/* drilldown */
+#drill .head h2{font-size:16px;font-weight:800}
+.dd-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:14px}
+.dd-kpi{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.dd-kpi .l{font-size:10px;color:var(--text4);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.dd-kpi .v{font-size:18px;font-weight:800;margin-top:4px}
+
+.footnote{font-size:11.5px;color:var(--text4);margin-top:6px}
+.loading{min-height:100vh;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text3)}
+
+/* Stock upload drop zone */
+.size-row{cursor:pointer}
+.size-row:hover td:first-child .szb{filter:brightness(1.3);transform:scale(1.05)}
+/* size section headers inside Top SKUs panel */
+.sku-sz-block{background:var(--card2);border:1px solid var(--border2);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.sku-sz-block:last-child{margin-bottom:0}
+.sku-sz-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border2)}
+.sku-sz-head .szb{font-size:13px;padding:4px 14px;font-weight:700}
+.sku-sz-vol{font-size:12px;font-weight:700;color:var(--text2)}
+.sku-sz-count{font-size:11px;color:var(--text4);margin-left:auto}
+/* label drill-down */
+.lbl-bar{cursor:pointer;transition:.12s}
+.lbl-bar:hover .nm{color:var(--accent)}
+.lbl-bar.lbl-active .nm{color:var(--accent);font-weight:700}
+.lbl-bar.lbl-active .fill{filter:brightness(1.4)}
+.drill-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.safety-cell{font-weight:700;color:var(--warn)}
+.drill-summary{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.ds-card{flex:1;min-width:130px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:8px 12px}
+.ds-card .dl{font-size:10px;color:var(--text4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.ds-card .dv{font-size:13px;font-weight:700;color:var(--text)}
+.ds-card.ok .dv{color:var(--good)} .ds-card.warn .dv{color:var(--bad)} .ds-card.amber .dv{color:var(--warn)}
+/* stock upload */
+.stockdz{border:1.5px dashed var(--border2);border-radius:10px;padding:18px 14px;text-align:center;cursor:pointer;font-size:12px;color:var(--text3);transition:.15s}
+.stockdz:hover,.stockdz.drag{border-color:var(--accent);color:var(--text);background:var(--card2)}
+.stk-ul{color:var(--accent);cursor:pointer}
+/* Stock table badge for months-of-supply */
+.mos{font-size:10px;color:var(--text4);margin-top:1px}
+.mos.ok{color:var(--good)} .mos.low{color:var(--warn)} .mos.critical{color:var(--bad)}
+.warn{color:var(--warn)}
+/* Toast notification */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1C2230;border:1px solid var(--accent);color:var(--text);font-size:13px;font-weight:500;padding:12px 20px;border-radius:12px;max-width:90vw;text-align:center;z-index:9999;pointer-events:none;opacity:0;transition:opacity .3s;line-height:1.4}
+#toast.show{opacity:1}
+/* ── Target vs Delivered panel ── */
+.tgt-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.tgt-bar .nm{font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.tgt-bar .vv{font-size:11px;color:var(--text3);flex-shrink:0;margin-left:10px;text-align:right}
+.tgt-bar .vv b{font-size:12px;font-variant-numeric:tabular-nums}
+.tgt-pct{font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;margin-left:8px;flex-shrink:0}
+.tgt-pct.on-track{background:rgba(63,185,80,.15);color:var(--good)}
+.tgt-pct.behind{background:rgba(248,81,73,.12);color:var(--bad)}
+.tgt-pct.near{background:rgba(210,153,34,.13);color:var(--warn)}
+.tgt-sizes{margin-top:6px;display:flex;flex-direction:column;gap:3px;padding:8px 10px;background:var(--card2);border:1px solid var(--border);border-radius:8px}
+.tgt-sz-row{display:flex;align-items:center;gap:8px}
+.tgt-sz-lbl{font-size:10px;color:var(--text4);width:68px;flex-shrink:0;font-weight:600}
+.tgt-sz-track{flex:1;height:5px;background:var(--track);border-radius:3px;overflow:hidden}
+.tgt-sz-fill{height:100%;border-radius:3px;transition:width .4s ease}
+.tgt-sz-num{font-size:10px;color:var(--text3);width:80px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}
+.tgt-sz-delta{font-size:10px;font-weight:700;width:48px;text-align:right;flex-shrink:0;font-variant-numeric:tabular-nums}
+.momt .tfoot td{border-top:1px solid var(--border2);border-bottom:none;padding-top:8px}
+/* Each customer in the target breakdown gets its own spaced card */
+.tgt-cust-card{padding:14px;margin-bottom:18px;background:var(--card2);border:1px solid var(--border2);border-radius:12px}
+.tgt-cust-card:last-of-type{margin-bottom:8px}
+.tgt-cust-card .tgt-sizes{background:var(--card);border-color:var(--border2)}
+/* PDF download bar in customer view */
+.custpdf{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;background:var(--card2);border:1.5px solid var(--accent);border-radius:12px;margin-bottom:4px}
+.custpdf .lbl{font-size:13px;font-weight:700;color:var(--text)}
+.custpdf .sub{font-size:11px;color:var(--text3);margin-top:2px}
+/* small PDF icon on each account bar */
+.pdfbtn{display:inline-flex;align-items:center;justify-content:center;font-size:11px;padding:2px 7px;border-radius:6px;cursor:pointer;background:transparent;border:1px solid var(--border2);color:var(--text4);transition:.12s;flex-shrink:0;margin-left:6px}
+.pdfbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--card2)}
+</style>
+</head>
+<body>
+
+<!-- ======================= UPLOAD ======================= -->
+<div id="upload">
+  <div class="up-card">
+    <div class="logo">📊</div>
+    <h1>Customer Sales Dashboard</h1>
+    <div class="sub">Empty Can Supply · Portfolio, Labels &amp; Size Analysis</div>
+    <div class="sub2">Upload your sales Excel file to get started</div>
+    <label for="file" class="dz" id="dz" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="event.preventDefault();this.classList.remove('drag');loadFile(event.dataTransfer.files[0])">
+      <div class="ic">📁</div>
+      <div class="main">Tap to select your Excel file</div>
+      <div class="small">.xlsx files only · no need to clean it first</div>
+    </label>
+    <input type="file" id="file" accept=".xlsx,.xlsm" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
+    <div class="errbox hide" id="err"></div>
+    <div class="cols">
+      <div class="eyebrow" style="margin-bottom:12px">What it looks for (any sheet)</div>
+      <div class="row"><code>Ship-to party</code> Customer</div>
+      <div class="row"><code>Material number</code> Product / label</div>
+      <div class="row"><code>Quantity in Each</code> Cans shipped</div>
+      <div class="row"><code>month</code> Jan, Feb …</div>
+      <div class="row"><code>Size</code> 150, 250, 330 …</div>
+      <div class="note">Empty rows are skipped. Brand names stuck in the Size column are corrected from the product description. Updated daily? Just re-upload — nothing to amend.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= APP ======================= -->
+<div id="app" class="hide">
+  <div class="topbar">
+    <div>
+      <h1>Customer Sales Dashboard</h1>
+      <div class="sub">Empty Can Supply · Portfolio, Labels &amp; Size Analysis</div>
+      <div class="date" id="appdate"></div>
+    </div>
+    <div class="tools">
+      <button class="btn" id="themeBtn">🌙 Dark</button>
+      <button class="btn" id="csvBtn">⬇︎ CSV</button>
+      <button class="btn primary" id="coReportBtn">📄 Company report</button>
+      <button class="btn" id="newBtn">↻ New file</button>
+    </div>
+  </div>
+
+  <div class="chips" id="monthChips"></div>
+  <div class="chips" id="acctChips"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="panel">
+    <div class="head"><span class="eyebrow" id="monthlyTitle">Monthly volume</span><span class="hint">cans · pick a month above</span></div>
+    <div class="months" id="months"></div>
+  </div>
+
+  <!-- target vs delivered: all accounts view -->
+  <div class="panel" id="targetPanelAll">
+    <div class="head">
+      <span class="eyebrow">🎯 Target vs Delivered</span>
+      <span class="hint" id="targetHint">upload monthly targets file</span>
+    </div>
+    <label for="targetFileInput" class="stockdz" id="targetDrop"
+         ondragover="event.preventDefault();this.classList.add('drag')"
+         ondragleave="this.classList.remove('drag')"
+         ondrop="event.preventDefault();this.classList.remove('drag');if(event.dataTransfer.files[0])loadTargetFile(event.dataTransfer.files[0])">
+      <div>📂 Drop monthly targets Excel here</div>
+      <div style="margin-top:5px;font-size:11px">or <span class="stk-ul">tap to select file</span> · your Sales Tracker .xlsx</div>
+    </label>
+    <input type="file" id="targetFileInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
+    <div id="targetTableAll" class="hide"></div>
+  </div>
+
+  <div class="grid2" id="gridAcctLabel">
+    <div class="panel" id="acctPanel" style="margin-bottom:0">
+      <div class="head"><span class="eyebrow" id="acctPanelTitle">Portfolio — accounts</span><span class="hint" id="acctHint"></span></div>
+      <div class="searchwrap" id="acctSearchWrap"><input id="acctSearch" placeholder="Search accounts…"/></div>
+      <div id="accts"></div>
+    </div>
+    <div class="panel" style="margin-bottom:0">
+      <div class="head"><span class="eyebrow" id="labelTitle">Portfolio by label</span><span class="hint" id="labelHint"></span></div>
+      <div id="labels"></div>
+    </div>
+  </div>
+
+  <div class="grid2" id="gridSizeMovers">
+    <div class="panel" style="margin-bottom:0">
+      <div class="head"><span class="eyebrow">Size analysis</span><span class="hint">green = standard · grey = recovered</span></div>
+      <div id="sizes"></div>
+      <div class="footnote" id="sizeNote"></div>
+    </div>
+    <div class="panel" id="moversPanel" style="margin-bottom:0">
+      <div class="head"><span class="eyebrow">Month-over-month movers</span><span class="hint" id="moverHint"></span></div>
+      <div class="mv-grid">
+        <div><div class="eyebrow" style="color:var(--good);margin-bottom:6px">▲ Top growth</div><div id="moversUp"></div></div>
+        <div><div class="eyebrow" style="color:var(--bad);margin-bottom:6px">▼ Top decline</div><div id="moversDown"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="concentration"></div>
+
+  <!-- customer view: trend, % breakdown + MoM variance -->
+  <div id="custView" class="hide">
+    <!-- customer target card: driven by global TARGET, sits right after monthly volume -->
+    <div class="panel" id="custTargetPanel"></div>
+    <div class="panel">
+      <div class="head"><span class="eyebrow">Delivery trend</span><span class="hint">month by month · MoM %</span></div>
+      <div id="trendVerdict" style="margin-bottom:12px"></div>
+      <svg class="tchart" id="trendChart" viewBox="0 0 600 180" preserveAspectRatio="xMidYMid meet" style="height:180px"></svg>
+    </div>
+    <div class="panel">
+      <div class="head"><span class="eyebrow">Label family — % of total deliveries</span><span class="hint" id="lblShareHint"></span></div>
+      <div id="lblShare"></div>
+    </div>
+    <!-- ── label drill-down: appears when a label bar is tapped ── -->
+    <div class="panel hide" id="labelDrill">
+      <div class="drill-head">
+        <div>
+          <div id="drillTitle" style="font-size:13px;font-weight:700;color:var(--text)"></div>
+          <div id="drillSub" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn hide" id="drillBack" style="font-size:11px">← Sizes</button>
+          <button class="btn" id="drillClose" style="font-size:11px">✕ Close</button>
+        </div>
+      </div>
+      <div class="scrollx" style="margin-top:12px"><div id="drillTable"></div></div>
+      <div id="drillSummary" class="drill-summary"></div>
+    </div>
+    <div class="panel">
+      <div class="head"><span class="eyebrow">Label family — month-over-month variance</span><span class="hint">% change vs prior month</span></div>
+      <div class="scrollx"><div id="lblMoM"></div></div>
+    </div>
+    <div class="panel">
+      <div class="head"><span class="eyebrow">Top SKUs by size</span><span class="hint" id="skuHint"></span></div>
+      <div id="skuMoM"></div>
+    </div>
+    <div class="panel">
+      <div class="head"><span class="eyebrow">Can size — month-over-month variance</span><span class="hint">% change vs prior month</span></div>
+      <div class="scrollx"><div id="sizeMoM"></div></div>
+    </div>
+    <!-- ── stock available panel ── -->
+    <div class="panel" id="stockPanel">
+      <div class="head">
+        <span class="eyebrow">📦 Stock available</span>
+        <span class="hint" id="stockHint">upload SAP stock report</span>
+      </div>
+      <label for="stockFileInput" class="stockdz" id="stockDrop"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="event.preventDefault();this.classList.remove('drag');if(event.dataTransfer.files[0])loadStockFile(event.dataTransfer.files[0])">
+        <div>📂 Drop SAP delivery summary (.txt) here</div>
+        <div style="margin-top:5px;font-size:11px">or <span class="stk-ul">tap to select file</span></div>
+      </label>
+      <input type="file" id="stockFileInput" accept=".txt,.TXT" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
+      <div id="stockTable" class="hide"></div>
+    </div>
+    <div class="custpdf" id="custPdfBar">
+      <div>
+        <div class="lbl" id="custPdfLabel">Download customer report</div>
+        <div class="sub">Full PDF · monthly volumes, labels, SKUs & sizes</div>
+      </div>
+      <button class="btn primary" id="custPdfBtn" style="white-space:nowrap">📥 Download PDF</button>
+    </div>
+  </div>
+</div>
+
+<div id="report"></div>
+<div id="toast" aria-live="polite"></div>
+
+<script>
+/* ════════════════════════ CONFIG (edit as the file grows) ════════════════════════ */
+
+// Map raw "Ship-to party" names to clean commercial accounts. First match wins.
+const COMPANY_RULES = [
+  { group:'CCBCSA',              test:/coca|coke/i },                 // all Coke bottlers
+  { group:'Universal Beverages', test:/universal|a\s*m\s*i\s*t/i },   // Universal + AMIT
+  { group:'Gulf Union',          test:/gulf\s*union/i },
+  { group:'Al Sayer',            test:/al[\s-]?sayer/i },             // Mohammad Naser … Al-Sayer
+  { group:'Al Esayi Beverages Company', test:/esayi/i },              // Al Esayi → full company name
+  { group:'Al Jabr',             test:/canned\s*soft\s*drink/i },     // "Canned Soft Drinks …" → Al Jabr
+  { group:'Aqua Brown',          test:/aqua\s*brown|anorka/i },       // Anorka is Aqua Brown
+  { group:'Arrow',               test:/\barrow\b/i },
+  { group:'Abi Ramia',           test:/international\s+factory/i },
+  { group:'Ball India',          test:/kenya\s*breweries|\budv\b/i }, // consolidated under Ball India
+];
+function companyOf(raw){
+  const s=String(raw||'').trim();
+  // Ball entities -> "Ball <Country>" (e.g. Ball Beverage Packaging India Pvt -> Ball India)
+  if(/^ball\b/i.test(s)){
+    const rest=s.replace(/ball|beverage|packaging/ig,' ')
+                .replace(/\b(pvt|pte|ltd|limited|inc|llc|co|company|the)\b\.?/ig,' ')
+                .replace(/\s+/g,' ').trim();
+    const c=(rest.split(' ')[0]||'');
+    return c ? 'Ball '+c.charAt(0).toUpperCase()+c.slice(1).toLowerCase() : 'Ball';
+  }
+  for(const r of COMPANY_RULES) if(r.test.test(s)) return r.group;
+  return s;
+}
+
+// ── Label / brand-family grouping ──────────────────────────────────────────
+// BRAND-FIRST so a product is only ever called a Coke label if it is genuinely a
+// Coca-Cola Company product. Everything else is grouped by its OWN brand, and
+// modifiers like "zero / light / no sugar" stay WITH that brand
+// (e.g. "Rita Red Zero" → Rita, never Coke Zero; "Alsi Cola Zero" → Alsi).
+//
+// 1) Coca-Cola family = the description contains coca|coke|sprite|fanta|schweppes.
+//    Inside it: Sprite / Fanta / Schweppes by name (incl. "Sprite Zero" → Sprite),
+//    then zero → Coke Zero, light|diet → Coke Light, otherwise Coke Original.
+// 2) Otherwise match a brand below (core token, so all variants fold into one family).
+// To add a brand later: drop a {label, test} line into BRAND_RULES.
+const COKE_FAMILY = /coca|coke|sprite|fanta|schweppes/i;
+const BRAND_RULES = [
+  {label:'Campa Energy',    test:/campa/i},
+  {label:'Code Red',        test:/code\s*red/i},
+  {label:'Rita',            test:/\brita\b/i},
+  {label:'Dr Jimi',         test:/\bjimi\b/i},            // Dr Jimi · Dr. Jimi · Jimi Cola/Orange/Citrus/Pink
+  {label:'Alsi',            test:/\balsi\b/i},
+  {label:'Smirnoff',        test:/smirnoff/i},
+  {label:'ZOI Ice Tea',     test:/\bzoi\b/i},
+  {label:'Original Chunks', test:/original\s*chunks/i},
+  {label:'Original White',  test:/original\s*white/i},
+  {label:'Original Yellow', test:/original\s*yellow/i},
+  {label:'Milaf',           test:/milaf/i},
+  {label:'Klasse',          test:/klasse/i},
+  {label:'Green Cola',      test:/\bgreen\b/i},            // Green Cola/Mocktails/Sour Cherry/Lemon Lime
+  {label:'Flash',           test:/\bflash\b/i},
+  {label:'Spada',           test:/spada/i},
+  {label:'Rio',             test:/\brio\b/i},
+  {label:'Rabea Ice Tea',   test:/rabea/i},
+  {label:'Power Horse',     test:/power\s*horse/i},
+  {label:'Horse Head',      test:/horse\s*head/i},
+  {label:'Nova',            test:/\bnova\b/i},
+  {label:'Saha',            test:/\bsaha\b/i},
+  {label:'Nerve',           test:/nerve/i},
+  {label:'WAW',             test:/\bwaw\b/i},
+  {label:'Stream',          test:/stream/i},
+  {label:'Spark',           test:/\bspark\b/i},            // "Spark Soft Drink" (\b avoids "sparkling")
+  {label:'City Cafe',       test:/city\s*cafe/i},
+  {label:'Rawdatain',       test:/rawdatain/i},
+  {label:'Tania',           test:/tania/i},
+  {label:'Shahad',          test:/shahad/i},
+  {label:'XXL Energy',      test:/\bxxl\b/i},
+  {label:'Cobra',           test:/cobra/i},
+  {label:'Gordons',         test:/gordon/i},
+  {label:'Manyatta',        test:/manyatta/i},
+  {label:'White Cap',       test:/white\s*cap/i},
+  {label:'Tusker',          test:/tusker/i},
+  {label:'Alvaro',          test:/alvaro/i},
+  {label:'Snapp',           test:/snapp/i},
+  {label:'Mezaj',           test:/mezaj/i},
+  {label:'Kayan Soft',      test:/kayan|kyan/i},
+  {label:'Camel Step',      test:/camel\s*step/i},
+  {label:'Ginger Brew',     test:/ginger\s*brew/i},
+  {label:'My Mix',          test:/my\s*mix/i},
+  {label:'Fizz',            test:/\bfizz\b/i},
+  {label:'Club Soda',       test:/club\s*soda/i},
+  {label:'Dragon Fruit',    test:/dragon/i},
+  {label:'Ori',             test:/\bori\b/i},              // Ori Orange / Ori Lemon
+  {label:'Other / Test',    test:/\bblank\b|test\s*can|bright\s*can|\bh2h\b|epoxy/i},
+];
+function labelOf(desc){
+  const d=String(desc||'');
+  if(COKE_FAMILY.test(d)){                 // Coca-Cola Company products ONLY
+    if(/sprite/i.test(d))     return 'Sprite';
+    if(/fanta/i.test(d))      return 'Fanta';
+    if(/schweppes/i.test(d))  return 'Schweppes';
+    if(/zero/i.test(d))       return 'Coke Zero';
+    if(/light|diet/i.test(d)) return 'Coke Light';
+    return 'Coke Original';
+  }
+  for(const r of BRAND_RULES) if(r.test.test(d)) return r.label;
+  return 'Other';
+}
+
+// Standard can sizes. Recovery prefers the leading size code in the material number,
+// then the trailing fill volume mapped to the nearest standard can.
+const REAL=['150','185','250','330','355']; // 5 real can sizes; 240 is a fill size → maps to 250
+const FILL2SIZE={'150':'150','180':'185','185':'185','200':'185','240':'250','245':'250','250':'250','300':'330','320':'330','330':'330','355':'355'};
+// Human-readable labels for each can size (330 and 355 are sleek format)
+const SIZE_LABEL={'150':'150ml','185':'185ml','250':'250ml','330':'330ml SLK','355':'355ml SLK'};
+function sizeOf(rawSize, desc){
+  const s=String(rawSize==null?'':rawSize).trim();
+  if(REAL.includes(s)) return {size:s,derived:false};
+  const lead=/^\s*(\d{2,4})\s*-/.exec(desc||'');
+  if(lead && REAL.includes(lead[1])) return {size:lead[1],derived:true};
+  const ms=[...String(desc||'').matchAll(/(\d{2,4})\s*ml/gi)];
+  if(ms.length){ const f=ms[ms.length-1][1]; return {size:FILL2SIZE[f]||f, derived:true}; }
+  if(FILL2SIZE[s]) return {size:FILL2SIZE[s], derived:true}; // catch fill sizes in size column (e.g. 240→250)
+  return {size:s||'—', derived:true};
+}
+
+const ALIASES={
+  customer:['ship-to party','ship to party','shipto party','customer','sold-to party'],
+  product:['material number','material no','product','description'],
+  qty:['quantity in each','quantity','qty in each','qty','units','units shipped'],
+  month:['month','mon','mth'],
+  size:['size','can size','size code'],
+};
+const REQ=['customer','product','qty','month','size'];
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const SIZE_COLORS={'150':'#7C3AED','185':'#2563EB','250':'#059669','330':'#D97706','355':'#DC2626'};
+const norm=s=>String(s).trim().toLowerCase().replace(/\s+/g,' ');
+const REPORT_DATE=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+
+/* ════════════════════════ STATE ════════════════════════ */
+let DATA=null;      // {rows, sheet, ignored, derivedVol}
+let MONTH='All';
+let ACCOUNT='All';  // selected account, or 'All'
+const STOCK={};
+let TARGET=null;    // { month, customers:[{name,tgt,sizeTgts:{}}] }
+let LABEL_DRILL=null; // label family currently drilled into
+let SIZE_DRILL=null;  // can size currently drilled into within a label
+
+/* ════════════════════════ PARSE ════════════════════════ */
+function headerKeys(ws){
+  if(!ws||!ws['!ref']) return [];
+  const r=XLSX.utils.decode_range(ws['!ref']); const out=[];
+  for(let c=r.s.c;c<=r.e.c;c++){ const cell=ws[XLSX.utils.encode_cell({r:r.s.r,c})]; if(cell&&cell.v!=null) out.push(String(cell.v)); }
+  return out;
+}
+function mapHeaders(keys){
+  const found={},used=new Set();
+  for(const f of Object.keys(ALIASES)) for(const a of ALIASES[f]){
+    const hit=keys.find(k=>norm(k)===a && !used.has(k));
+    if(hit){found[f]=hit;used.add(hit);break;}
+  }
+  return found;
+}
+function cleanMonth(m){const t=String(m||'').trim().slice(0,3);return t.charAt(0).toUpperCase()+t.slice(1).toLowerCase();}
+function cellV(ws,r,c){ if(c==null) return null; const cell=ws[XLSX.utils.encode_cell({r:r,c:c})]; return (cell&&cell.v!=null)?cell.v:null; }
+
+function parseWorkbook(buf){
+  // Light read: skip formula/style/date parsing so big, formula-heavy files (20MB+ sheets,
+  // huge calcChain) stay within mobile-browser memory and parse completely.
+  const wb=XLSX.read(buf,{type:'array',cellFormula:false,cellHTML:false,cellStyles:false,cellDates:false});
+  let chosen=null;
+  for(const name of wb.SheetNames){ const map=mapHeaders(headerKeys(wb.Sheets[name])); if(REQ.every(k=>map[k])){chosen={name,map,ws:wb.Sheets[name]};break;} }
+  if(!chosen){
+    const best=wb.SheetNames.map(n=>({n,map:mapHeaders(headerKeys(wb.Sheets[n]))})).sort((a,b)=>Object.keys(b.map).length-Object.keys(a.map).length)[0];
+    const missing=REQ.filter(k=>!(best&&best.map[k]));
+    return {error:'No sheet has all the columns this needs. Missing: '+missing.join(', ')+'. Checked sheets: '+wb.SheetNames.join(', ')+'.'};
+  }
+  const {map,ws,name}=chosen;
+  if(!ws['!ref']) return {error:'Sheet "'+name+'" has no data range.'};
+  const rng=XLSX.utils.decode_range(ws['!ref']);
+  const r0=rng.s.r;
+  // field -> column index, from the header row (exact match, normalized alias fallback)
+  const col={};
+  for(let c=rng.s.c;c<=rng.e.c;c++){ const h=cellV(ws,r0,c); if(h==null) continue; const hs=String(h), nn=norm(hs);
+    for(const f of REQ){ if(col[f]===undefined && (hs===map[f]||ALIASES[f].indexOf(nn)>=0)) col[f]=c; }
+  }
+  if(REQ.some(f=>col[f]===undefined)) return {error:'Could not locate all required columns on sheet "'+name+'".'};
+  // Read the 5 columns straight from cells (cached values) — no giant intermediate object array.
+  const rows=[]; let ignored=0, derivedVol=0;
+  for(let r=r0+1;r<=rng.e.r;r++){
+    const cust=cellV(ws,r,col.customer); const qraw=cellV(ws,r,col.qty);
+    const qty=typeof qraw==='number'?qraw:Number(qraw);
+    if(cust==null||String(cust).trim()===''||!isFinite(qty)){ ignored++; continue; }
+    const pv=cellV(ws,r,col.product); const product=String(pv==null?'—':pv).trim();
+    const sz=sizeOf(cellV(ws,r,col.size),product);
+    if(sz.derived) derivedVol+=qty;
+    rows.push({account:companyOf(cust), rawCust:String(cust).trim(), product, label:labelOf(product),
+               qty, month:cleanMonth(cellV(ws,r,col.month)), size:sz.size, derived:sz.derived});
+  }
+  if(!rows.length) return {error:'Found the columns on sheet "'+name+'" but no rows had both a customer and a numeric quantity. If the quantity column is formula-based, open the file in Excel, save once to recalculate, then re-upload.'};
+  return {rows, sheet:name, ignored, derivedVol};
+}
+
+/* ════════════════════════ HELPERS ════════════════════════ */
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+const MM=n=>(n/1e6).toFixed(1)+' MM';
+function view(){ return MONTH==='All'?DATA.rows:DATA.rows.filter(r=>r.month===MONTH); }
+function scoped(){ let rs=DATA.rows; if(ACCOUNT!=='All') rs=rs.filter(r=>r.account===ACCOUNT); if(MONTH!=='All') rs=rs.filter(r=>r.month===MONTH); return rs; }
+function setAccount(a){ LABEL_DRILL=null; SIZE_DRILL=null; ACCOUNT=a; render(); const app=document.getElementById('app'); if(app.scrollIntoView) app.scrollIntoView({behavior:'smooth',block:'start'}); }
+function monthsPresent(){ return MONTHS.filter(m=>DATA.rows.some(r=>r.month===m)); }
+function sumBy(rows,key){const m=new Map();for(const r of rows)m.set(r[key],(m.get(r[key])||0)+r.qty);return m;}
+function sorted(map){return [...map.entries()].sort((a,b)=>b[1]-a[1]);}
+function sizeColor(s){return SIZE_COLORS[s]||'#6E7681';}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function barRows(entries,total,color,clickable){
+  return entries.map(([name,v])=>{
+    const pct=total?(v/total*100):0;
+    const pdfBtn=clickable?'<span class="pdfbtn" title="Download PDF for '+esc(name)+'" data-pdf="'+esc(name)+'">📄</span>':'';
+    return '<div class="barrow'+(clickable?' click':'')+'"'+(clickable?' data-acct="'+esc(name)+'"':'')+'>'
+      +'<div class="top"><span class="nm">'+esc(name)+'</span><span class="vv num" style="display:flex;align-items:center">'+MM(v)+' · '+pct.toFixed(1)+'%'+pdfBtn+'</span></div>'
+      +'<div class="track"><div class="fill" style="width:'+pct+'%;background:'+color+'"></div></div></div>';
+  }).join('');
+}
+
+/* ════════════════════════ RENDER APP ════════════════════════ */
+function render(){
+  const isCust = ACCOUNT!=='All';
+  document.getElementById('appdate').textContent='Updated '+REPORT_DATE+' · sheet "'+DATA.sheet+'" · '+fmt(DATA.rows.length)+' lines';
+
+  // month chips
+  const mchips=['All',...monthsPresent()];
+  document.getElementById('monthChips').innerHTML='<span class="eyebrow" style="margin-right:4px">Month</span>'+
+    mchips.map(m=>'<span class="chip'+(MONTH===m?' on':'')+'" data-m="'+m+'">'+m+'</span>').join('');
+
+  // account chips (ranked by total volume, stable across the month filter)
+  const allAccts=sorted(sumBy(DATA.rows,'account')).map(x=>x[0]);
+  document.getElementById('acctChips').innerHTML='<span class="eyebrow" style="margin-right:4px">Account</span>'+
+    '<span class="chip'+(ACCOUNT==='All'?' on':'')+'" data-a="All">All accounts</span>'+
+    allAccts.map(a=>'<span class="chip acct'+(ACCOUNT===a?' on':'')+'" data-a="'+esc(a)+'" title="'+esc(a)+'">'+esc(a)+'</span>').join('');
+
+  // scope = month + account
+  const v=scoped();
+  const total=v.reduce((s,r)=>s+r.qty,0);
+  const labels=sorted(sumBy(v,'label'));
+  const skus=new Set(v.map(r=>r.product)).size;
+  const sizeMap=sumBy(v,'size');
+  const sizesArr=[...sizeMap.entries()].sort((a,b)=>{const an=REAL.includes(a[0]),bn=REAL.includes(b[0]);if(an&&bn)return +a[0]-+b[0];if(an)return -1;if(bn)return 1;return b[1]-a[1];});
+  const mp=monthsPresent();
+  const monthBase = isCust ? acctRows(ACCOUNT) : DATA.rows;            // months chart honours account scope
+  const peak=mp.map(m=>[m,monthBase.filter(r=>r.month===m).reduce((s,r)=>s+r.qty,0)]).sort((a,b)=>b[1]-a[1])[0];
+  const derivedVol=v.filter(r=>r.derived).reduce((s,r)=>s+r.qty,0);
+
+  // KPIs (set adapts to scope)
+  const grandAll=DATA.rows.reduce((s,r)=>s+r.qty,0);
+  const kpiData = isCust
+    ? [['Total volume',MM(total),fmt(total)+' cans'],
+       ['Labels',labels.length,'brand families'],
+       ['Sizes',sizesArr.length,'can formats'],
+       ['SKUs',skus.toLocaleString(),'unique products'],
+       ['Peak month',peak?peak[0]:'—',peak?MM(peak[1]):''],
+       ['Share of total',(grandAll?acctRows(ACCOUNT).reduce((s,r)=>s+r.qty,0)/grandAll*100:0).toFixed(1)+'%','of portfolio YTD']]
+    : [['Total volume',MM(total),fmt(total)+' cans'],
+       ['Accounts',sorted(sumBy(v,'account')).length,DATA.rows.length.toLocaleString()+' shipment lines'],
+       ['Labels',labels.length,'brand families'],
+       ['Sizes',sizesArr.length,'can formats'],
+       ['SKUs',skus.toLocaleString(),'unique products'],
+       ['Peak month',peak?peak[0]:'—',peak?MM(peak[1]):'']];
+  document.getElementById('kpis').innerHTML=kpiData.map(k=>'<div class="kpi"><div class="lab"><span class="dot"></span><span class="eyebrow">'+k[0]+'</span></div>'
+     +'<div class="val num">'+k[1]+'</div><div class="sub num">'+k[2]+'</div></div>').join('');
+
+  // monthly columns
+  const monthVols=mp.map(m=>[m,monthBase.filter(r=>r.month===m).reduce((s,r)=>s+r.qty,0)]);
+  const maxV=Math.max(...monthVols.map(x=>x[1]),1);
+  document.getElementById('monthlyTitle').textContent = isCust ? ('Monthly volume — '+ACCOUNT) : 'Monthly volume';
+  document.getElementById('months').innerHTML=monthVols.map(([m,val])=>{
+    const h=Math.max(val/maxV*100,2);const on=(MONTH==='All'||MONTH===m);
+    return '<div class="mcol"><div class="mv num">'+MM(val)+'</div><div class="bar" style="height:'+h+'%;background:'+(on?'var(--accent)':'var(--border2)')+'"></div><div class="ml">'+m+'</div></div>';
+  }).join('');
+
+  // ── toggle which panels are visible for this scope ──
+  document.getElementById('gridAcctLabel').classList.toggle('hide', isCust);
+  document.getElementById('gridSizeMovers').classList.toggle('hide', isCust);
+  document.getElementById('concentration').classList.toggle('hide', isCust);
+  document.getElementById('targetPanelAll').classList.toggle('hide', isCust);
+  document.getElementById('custView').classList.toggle('hide', !isCust);
+
+  if(isCust){
+    // ── CUSTOMER VIEW: trend verdict, % breakdown, MoM variance, vital-few SKUs ──
+    const acct=acctRows(ACCOUNT);  // all months (ignores month filter) for the MoM trajectory
+    const series=mp.map(m=>acct.filter(r=>r.month===m).reduce((s,r)=>s+r.qty,0));
+    const tv=trendVerdict(series,mp);
+    document.getElementById('trendVerdict').innerHTML='<span class="verdict" style="background:'+tv.color+'22;color:'+tv.color+'">'+tv.label+'</span> <span class="vnote">'+tv.sentence+'</span>';
+    trendChart(series,mp);
+
+    document.getElementById('lblShareHint').textContent='share of '+MM(total)+(MONTH==='All'?' YTD':' · '+MONTH)+' · tap a label to drill in';
+    document.getElementById('lblShare').innerHTML=labelBarRows(labels,total,LABEL_DRILL);
+    document.getElementById('lblMoM').innerHTML=momTable(acct,'label',mp);
+    renderLabelDrill(acct,mp,total);
+
+    // Top 4 SKUs per size — each size is its own card, ordered smallest → largest
+    const sizeVolMap=new Map();
+    for(const r of acct) sizeVolMap.set(r.size,(sizeVolMap.get(r.size)||0)+r.qty);
+    // Sort by natural size order (numeric ml), falling back to lexicographic
+    const sizeOrder=[...sizeVolMap.entries()].sort((a,b)=>(parseInt(a[0])||0)-(parseInt(b[0])||0));
+    const totalSkus=new Set(acct.map(r=>r.product)).size;
+    document.getElementById('skuHint').textContent='top 4 per size · '+sizeOrder.length+' size'+(sizeOrder.length>1?'s':'')+' · '+totalSkus+' SKUs total';
+    document.getElementById('skuMoM').innerHTML=sizeOrder.map(([size,sizeTotal])=>{
+      const sRows=acct.filter(r=>r.size===size);
+      const skuCount=new Set(sRows.map(r=>r.product)).size;
+      const top4=topN(sRows,'product',4);
+      const col=sizeColor(size);
+      return '<div class="sku-sz-block" style="border-left:3px solid '+col+'">'
+        +'<div class="sku-sz-head">'
+        +sizeBadge(size)
+        +'<span class="sku-sz-vol">'+MM(sizeTotal)+'</span>'
+        +'<span class="sku-sz-count">'+skuCount+' SKU'+(skuCount>1?'s':'')+'</span>'
+        +'</div>'
+        +'<div class="scrollx">'+momTable(sRows,'product',mp,top4)+'</div>'
+        +'</div>';
+    }).join('');
+
+    document.getElementById('sizeMoM').innerHTML=momTable(acct,'size',mp);
+    renderStock();
+    renderCustTarget();
+  } else {
+    // ── OVERVIEW ──
+    document.getElementById('acctPanelTitle').textContent='Portfolio — accounts';
+    document.getElementById('acctSearchWrap').classList.remove('hide');
+    const accts=sorted(sumBy(v,'account'));
+    document.getElementById('acctHint').textContent=accts.length+' total';
+    renderAccts(accts,total,document.getElementById('acctSearch').value);
+
+    document.getElementById('labelTitle').textContent='Portfolio by label';
+    document.getElementById('labelHint').textContent=labels.length+' groups';
+    document.getElementById('labels').innerHTML=barRows(labels.slice(0,12),total,'var(--purple)',false);
+
+    document.getElementById('sizes').innerHTML=sizesArr.map(([s,val])=>{
+      const pct=total?val/total*100:0;const std=REAL.includes(s);const lbl=SIZE_LABEL[s]||(std?s+'ml':s);
+      return '<div class="barrow"><div class="top"><span class="nm"><span class="szb" style="background:'+sizeColor(s)+'22;color:'+sizeColor(s)+'">'+esc(lbl)+'</span></span>'
+        +'<span class="vv num">'+MM(val)+' · '+pct.toFixed(1)+'%</span></div>'
+        +'<div class="track"><div class="fill" style="width:'+pct+'%;background:'+(std?sizeColor(s):'#6E7681')+'"></div></div></div>';
+    }).join('');
+    document.getElementById('sizeNote').textContent=derivedVol>0?(MM(derivedVol)+' had a brand name in the Size field — real size read from the product description.'):'All sizes read directly from the Size column.';
+
+    renderMovers();
+    renderConcentration(accts,total);
+    renderTarget();
+  }
+
+  document.getElementById('coReportBtn').textContent = isCust ? '📄 Customer PDF' : '📄 Company report';
+  if(isCust){
+    document.getElementById('custPdfLabel').textContent = 'Download PDF for '+ACCOUNT;
+  }
+}
+
+function sizeBadge(s){const lbl=SIZE_LABEL[s]||(REAL.includes(s)?s+'ml':s);return '<span class="szb" style="background:'+sizeColor(s)+'22;color:'+sizeColor(s)+'">'+esc(lbl)+'</span>';}
+
+// Month table: each row = label / SKU / size.
+// Each month cell shows TWO lines: volume (MM) on top, MoM% in colour below.
+// YTD column shows total cans + share %.
+// `only` = ordered list of names to filter/sort (vital-few SKUs).
+function momTable(rows,key,mp,only){
+  const dims=new Map();
+  for(const r of rows){ if(!dims.has(r[key])) dims.set(r[key],{}); const o=dims.get(r[key]); o[r.month]=(o[r.month]||0)+r.qty; }
+  let arr=[...dims.entries()].map(([name,vol])=>({name,vol,tot:mp.reduce((s,m)=>s+(vol[m]||0),0)})).sort((a,b)=>b.tot-a.tot);
+  const grand=arr.reduce((s,x)=>s+x.tot,0)||1;
+  if(only){ const ord=new Map(only.map((n,i)=>[n,i])); arr=arr.filter(d=>ord.has(d.name)).sort((a,b)=>ord.get(a.name)-ord.get(b.name)); }
+  const hdr=key==='size'?'Size':key==='product'?'SKU':'Label';
+  let h='<table class="momt"><thead><tr><th class="l">'+hdr+'</th><th>YTD</th>'+mp.map(m=>'<th>'+m+'</th>').join('')+'</tr></thead><tbody>';
+  for(const d of arr){
+    // YTD column: total cans + share %
+    h+='<tr><td class="l">'+(key==='size'?sizeBadge(d.name):esc(d.name))+'</td>'
+      +'<td class="ytd"><span class="cv">'+MM(d.tot)+'</span><span class="cpct">'+(d.tot/grand*100).toFixed(1)+'%</span></td>';
+    mp.forEach((m,i)=>{
+      const cur=d.vol[m]||0;
+      const vv='<div class="cv'+(cur===0?' mut':'')+'">'+(cur>0?MM(cur):'·')+'</div>';
+      if(i===0){ h+='<td>'+vv+'<div class="cm mut">—</div></td>'; return; }
+      const prev=d.vol[mp[i-1]]||0;
+      if(prev===0){ h+='<td>'+vv+'<div class="cm '+(cur>0?'up':'mut')+'">'+(cur>0?'new':'·')+'</div></td>'; return; }
+      const pct=(cur-prev)/prev*100, cls=pct>0.5?'up':pct<-0.5?'down':'mut', sign=pct>0?'+':'';
+      h+='<td>'+vv+'<div class="cm '+cls+'">'+sign+pct.toFixed(0)+'%</div></td>';
+    });
+    h+='</tr>';
+  }
+  return h+'</tbody></table>';
+}
+
+// smallest set of top dims whose cumulative share first reaches `thr` (e.g. 0.5 = the SKUs making up 50%)
+function vitalFew(rows,key,thr){
+  const m=new Map(); for(const r of rows) m.set(r[key],(m.get(r[key])||0)+r.qty);
+  const arr=[...m.entries()].sort((a,b)=>b[1]-a[1]);
+  const total=arr.reduce((s,x)=>s+x[1],0)||1;
+  const out=[]; let cum=0;
+  for(const [n,vv] of arr){ out.push(n); cum+=vv; if(cum/total>=thr) break; }
+  return out;
+}
+
+// Returns names of the top-N items by total volume
+function topN(rows,key,n){
+  const m=new Map(); for(const r of rows) m.set(r[key],(m.get(r[key])||0)+r.qty);
+  return [...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,n).map(([name])=>name);
+}
+
+// classify a monthly series as Growing / Declining / Stable
+// Uses linear regression across ALL months — not just first vs last endpoints.
+// trendPct = how much the regression line rises/falls across the full period,
+//            expressed as % of the mean volume.
+function trendVerdict(series,mp){
+  const n=series.length;
+  if(n<2) return {label:'—',color:'var(--text3)',sentence:'Not enough months yet to read a trend.'};
+
+  const mean=series.reduce((a,b)=>a+b,0)/n||1;
+
+  // Least-squares slope through all n points
+  const xm=(n-1)/2;
+  let num=0,den=0;
+  series.forEach((y,x)=>{ num+=(x-xm)*(y-mean); den+=(x-xm)*(x-xm); });
+  const slope=den?num/den:0;
+
+  // Total change the regression line covers, as % of mean
+  const trendPct=slope*(n-1)/mean*100;
+
+  // Last MoM% for the sentence
+  const moms=[];
+  for(let i=1;i<n;i++){const p=series[i-1];if(p>0)moms.push((series[i]-p)/p*100);}
+  const recent=moms.length?moms[moms.length-1]:0;
+
+  let label,color;
+  if(trendPct>10){label='Growing';color='var(--good)';}
+  else if(trendPct<-10){label='Declining';color='var(--bad)';}
+  else{label='Stable';color='var(--accent)';}
+
+  const sentence='Overall trend '+(trendPct>=0?'+':'')+trendPct.toFixed(0)+'% across '+mp[0]+'–'+mp[n-1]
+    +' · last month '+(recent>=0?'+':'')+recent.toFixed(0)+'% MoM.';
+  return {label,color,sentence};
+}
+
+// annotated monthly bars: MoM% above each bar, volume below
+function trendChart(series,mp){
+  const n=series.length; if(!n) return;
+  const W=600,H=180;
+  const PAD={top:36,bottom:36,left:20,right:20};
+  const chartW=W-PAD.left-PAD.right;
+  const chartH=H-PAD.top-PAD.bottom;
+  const max=Math.max(...series,1), min=0;
+
+  // x position for month i (evenly spaced)
+  const cx=i=>PAD.left+i/(n-1)*chartW;
+  // y position for value v (top = max, bottom = 0)
+  const cy=v=>PAD.top+(1-v/max)*chartH;
+
+  // Subtle horizontal grid lines
+  let svg='';
+  [0.25,0.5,0.75,1].forEach(t=>{
+    const gy=PAD.top+(1-t)*chartH;
+    svg+=`<line class="grid" x1="${PAD.left}" y1="${gy.toFixed(1)}" x2="${W-PAD.right}" y2="${gy.toFixed(1)}"/>`;
+  });
+
+  // Polyline connecting all points
+  const pts=series.map((_,i)=>cx(i).toFixed(1)+','+cy(series[i]).toFixed(1)).join(' ');
+  svg+=`<polyline class="line" points="${pts}"/>`;
+
+  // Per-point: MoM% label above, dot, volume below, month name at bottom
+  series.forEach((val,i)=>{
+    const x=cx(i),y=cy(val);
+
+    // MoM% label above the dot
+    let momTxt='', momCls='mom-lbl mut';
+    if(i>0){
+      const p=series[i-1];
+      if(p===0){ momTxt=val>0?'new':'·'; momCls='mom-lbl up'; }
+      else {
+        const d=(val-p)/p*100;
+        momTxt=(d>0?'+':'')+d.toFixed(0)+'%';
+        momCls='mom-lbl '+(d>0.5?'up':d<-0.5?'down':'mut');
+      }
+    }
+    if(momTxt) svg+=`<text class="${momCls}" x="${x.toFixed(1)}" y="${(y-12).toFixed(1)}">${momTxt}</text>`;
+
+    // Volume label (sits just above the dot, below the MoM %)
+    svg+=`<text class="vol-lbl" x="${x.toFixed(1)}" y="${(y+22).toFixed(1)}">${MM(val)}</text>`;
+
+    // Dot marker
+    svg+=`<circle class="dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5"/>`;
+
+    // Month label at the bottom
+    svg+=`<text class="mon-lbl" x="${x.toFixed(1)}" y="${(H-4).toFixed(1)}">${esc(mp[i])}</text>`;
+  });
+
+  // Write directly into the SVG element
+  const el=document.getElementById('trendChart');
+  if(el) el.innerHTML=svg;
+}
+
+function renderAccts(accts,total,q){
+  q=(q||'').toLowerCase();
+  const list=q?accts.filter(([n])=>n.toLowerCase().includes(q)):accts;
+  document.getElementById('accts').innerHTML=barRows(list.slice(0,14),total,'var(--accent)',true);
+  document.querySelectorAll('#accts .barrow.click').forEach(el=>el.onclick=()=>setAccount(el.dataset.acct));
+}
+
+function renderMovers(){
+  const mp=monthsPresent();
+  if(mp.length<2){document.getElementById('moverHint').textContent='need 2+ months';document.getElementById('moversUp').innerHTML='<div class="footnote">Not enough months yet.</div>';document.getElementById('moversDown').innerHTML='';return;}
+  const cur=mp[mp.length-1], prev=mp[mp.length-2];
+  document.getElementById('moverHint').textContent=cur+' vs '+prev;
+  const accts=[...new Set(DATA.rows.map(r=>r.account))];
+  const rows=accts.map(a=>{
+    const c=DATA.rows.filter(r=>r.account===a&&r.month===cur).reduce((s,r)=>s+r.qty,0);
+    const p=DATA.rows.filter(r=>r.account===a&&r.month===prev).reduce((s,r)=>s+r.qty,0);
+    return {a,c,p,delta:c-p,pct:p>0?(c-p)/p*100:(c>0?100:0)};
+  }).filter(x=>x.p>0||x.c>0);
+  const up=rows.filter(x=>x.delta>0).sort((a,b)=>b.delta-a.delta).slice(0,5);
+  const down=rows.filter(x=>x.delta<0).sort((a,b)=>a.delta-b.delta).slice(0,5);
+  const row=(x,cls,sign)=>'<div class="mv-item"><span class="nm" style="max-width:62%">'+esc(x.a)+'</span><span class="d '+cls+'">'+sign+MM(Math.abs(x.delta))+' · '+sign+Math.abs(x.pct).toFixed(0)+'%</span></div>';
+  document.getElementById('moversUp').innerHTML=up.length?up.map(x=>row(x,'up','+')).join(''):'<div class="footnote">No growth this month.</div>';
+  document.getElementById('moversDown').innerHTML=down.length?down.map(x=>row(x,'down','−')).join(''):'<div class="footnote">No declines this month.</div>';
+}
+
+function renderConcentration(accts,total){
+  const top3=accts.slice(0,3).reduce((s,x)=>s+x[1],0);
+  const top5=accts.slice(0,5).reduce((s,x)=>s+x[1],0);
+  const p3=total?top3/total*100:0, p5=total?top5/total*100:0;
+  const risk=p3>60?{t:'High concentration',c:'var(--bad)'}:p3>40?{t:'Moderate concentration',c:'var(--warn)'}:{t:'Well diversified',c:'var(--good)'};
+  document.getElementById('concentration').innerHTML=
+    '<div class="head"><span class="eyebrow">Account concentration</span><span class="hint" style="color:'+risk.c+';font-weight:700">'+risk.t+'</span></div>'
+    +'<div style="display:flex;gap:24px;flex-wrap:wrap">'
+    +'<div><div class="eyebrow">Top 3 share</div><div class="val num" style="font-size:24px;font-weight:800;margin-top:4px">'+p3.toFixed(1)+'%</div><div class="footnote">'+MM(top3)+'</div></div>'
+    +'<div><div class="eyebrow">Top 5 share</div><div class="val num" style="font-size:24px;font-weight:800;margin-top:4px">'+p5.toFixed(1)+'%</div><div class="footnote">'+MM(top5)+'</div></div>'
+    +'<div style="flex:1;min-width:200px"><div class="eyebrow" style="margin-bottom:8px">Top accounts</div>'
+    + accts.slice(0,5).map(([n,v])=>{const pct=total?v/total*100:0;return '<div class="barrow"><div class="top"><span class="nm">'+esc(n)+'</span><span class="vv num">'+pct.toFixed(1)+'%</span></div><div class="track"><div class="fill" style="width:'+pct+'%;background:var(--accent)"></div></div></div>';}).join('')
+    +'</div></div>';
+}
+
+/* ════════════════════════ ACCOUNT ROWS ════════════════════════ */
+function acctRows(name){return DATA.rows.filter(r=>r.account===name);}
+
+/* ════════════════════════ PDF REPORT — zero CDN ════════════════════════
+   Generates a self-contained HTML report file and downloads it.
+   When the user opens the file in any browser the print dialog
+   opens automatically → "Save as PDF" (or "Print to PDF").
+
+   Why HTML, not jsPDF?
+   The Claude HTML viewer blocks external CDN script loads.
+   jsPDF loaded from cdnjs triggers "Block external links" error.
+   This approach uses only built-in browser APIs — no network calls.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── toast helper ── */
+function showToast(msg, ms=6000){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid=setTimeout(()=>t.classList.remove('show'), ms);
+}
+
+/* ── build a complete, self-contained HTML report page ── */
+function buildReportHTML(scope){
+  const rs   = scope==='__ALL__' ? DATA.rows : acctRows(scope);
+  const title= scope==='__ALL__' ? 'All Accounts' : scope;
+  const mp   = monthsPresent();
+  const total= rs.reduce((s,r)=>s+r.qty,0);
+  if(!total) return null;
+
+  const monthVol=mp.map(m=>[m,rs.filter(r=>r.month===m).reduce((s,r)=>s+r.qty,0)]);
+  const peak=[...monthVol].sort((a,b)=>b[1]-a[1])[0];
+  const skuCount=new Set(rs.map(r=>r.product)).size;
+
+  /* build matrix: [{name, vol:{[month]:qty}, tot}] sorted by tot desc */
+  function mx(key){
+    const d=new Map();
+    for(const r of rs){
+      if(!d.has(r[key]))d.set(r[key],{});
+      const o=d.get(r[key]);o[r.month]=(o[r.month]||0)+r.qty;
+    }
+    return [...d.entries()].map(([name,vol])=>({name,vol,tot:mp.reduce((s,m)=>s+(vol[m]||0),0)})).sort((a,b)=>b.tot-a.tot);
+  }
+  const labelMx=mx('label'), sizeMx=mx('size');
+  const top50  = scope!=='__ALL__'?vitalFew(rs,'product',0.5):[];
+  const top50s = new Set(top50);
+  const skuMx  = top50.length
+    ? mx('product').filter(x=>top50s.has(x.name)).sort((a,b)=>top50.indexOf(a.name)-top50.indexOf(b.name))
+    : [];
+
+  /* helpers */
+  const pMM = v=>v>0?(v/1e6).toFixed(1)+'M':'·';
+  const rE  = s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  /* monthly cell: volume + MoM indicator */
+  function mCell(vol, m, i){
+    const cur=vol[m]||0, v=pMM(cur);
+    if(i===0) return `<td class="c"><b>${v}</b></td>`;
+    const prev=vol[mp[i-1]]||0;
+    if(!prev) return `<td class="c"><b>${v}</b>${cur>0?'<br><small class="up">new</small>':''}</td>`;
+    const d=(cur-prev)/prev*100, cls=d>0.5?'up':d<-0.5?'dn':'';
+    return `<td class="c"><b>${v}</b><br><small class="${cls}">${d>0?'+':''}${d.toFixed(0)}%</small></td>`;
+  }
+
+  /* matrix table */
+  function matTable(data, colLabel){
+    const head=`<tr><th>${rE(colLabel)}</th><th class="r">YTD Total</th><th class="c">Share %</th>${mp.map(m=>`<th class="c">${m}</th>`).join('')}</tr>`;
+    const rows=data.map(({name,vol,tot})=>{
+      const share=total?(tot/total*100).toFixed(1)+'%':'0%';
+      return `<tr><td><b>${rE(name)}</b></td><td class="r num">${fmt(tot)}</td><td class="c pur">${share}</td>${mp.map((m,i)=>mCell(vol,m,i)).join('')}</tr>`;
+    }).join('');
+    return `<table>${head}${rows}</table>`;
+  }
+
+  /* monthly summary table */
+  function monTable(){
+    const rows=monthVol.map(([m,val],i)=>{
+      const ytd=total?(val/total*100).toFixed(1)+'%':'0%';
+      let mom='—',cls='';
+      if(i>0){const p=monthVol[i-1][1];if(p){const d=(val-p)/p*100;mom=(d>=0?'+':'')+d.toFixed(1)+'%';cls=d>=0?'up':'dn';}}
+      return `<tr><td><b>${m}</b></td><td class="r num blu">${fmt(val)}</td><td class="c">${ytd}</td><td class="c ${cls} b">${mom}</td></tr>`;
+    }).join('');
+    const foot=`<tr class="ft"><td><b>YTD TOTAL</b></td><td class="r num blu"><b>${fmt(total)}</b></td><td class="c"><b>100%</b></td><td></td></tr>`;
+    return `<table><tr><th>Month</th><th class="r">Cans Delivered</th><th class="c">YTD Share</th><th class="c">vs Prior Month</th></tr>${rows}${foot}</table>`;
+  }
+
+  const sizeDisplayMx=sizeMx.map(x=>({...x,name:SIZE_LABEL[x.name]||(REAL.includes(x.name)?x.name+'ml':x.name)}));
+
+  return `<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${rE(title)} — Monthly Business Report</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;background:#fff;color:#0F172A;font-size:9pt;line-height:1.35}
+@media print{
+  @page{size:A4 portrait;margin:1.1cm}
+  .no-print{display:none!important}
+  body{font-size:7.5pt}
+  table{page-break-inside:avoid}
+  .section{page-break-inside:avoid}
+}
+.no-print{position:fixed;top:0;left:0;right:0;padding:10px 16px;background:#EFF6FF;border-bottom:1px solid #BFDBFE;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:99}
+.no-print span{font-size:12px;color:#1E40AF}
+.no-print button{background:#1D4ED8;color:#fff;border:none;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer}
+.wrap{max-width:900px;margin:0 auto;padding:56px 22px 22px}
+@media print{.wrap{padding:0}}
+/* header */
+.hdr{border-bottom:2px solid #1D4ED8;padding-bottom:10px;margin-bottom:10px}
+.hdr-row{display:flex;justify-content:space-between;align-items:flex-start}
+.eye{font-size:6.5pt;font-weight:700;color:#DC2626;letter-spacing:.12em;margin-bottom:4px;text-transform:uppercase}
+.ttl{font-size:17pt;font-weight:900;color:#0F172A}
+.per{font-size:7.5pt;color:#6B7280;margin-top:4px}
+.ytd-num{font-size:15pt;font-weight:900;color:#1D4ED8}
+.ytd-lbl{font-size:6.5pt;color:#6B7280;font-weight:600;letter-spacing:.06em;margin-top:2px;text-align:right}
+/* KPI row */
+.kpis{display:flex;gap:8px;margin-bottom:12px}
+.kpi{flex:1;background:#F8FAFC;border:1px solid #E5E7EB;border-radius:6px;padding:7px 10px}
+.kpi-l{font-size:6pt;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.kpi-v{font-size:12pt;font-weight:800;color:#1D4ED8}
+.kpi-s{font-size:6.5pt;color:#9CA3AF;margin-top:1px}
+/* sections */
+.sec{margin-bottom:12px}
+.sec-h{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.sec-bar{width:3px;height:14px;background:#1D4ED8;border-radius:2px;flex-shrink:0}
+.sec-title{font-size:9pt;font-weight:800;color:#0F172A}
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:7pt}
+th{background:#F9FAFB;color:#6B7280;font-size:6pt;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:4px 5px;text-align:left;border-bottom:1.5px solid #E5E7EB;white-space:nowrap}
+td{padding:3px 5px;border-bottom:1px solid #F3F4F6;vertical-align:middle}
+tr:nth-child(even) td{background:#FAFAFA}
+.ft td{background:#EFF6FF;border-top:1.5px solid #D1D5DB;border-bottom:none}
+.r{text-align:right} .c{text-align:center} .b{font-weight:700}
+.blu{color:#1D4ED8} .pur{color:#7C3AED;font-weight:700}
+.up{color:#059669;font-weight:700} .dn{color:#DC2626;font-weight:700}
+.num{font-variant-numeric:tabular-nums}
+small{font-size:6pt;display:block}
+/* footer */
+.ftr{margin-top:14px;padding-top:8px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:6.5pt;color:#9CA3AF}
+</style>
+</head>
+<body>
+<div class="no-print">
+  <span>📄 <b>${rE(title)}</b> — Monthly Business Report · Ready to save as PDF</span>
+  <button onclick="window.print()">🖨️ Save as PDF</button>
+</div>
+<div class="wrap">
+<div class="hdr">
+  <div class="hdr-row">
+    <div>
+      <div class="eye">Monthly Business Report</div>
+      <div class="ttl">${rE(title)}</div>
+      <div class="per">Period: ${rE(mp[0])} – ${rE(mp[mp.length-1])} &nbsp;|&nbsp; Issued: ${REPORT_DATE}</div>
+    </div>
+    <div>
+      <div class="ytd-num">${fmt(total)}</div>
+      <div class="ytd-lbl">CANS YTD</div>
+    </div>
+  </div>
+</div>
+<div class="kpis">
+  <div class="kpi"><div class="kpi-l">Total YTD</div><div class="kpi-v">${MM(total)}</div><div class="kpi-s">${fmt(total)} cans</div></div>
+  <div class="kpi"><div class="kpi-l">Peak Month</div><div class="kpi-v">${peak?peak[0]:'—'}</div><div class="kpi-s">${peak?fmt(peak[1])+' cans':''}</div></div>
+  <div class="kpi"><div class="kpi-l">Label Groups</div><div class="kpi-v">${labelMx.length}</div><div class="kpi-s">product families</div></div>
+  <div class="kpi"><div class="kpi-l">Can Formats</div><div class="kpi-v">${sizeMx.length} sizes</div><div class="kpi-s">${skuCount} unique SKUs</div></div>
+</div>
+<div class="sec"><div class="sec-h"><div class="sec-bar"></div><div class="sec-title">Monthly Delivery Summary</div></div>${monTable()}</div>
+<div class="sec"><div class="sec-h"><div class="sec-bar"></div><div class="sec-title">Label Family Analysis — Monthly Volumes</div></div>${matTable(labelMx,'Label Family')}</div>
+${skuMx.length?`<div class="sec"><div class="sec-h"><div class="sec-bar"></div><div class="sec-title">Top SKUs — First 50% of Volume (${skuMx.length} of ${skuCount} SKUs)</div></div>${matTable(skuMx,'SKU / Product')}</div>`:''}
+<div class="sec"><div class="sec-h"><div class="sec-bar"></div><div class="sec-title">Can Size Breakdown — Monthly Volumes</div></div>${matTable(sizeDisplayMx,'Size')}</div>
+<div class="ftr">
+  <span>Confidential · prepared exclusively for ${rE(title)} · empty can supply volumes.</span>
+  <span>© 2026 · Issued ${REPORT_DATE}</span>
+</div>
+</div>
+<script>
+// Auto-open print dialog when the file is opened in a browser
+window.addEventListener('load',function(){setTimeout(function(){window.print();},600);});
+<\/script>
+</body></html>`;
+}
+
+/* ── download the HTML report (works in all browsers, no CDN needed) ── */
+function downloadPDF(scope){
+  if(!DATA){return;}
+  const title= scope==='__ALL__'?'All Accounts':scope;
+  const rs   = scope==='__ALL__'?DATA.rows:acctRows(scope);
+  if(!rs.length||!rs.reduce((s,r)=>s+r.qty,0)){
+    alert('No data found for "'+title+'"'); return;
+  }
+
+  const html=buildReportHTML(scope);
+  if(!html){alert('No data found for "'+title+'"');return;}
+
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url =URL.createObjectURL(blob);
+  const mp  =monthsPresent();
+  const fname=(scope==='__ALL__'?'All_Accounts':title.replace(/[^a-z0-9]+/ig,'_'))
+    +'_'+mp[0]+'–'+mp[mp.length-1]+'_Report.html';
+
+  /* Try opening in a new tab first (works in desktop browsers and
+     avoids a Save As dialog). Falls back to <a> download if blocked. */
+  const w=window.open(url,'_blank');
+  if(!w||w.closed){
+    /* Popup blocked — force-download the HTML file instead */
+    const a=document.createElement('a');
+    a.href=url; a.download=fname;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    showToast('📄 Report downloaded as "'+fname+'" — open it in your browser, then tap "Save as PDF".');
+  } else {
+    showToast('📄 Report opened in a new tab — tap "Save as PDF" to download.');
+  }
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
+}
+
+
+/* ════════════════════════ LABEL DRILL-DOWN ════════════════════════
+   Click a label family bar → see every SKU for that label with:
+   • Total deliveries YTD
+   • Month-by-month volumes + MoM %
+   • 2-week safety stock = avg monthly / 2
+   • Stock vs safety comparison if a stock file has been uploaded
+   ═══════════════════════════════════════════════════════════════ */
+
+// Clickable version of label bars — adds .lbl-bar + data-lbl
+function labelBarRows(entries, total, activeLbl){
+  return entries.map(([name,v])=>{
+    const pct=total?(v/total*100):0;
+    const active=name===activeLbl;
+    return '<div class="barrow lbl-bar'+(active?' lbl-active':'')+'" data-lbl="'+esc(name)+'">'
+      +'<div class="top"><span class="nm">'+esc(name)+'</span>'
+      +'<span class="vv num">'+MM(v)+' · '+pct.toFixed(1)+'%</span></div>'
+      +'<div class="track"><div class="fill" style="width:'+pct+'%;background:var(--purple)"></div></div>'
+      +'</div>';
+  }).join('');
+}
+
+function renderLabelDrill(acct, mp, grandTotal){
+  const panel=document.getElementById('labelDrill');
+  if(!LABEL_DRILL||!acct){panel.classList.add('hide');return;}
+  const rows=acct.filter(r=>r.label===LABEL_DRILL);
+  if(!rows.length){panel.classList.add('hide');return;}
+  panel.classList.remove('hide');
+
+  // Back button visible only in SKU view
+  document.getElementById('drillBack').classList.toggle('hide',!SIZE_DRILL);
+
+  if(SIZE_DRILL){
+    /* ── LEVEL 2: SKU detail for LABEL_DRILL + SIZE_DRILL ── */
+    const sRows=rows.filter(r=>r.size===SIZE_DRILL);
+
+    // Group by product
+    const skuMap=new Map();
+    for(const r of sRows){
+      if(!skuMap.has(r.product)) skuMap.set(r.product,{vol:{},tot:0});
+      const o=skuMap.get(r.product);
+      o.vol[r.month]=(o.vol[r.month]||0)+r.qty;
+      o.tot+=r.qty;
+    }
+    const skus=[...skuMap.entries()].map(([name,d])=>({name,...d})).sort((a,b)=>b.tot-a.tot);
+    const sizeTotal=skus.reduce((s,x)=>s+x.tot,0);
+    const avgMoSize=mp.length?sizeTotal/mp.length:0;
+    const sizeSafety=avgMoSize/2;
+
+    document.getElementById('drillTitle').textContent=LABEL_DRILL+' › '+SIZE_DRILL+'ml — SKUs';
+    document.getElementById('drillSub').textContent=MM(sizeTotal)+' YTD · '+skus.length+' SKU'+(skus.length>1?'s':'')+' · '+mp[0]+'–'+mp[mp.length-1];
+
+    let h='<table class="momt"><thead><tr>'
+      +'<th class="l">SKU / Product</th>'
+      +'<th>YTD</th>'
+      +mp.map(m=>'<th class="c">'+m+'</th>').join('')
+      +'<th class="c" style="color:var(--warn)">2-Wk Safety</th>'
+      +'</tr></thead><tbody>';
+
+    skus.forEach(({name,vol,tot})=>{
+      const avgMo=mp.length?tot/mp.length:0;
+      const safety=avgMo/2;
+      const share=sizeTotal?(tot/sizeTotal*100).toFixed(1):'0';
+
+      h+='<tr>'
+        +'<td class="l">'+esc(name)+'</td>'
+        +'<td class="ytd"><span class="cv">'+MM(tot)+'</span><span class="cpct">'+share+'%</span></td>';
+
+      mp.forEach((m,i)=>{
+        const cur=vol[m]||0;
+        const vv='<div class="cv'+(cur===0?' mut':'')+'>'+(cur>0?MM(cur):'·')+'</div>';
+        if(i===0){h+='<td>'+vv+'<div class="cm mut">—</div></td>';return;}
+        const prev=vol[mp[i-1]]||0;
+        if(!prev){h+='<td>'+vv+'<div class="cm '+(cur>0?'up':'mut')+'">'+(cur>0?'new':'·')+'</div></td>';return;}
+        const pct=(cur-prev)/prev*100,cls=pct>0.5?'up':pct<-0.5?'down':'mut';
+        h+='<td>'+vv+'<div class="cm '+cls+'">'+(pct>0?'+':'')+pct.toFixed(0)+'%</div></td>';
+      });
+
+      h+='<td class="c safety-cell">'+MM(safety)+'</td></tr>';
+    });
+
+    // Size total row
+    h+='<tr class="tfoot">'
+      +'<td class="l"><b>'+SIZE_DRILL+'ml total</b></td>'
+      +'<td><span class="cv">'+MM(sizeTotal)+'</span><span class="cpct">100%</span></td>'
+      +mp.map(m=>{const mv=sRows.filter(r=>r.month===m).reduce((s,r)=>s+r.qty,0);return '<td class="c"><div class="cv'+(mv===0?' mut':'')+'"><b>'+(mv>0?MM(mv):'·')+'</b></div></td>';}).join('')
+      +'<td class="c safety-cell"><b>'+MM(sizeSafety)+'</b></td>'
+      +'</tr></tbody></table>';
+    document.getElementById('drillTable').innerHTML=h;
+
+    // Summary cards for this size
+    let sumHtml='<div class="ds-card amber"><div class="dl">Avg monthly ('+SIZE_DRILL+'ml)</div><div class="dv">'+MM(avgMoSize)+'</div></div>'
+      +'<div class="ds-card amber"><div class="dl">2-week safety stock</div><div class="dv">'+MM(sizeSafety)+'</div></div>';
+    document.getElementById('drillSummary').innerHTML=sumHtml;
+
+  } else {
+    /* ── LEVEL 1: size breakdown for LABEL_DRILL ── */
+    const sizeMap=new Map();
+    for(const r of rows){
+      if(!sizeMap.has(r.size)) sizeMap.set(r.size,{vol:{},tot:0,skus:new Set()});
+      const o=sizeMap.get(r.size);
+      o.vol[r.month]=(o.vol[r.month]||0)+r.qty;
+      o.tot+=r.qty;
+      o.skus.add(r.product);
+    }
+    const sizes=[...sizeMap.entries()].map(([size,d])=>({size,...d})).sort((a,b)=>b.tot-a.tot);
+    const labelTotal=sizes.reduce((s,x)=>s+x.tot,0);
+    const avgMonthlyLabel=mp.length?labelTotal/mp.length:0;
+    const totalSafety=avgMonthlyLabel/2;
+
+    document.getElementById('drillTitle').textContent=LABEL_DRILL+' — by can size';
+    document.getElementById('drillSub').textContent=MM(labelTotal)+' YTD · '+sizes.length+' size'+(sizes.length>1?'s':'')+' · '+mp[0]+'–'+mp[mp.length-1]+' · tap a size to see SKUs';
+
+    let h='<table class="momt"><thead><tr>'
+      +'<th class="l">Can Size</th>'
+      +'<th class="c">SKUs</th>'
+      +'<th>YTD</th>'
+      +mp.map(m=>'<th class="c">'+m+'</th>').join('')
+      +'<th class="c" style="color:var(--warn)">2-Wk Safety</th>'
+      +'</tr></thead><tbody>';
+
+    sizes.forEach(({size,vol,tot,skus})=>{
+      const avgMo=mp.length?tot/mp.length:0;
+      const safety=avgMo/2;
+      const share=labelTotal?(tot/labelTotal*100).toFixed(1):'0';
+
+      // size-row class makes rows clickable; data-size drives the drill
+      h+='<tr class="size-row" data-size="'+esc(size)+'">'
+        +'<td class="l">'+sizeBadge(size)+'</td>'
+        +'<td class="c" style="font-size:10px;color:var(--text4)">'+skus.size+' SKU'+(skus.size>1?'s':'')+'</td>'
+        +'<td class="ytd"><span class="cv">'+MM(tot)+'</span><span class="cpct">'+share+'%</span></td>';
+
+      mp.forEach((m,i)=>{
+        const cur=vol[m]||0;
+        const vv='<div class="cv'+(cur===0?' mut':'')+'>'+(cur>0?MM(cur):'·')+'</div>';
+        if(i===0){h+='<td>'+vv+'<div class="cm mut">—</div></td>';return;}
+        const prev=vol[mp[i-1]]||0;
+        if(!prev){h+='<td>'+vv+'<div class="cm '+(cur>0?'up':'mut')+'">'+(cur>0?'new':'·')+'</div></td>';return;}
+        const pct=(cur-prev)/prev*100,cls=pct>0.5?'up':pct<-0.5?'down':'mut';
+        h+='<td>'+vv+'<div class="cm '+cls+'">'+(pct>0?'+':'')+pct.toFixed(0)+'%</div></td>';
+      });
+
+      h+='<td class="c safety-cell">'+MM(safety)+'</td></tr>';
+    });
+
+    h+='<tr class="tfoot">'
+      +'<td class="l" colspan="2"><b>Label total</b></td>'
+      +'<td><span class="cv">'+MM(labelTotal)+'</span><span class="cpct">100%</span></td>'
+      +mp.map(m=>{const mv=rows.filter(r=>r.month===m).reduce((s,r)=>s+r.qty,0);return '<td class="c"><div class="cv'+(mv===0?' mut':'')+'"><b>'+(mv>0?MM(mv):'·')+'</b></div></td>';}).join('')
+      +'<td class="c safety-cell"><b>'+MM(totalSafety)+'</b></td>'
+      +'</tr></tbody></table>';
+    document.getElementById('drillTable').innerHTML=h;
+
+    // Summary cards
+    const stockAvail=STOCK[ACCOUNT]?.byLabel?.[LABEL_DRILL]||null;
+    let sumHtml='<div class="ds-card amber"><div class="dl">Avg monthly delivery</div><div class="dv">'+MM(avgMonthlyLabel)+'</div></div>'
+      +'<div class="ds-card amber"><div class="dl">2-week safety stock needed</div><div class="dv">'+MM(totalSafety)+'</div></div>';
+    if(stockAvail!==null){
+      const surplus=stockAvail-totalSafety;
+      const ok=surplus>=0;
+      sumHtml+='<div class="ds-card"><div class="dl">Stock available</div><div class="dv">'+MM(stockAvail)+'</div></div>';
+      sumHtml+='<div class="ds-card '+(ok?'ok':'warn')+'"><div class="dl">'+(ok?'Surplus':'Shortfall')+'</div>'
+        +'<div class="dv">'+(ok?'+':'')+MM(surplus)+'</div></div>';
+    }
+    document.getElementById('drillSummary').innerHTML=sumHtml;
+  }
+}
+
+/* ════════════════════════ STOCK REPORT ════════════════════════
+   Auto-detects two SAP report formats:
+
+   FORMAT A — "SD_Stocks per customer By location"
+     Columns: Description | Avail Stock (already nets orders vs stock)
+     Numbers: comma = thousands separator  e.g. "316,250" = 316,250 cans
+     Negative: trailing dash               e.g. "143,750-" = –143,750 (backorder)
+
+   FORMAT B — "SD_ Deliveries" (daily delivery summary)
+     Columns: Material number | Quantity in Each
+     Numbers: European format              e.g. "218.500,000" = 218,500 cans
+
+   Both are pipe-delimited. Subtotal rows start with |* and are skipped.
+   ═══════════════════════════════════════════════════════════════ */
+
+function parseSAPNum(s){
+  if(!s||!s.trim()) return 0;
+  s=s.trim();
+  const neg=s.endsWith('-');
+  s=s.replace(/-$/,'').trim();
+  // Both period AND comma → European: "218.500,000" = 218500
+  // Only commas → US thousands: "1,141,950" = 1141950
+  const n=(s.includes('.')&&s.includes(','))
+    ? parseFloat(s.replace(/\./g,'').replace(',','.'))||0
+    : parseFloat(s.replace(/,/g,''))||0;
+  return neg?-n:n;
+}
+
+function parseStockFile(text){
+  const lines=text.split(/\r?\n/);
+
+  // Find header: must be a pipe row containing the right column names
+  const hi=lines.findIndex(l=>l.includes('|')&&(
+    (l.includes('Avail Stock')&&l.includes('Description'))||        // Format A
+    (l.includes('Quantity in Each')&&l.includes('Material number'))  // Format B
+  ));
+  if(hi<0) return null;
+
+  const hp=lines[hi].split('|');
+  const col=name=>hp.findIndex(p=>p.trim()===name);
+  const isA=hp.some(p=>p.trim()==='Avail Stock'); // Format A = Stocks per customer
+
+  const di=isA?col('Description')    :col('Material number');
+  const qi=isA?col('Avail Stock')    :col('Quantity in Each');
+  const ci=isA?col('Name')           :col('Sold-to party');
+  const ti=isA?col('Current Date')   :col('Ac.GI date');
+  if(di<0||qi<0) return null;
+
+  const byLabel={};let customer=null,date=null;
+
+  for(let i=hi+1;i<lines.length;i++){
+    const line=lines[i];
+    if(!line.startsWith('|')) continue;
+    if(/^\|\s*\*/.test(line)) continue; // skip |* subtotals and |** grand total
+
+    const parts=line.split('|');
+    const desc=(parts[di]||'').trim();
+    const qtyS=(parts[qi]||'').trim();
+    if(!desc) continue;
+
+    const qty=parseSAPNum(qtyS);
+    if(!isA&&qty<=0) continue; // Format B: skip zero-qty rows
+
+    // Format A: include all rows — negative = backorder, still meaningful
+    const lbl=labelOf(desc);
+    byLabel[lbl]=(byLabel[lbl]||0)+qty;
+    if(!customer&&ci>=0) customer=(parts[ci]||'').trim()||null;
+    if(!date&&ti>=0)     date=(parts[ti]||'').trim()||null;
+  }
+  return Object.keys(byLabel).length?{byLabel,customer,date}:null;
+}
+
+function loadStockFile(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const parsed=parseStockFile(e.target.result);
+    if(!parsed){
+      showToast('⚠️ Could not read file — needs a SAP "Stocks per customer" or "Deliveries" .txt report.');
+      return;
+    }
+    STOCK[ACCOUNT]={...parsed};
+    renderStock();
+    const avail=Object.values(parsed.byLabel).reduce((a,b)=>a+b,0);
+    showToast('📦 Stock loaded · '+fmt(Math.round(avail))+' cans available'+(parsed.date?' · '+parsed.date:''));
+  };
+  reader.readAsText(file,'utf-8');
+}
+
+function renderStock(){
+  const data=STOCK[ACCOUNT];
+  const dropEl=document.getElementById('stockDrop');
+  const tblEl =document.getElementById('stockTable');
+  const hintEl=document.getElementById('stockHint');
+  if(!dropEl) return;
+
+  if(!data||!data.byLabel||!Object.keys(data.byLabel).length){
+    dropEl.classList.remove('hide');
+    tblEl.classList.add('hide');
+    hintEl.textContent='upload SAP stock report (.txt)';
+    return;
+  }
+  dropEl.classList.add('hide');
+
+  // Sort: positives first (descending), then negatives (ascending by magnitude)
+  const entries=Object.entries(data.byLabel).sort((a,b)=>b[1]-a[1]);
+  const totalAvail=entries.reduce((s,[,v])=>s+v,0);
+  const backorders=entries.filter(([,v])=>v<0).length;
+
+  // Average monthly delivery from sales data (for months-of-supply)
+  const acctR=ACCOUNT!=='All'?acctRows(ACCOUNT):DATA.rows;
+  const mp=monthsPresent();
+  const avgMo=lbl=>{
+    const t=acctR.filter(r=>r.label===lbl).reduce((s,r)=>s+r.qty,0);
+    return mp.length?t/mp.length:0;
+  };
+
+  hintEl.textContent=fmt(Math.round(totalAvail))+' cans available'
+    +(backorders?' · '+backorders+' label'+(backorders>1?'s':'')+' on backorder':'')
+    +(data.date?' · '+data.date:'');
+
+  let h='<table class="momt"><thead><tr>'
+    +'<th class="l">Label</th>'
+    +'<th class="r">Available Stock</th>'
+    +'<th class="c">Avg / Month</th>'
+    +'<th class="c">Months of Supply</th>'
+    +'</tr></thead><tbody>';
+
+  entries.forEach(([lbl,qty])=>{
+    const pos=qty>=0;
+    const avg=avgMo(lbl);
+    const mos=pos&&avg>0?qty/avg:null;
+    // Color the months-of-supply cell
+    const mosCls=!pos?'down':mos==null?'':mos>=3?'up':mos>=1?'warn':'down';
+    const mosText=!pos?'⚠ Backorder':mos!=null?mos.toFixed(1)+' mo':'—';
+
+    h+='<tr>'
+      +'<td class="l">'+esc(lbl)+'</td>'
+      // Stock qty: green if positive, red if backorder
+      +'<td class="r num '+(pos?'cv':'down')+'">'
+        +(pos?'':'-')+fmt(Math.abs(Math.round(qty)))+'</td>'
+      +'<td class="c num">'+(avg>0?fmt(Math.round(avg)):'—')+'</td>'
+      +'<td class="c num '+mosCls+'"><b>'+mosText+'</b></td>'
+      +'</tr>';
+  });
+
+  h+='<tr class="tfoot">'
+    +'<td class="l"><b>Net available</b></td>'
+    +'<td class="r num '+(totalAvail>=0?'cv':'down')+'"><b>'
+      +(totalAvail<0?'-':'')+fmt(Math.abs(Math.round(totalAvail)))+'</b></td>'
+    +'<td></td><td></td></tr>';
+  h+='</tbody></table>';
+  h+='<div style="margin-top:8px"><button class="btn" id="clearStockBtn" style="font-size:11px">↺ Replace stock file</button></div>';
+
+  tblEl.innerHTML=h;
+  tblEl.classList.remove('hide');
+  document.getElementById('clearStockBtn').onclick=()=>{delete STOCK[ACCOUNT];renderStock();};
+}
+
+
+/* ════════════════════════ TARGET vs DELIVERED ════════════════════════ */
+function loadTargetFile(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellFormula:false,cellHTML:false,cellStyles:false});
+      parseTargetWorkbook(wb,file.name);
+    }catch(ex){ showToast('⚠️ Could not read target file — '+ex.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseTargetWorkbook(wb,fname){
+  let ws=wb.Sheets['Summary']||wb.Sheets['summary']||wb.Sheets['SUMMARY'];
+  const monthNames=['Jan','Feb','Mar','April','May','June','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let monthLabel='';
+  const mMatch=fname.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i);
+  if(mMatch) monthLabel=mMatch[1].charAt(0).toUpperCase()+mMatch[1].slice(1).toLowerCase();
+  if(!ws){
+    for(let i=monthNames.length-1;i>=0;i--){
+      if(wb.Sheets[monthNames[i]]){ws=wb.Sheets[monthNames[i]];monthLabel=monthNames[i];break;}
+    }
+  }
+  if(!ws){showToast('⚠️ No Summary or month sheet found.');return;}
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+
+  // The Summary sheet has leading blank rows/cols, so find the header row dynamically
+  // by locating a row that contains both "Customer" and "Target". Then map columns by name.
+  let hdrRow=-1, col={};
+  for(let r=0;r<rows.length;r++){
+    const cells=rows[r].map(c=>String(c==null?'':c).trim().toLowerCase());
+    const hasCust=cells.some(c=>c.startsWith('customer'));
+    const hasTgt=cells.some(c=>c==='target');
+    if(hasCust&&hasTgt){ hdrRow=r;
+      // Map each needed column by matching the header text
+      cells.forEach((c,i)=>{
+        if(c.startsWith('customer')) col.name=i;
+        else if(c==='target') col.tgt=i;
+      });
+      // Size columns appear TWICE: first block (delivered, after Customer) and
+      // second block (deltas, after Remaining). We take the FIRST 150ml..355ml as
+      // the delivered block, and the block AFTER "remaining" as the delta block.
+      const remIdx=cells.indexOf('remaining');
+      const sizeNames=['150ml','185ml','250ml','330ml slk','355ml slk'];
+      col.del={}; col.delta={};
+      cells.forEach((c,i)=>{
+        const sz=sizeNames.indexOf(c);
+        if(sz>=0){
+          const key=['150ml','185ml','250ml','330ml SLK','355ml SLK'][sz];
+          if(remIdx>=0 && i>remIdx){ col.delta[key]=i; }
+          else if(col.del[key]===undefined){ col.del[key]=i; }
+        }
+      });
+      break;
+    }
+  }
+  if(hdrRow<0){ showToast('⚠️ Could not find the targets header (needs "Customer" and "Target" columns).'); return; }
+
+  // Only extract TARGETS. Delivered always comes from DATA.rows.
+  // Per-size target = (delivered in tracker) - (delta in tracker).
+  const SIZES=['150ml','185ml','250ml','330ml SLK','355ml SLK'];
+  const num=v=>{ const n=parseFloat(v); return isFinite(n)?n:0; };
+  const customers=[];
+  for(let r=hdrRow+1;r<rows.length;r++){
+    const row=rows[r];
+    const name=String(row[col.name]==null?'':row[col.name]).trim();
+    if(!name||name.toLowerCase()==='customers'||name.toLowerCase()==='total') continue;
+    const tgt=num(row[col.tgt]);
+    if(tgt===0) continue;
+    const sizeTgts={};
+    SIZES.forEach(sz=>{
+      const dCol=col.del[sz], xCol=col.delta[sz];
+      const delivered=dCol!=null?num(row[dCol]):0;
+      const delta=xCol!=null?num(row[xCol]):0;
+      sizeTgts[sz]=delivered-delta;
+    });
+    // Normalize the name through companyOf so targets link to sales accounts
+    // (e.g. "Coke Saudi" -> "CCBCSA", "Arrow Juice" -> "Arrow")
+    customers.push({name, account:companyOf(name), tgt, sizeTgts});
+  }
+  if(!customers.length){showToast('⚠️ No target data found in Summary sheet.');return;}
+  TARGET={month:monthLabel,customers};
+  renderTarget();
+  renderCustTarget();
+  showToast('🎯 Targets loaded · '+customers.length+' customers'+(monthLabel?' · '+monthLabel:''));
+}
+
+function deliveredFromSales(custName,sizeKey){
+  if(!DATA) return 0;
+  const custLow=custName.toLowerCase();
+  const sizeCode=Object.entries(SIZE_LABEL).find(([k,v])=>v===sizeKey);
+  const rawSize=sizeCode?sizeCode[0]:sizeKey;
+  const tm=targetMonthFilter();
+  // Sales data is in raw cans; targets are in millions (MM). Divide by 1e6 to align.
+  return DATA.rows.filter(r=>r.account.toLowerCase()===custLow&&r.size===rawSize&&(tm==null||r.month===tm)).reduce((s,r)=>s+r.qty,0)/1e6;
+}
+
+function deliveredTotalFromSales(custName){
+  if(!DATA) return 0;
+  const custLow=custName.toLowerCase();
+  const tm=targetMonthFilter();
+  // Sales data is in raw cans; targets are in millions (MM). Divide by 1e6 to align.
+  return DATA.rows.filter(r=>r.account.toLowerCase()===custLow&&(tm==null||r.month===tm)).reduce((s,r)=>s+r.qty,0)/1e6;
+}
+
+// The targets are MONTHLY, so delivered must be scoped to that same month.
+// Use the target file's detected month; fall back to the dashboard's month filter.
+function targetMonthFilter(){
+  if(TARGET&&TARGET.month){
+    const m=TARGET.month.trim().slice(0,3);
+    return m.charAt(0).toUpperCase()+m.slice(1).toLowerCase();
+  }
+  return MONTH==='All'?null:MONTH;
+}
+
+function renderTarget(){
+  const dropEl=document.getElementById('targetDrop');
+  const tblEl=document.getElementById('targetTableAll');
+  const hintEl=document.getElementById('targetHint');
+  if(!dropEl) return;
+  if(!TARGET||!TARGET.customers||!TARGET.customers.length){
+    dropEl.classList.remove('hide'); tblEl.classList.add('hide');
+    hintEl.textContent='upload monthly targets file'; return;
+  }
+  dropEl.classList.add('hide');
+  const {month,customers}=TARGET;
+  const SIZES=['150ml','185ml','250ml','330ml SLK','355ml SLK'];
+  const SC={'150ml':'#7C3AED','185ml':'#2563EB','250ml':'#059669','330ml SLK':'#D97706','355ml SLK':'#DC2626'};
+  // Enrich: read delivered from sales file (match by normalized account name)
+  const en=customers.map(c=>{
+    const key=c.account||c.name;
+    const totalDel=deliveredTotalFromSales(key);
+    const pct=c.tgt>0?totalDel/c.tgt:0;
+    const sizes={};
+    SIZES.forEach(sz=>{const del=deliveredFromSales(key,sz);const tgt=c.sizeTgts[sz]||0;sizes[sz]={del,tgt,delta:del-tgt};});
+    return {...c,totalDel,pct,sizes};
+  });
+  const totalTgt=en.reduce((s,c)=>s+c.tgt,0);
+  const totalDel=en.reduce((s,c)=>s+c.totalDel,0);
+  const oPct=totalTgt>0?totalDel/totalTgt:0;
+  const tmLabel=targetMonthFilter();
+  hintEl.textContent=(month?month+' targets · ':'')+'delivered '+(tmLabel?'for '+tmLabel:'YTD')+' · '+(oPct*100).toFixed(1)+'% overall achieved';
+  let h='<table class="momt" style="margin-bottom:16px"><thead><tr>'
+    +'<th class="l">Customer</th><th class="r">Delivered</th><th class="r">Target</th>'
+    +'<th class="r">Achieved</th><th class="r">Remaining</th></tr></thead><tbody>';
+  en.forEach(c=>{
+    const pc=c.pct>=1?'up':'down';
+    const rem=c.tgt-c.totalDel;const rc=rem<=0?'up':'down';
+    h+='<tr><td class="l">'+esc(c.account||c.name)+'</td><td class="r num cv">'+c.totalDel.toFixed(2)+'</td>'
+      +'<td class="r num">'+c.tgt.toFixed(2)+'</td>'
+      +'<td class="r num '+pc+'"><b>'+(c.pct*100).toFixed(1)+'%</b></td>'
+      +'<td class="r num '+rc+'">'+(rem<=0?'✓ ':'')+Math.abs(rem).toFixed(2)+'</td></tr>';
+  });
+  const rTot=totalTgt-totalDel;
+  h+='<tr class="tfoot"><td class="l"><b>Total</b></td><td class="r num cv"><b>'+totalDel.toFixed(2)+'</b></td>'
+    +'<td class="r num"><b>'+totalTgt.toFixed(2)+'</b></td>'
+    +'<td class="r num '+(oPct>=1?'up':'down')+'"><b>'+(oPct*100).toFixed(1)+'%</b></td>'
+    +'<td class="r num '+(rTot<=0?'up':'down')+'"><b>'+(rTot<=0?'✓ ':'')+Math.abs(rTot).toFixed(2)+'</b></td>'
+    +'</tr></tbody></table>';
+  h+='<div class="eyebrow" style="margin-bottom:10px">By Customer — with size breakdown</div>';
+  en.forEach(c=>{
+    const bW=Math.min(c.pct,1)*100;
+    const bC=c.pct>=1?'var(--good)':'var(--bad)';
+    const pC=c.pct>=1?'on-track':'behind';
+    h+='<div class="tgt-cust-card">'
+      +'<div class="tgt-bar"><span class="nm">'+esc(c.account||c.name)+'</span>'
+      +'<span class="vv"><b>'+c.totalDel.toFixed(2)+'</b> / '+c.tgt.toFixed(2)+'</span>'
+      +'<span class="tgt-pct '+pC+'">'+(c.pct*100).toFixed(1)+'%</span></div>'
+      +'<div class="track" style="margin-bottom:6px"><div class="fill" style="width:'+bW+'%;background:'+bC+'"></div></div>'
+      +'<div class="tgt-sizes">';
+    SIZES.forEach(sz=>{
+      const s=c.sizes[sz];if(!s||(!s.tgt&&!s.del)) return;
+      const f=s.tgt>0?Math.min(s.del/s.tgt,1)*100:0;
+      const fc=f>=100?'var(--good)':'var(--bad)';
+      const ds=s.delta>=0?'+':'';const dc=s.delta>=0?'up':'down';
+      h+='<div class="tgt-sz-row">'
+        +'<span class="tgt-sz-lbl szb" style="background:'+SC[sz]+'22;color:'+SC[sz]+'">'+sz+'</span>'
+        +'<div class="tgt-sz-track"><div class="tgt-sz-fill" style="width:'+f+'%;background:'+fc+'"></div></div>'
+        +'<span class="tgt-sz-num">'+s.del.toFixed(2)+' / '+(s.tgt>0?s.tgt.toFixed(2):'--')+'</span>'
+        +'<span class="tgt-sz-delta '+dc+'">'+ds+s.delta.toFixed(2)+'</span></div>';
+    });
+    h+='</div></div>';
+  });
+  h+='<div style="margin-top:8px"><button class="btn" id="clearTargetBtn" style="font-size:11px">↺ Replace targets file</button></div>';
+  tblEl.innerHTML=h;tblEl.classList.remove('hide');
+  document.getElementById('clearTargetBtn').onclick=()=>{TARGET=null;renderTarget();renderCustTarget();};
+}
+
+function renderCustTarget(){
+  const panel=document.getElementById('custTargetPanel');
+  if(!panel) return;
+  if(!TARGET||!TARGET.customers||!TARGET.customers.length){
+    panel.innerHTML='<div class="head"><span class="eyebrow">🎯 Target vs Delivered</span>'
+      +'<span class="hint">no targets loaded — switch to All Accounts to upload</span></div>'
+      +'<div style="padding:10px 0;font-size:12px;color:var(--text4)">Upload your monthly targets file from the All Accounts view to see this customer\u2019s targets here.</div>';
+    return;
+  }
+  const custLow=ACCOUNT.toLowerCase();
+  // Match by normalized account first (sales accounts use companyOf names),
+  // then fall back to the friendly name, then fuzzy contains.
+  const match=TARGET.customers.find(c=>(c.account||'').toLowerCase()===custLow)
+    ||TARGET.customers.find(c=>c.name.toLowerCase()===custLow)
+    ||TARGET.customers.find(c=>{const a=(c.account||'').toLowerCase(),n=c.name.toLowerCase();
+        return custLow.includes(a)||a.includes(custLow)||custLow.includes(n)||n.includes(custLow);});
+  const SIZES=['150ml','185ml','250ml','330ml SLK','355ml SLK'];
+  const SC={'150ml':'#7C3AED','185ml':'#2563EB','250ml':'#059669','330ml SLK':'#D97706','355ml SLK':'#DC2626'};
+  const month=TARGET.month;
+  if(!match){
+    panel.innerHTML='<div class="head"><span class="eyebrow">🎯 Target vs Delivered</span>'
+      +'<span class="hint">'+(month||'')+'</span></div>'
+      +'<div style="padding:10px 0;font-size:12px;color:var(--text4)">No target data found for <b>'+esc(ACCOUNT)+'</b> in the loaded file.</div>';
+    return;
+  }
+  // All delivered data from DATA.rows — match by the current account (ACCOUNT)
+  const key=ACCOUNT;
+  const totalDel=deliveredTotalFromSales(key);
+  const pct=match.tgt>0?totalDel/match.tgt:0;
+  const sizes={};
+  SIZES.forEach(sz=>{
+    const del=deliveredFromSales(key,sz);
+    const tgt=match.sizeTgts[sz]||0;
+    sizes[sz]={del,tgt,delta:del-tgt};
+  });
+  const bW=Math.min(pct,1)*100;
+  const bC=pct>=1?'var(--good)':'var(--bad)';
+  const pC=pct>=1?'on-track':'behind';
+  const rem=match.tgt-totalDel;const rC=rem<=0?'up':'down';
+  let h='<div class="head"><span class="eyebrow">🎯 Target vs Delivered</span>'
+    +'<span class="hint">'+(month?month+' · ':'')+esc(match.name)+'</span></div>';
+  h+='<div class="tgt-bar" style="margin-bottom:6px">'
+    +'<span class="nm" style="font-weight:700;font-size:14px">Overall</span>'
+    +'<span class="vv"><b>'+totalDel.toFixed(2)+'</b> / '+match.tgt.toFixed(2)+'</span>'
+    +'<span class="tgt-pct '+pC+'">'+(pct*100).toFixed(1)+'%</span></div>'
+    +'<div class="track" style="margin-bottom:4px"><div class="fill" style="width:'+bW+'%;background:'+bC+'"></div></div>'
+    +'<div style="font-size:11px;margin-bottom:14px"><span class="'+rC+'" style="font-weight:700">'
+    +(rem<=0?'✓ On target — ahead by '+Math.abs(rem).toFixed(2):'Behind by '+Math.abs(rem).toFixed(2))
+    +'</span></div>';
+  h+='<div class="eyebrow" style="margin-bottom:8px">By size</div>';
+  h+='<table class="momt"><thead><tr>'
+    +'<th class="l">Size</th><th class="r">Delivered</th><th class="r">Target</th>'
+    +'<th class="r">%</th><th class="r">Delta</th></tr></thead><tbody>';
+  SIZES.forEach(sz=>{
+    const s=sizes[sz];if(!s||(!s.tgt&&!s.del)) return;
+    const f=s.tgt>0?Math.min(s.del/s.tgt,1)*100:0;
+    const fc=f>=100?'up':'down';
+    const ds=s.delta>=0?'+':'';const dc=s.delta>=0?'up':'down';
+    h+='<tr>'
+      +'<td class="l"><span class="szb" style="background:'+SC[sz]+'22;color:'+SC[sz]+'">'+sz+'</span></td>'
+      +'<td class="r num cv">'+s.del.toFixed(2)+'</td>'
+      +'<td class="r num">'+(s.tgt>0?s.tgt.toFixed(2):'--')+'</td>'
+      +'<td class="r num '+fc+'"><b>'+(s.tgt>0?f.toFixed(1):'--')+'%</b>'
+        +'<div class="track" style="margin-top:3px;height:4px"><div class="fill" style="width:'+f+'%;background:'+bC+'"></div></div></td>'
+      +'<td class="r num '+dc+'"><b>'+ds+s.delta.toFixed(2)+'</b></td></tr>';
+  });
+  h+='</tbody></table>';
+  panel.innerHTML=h;
+}
+
+/* ════════════════════════ CSV ════════════════════════ */
+function downloadCSV(scope){
+  const rs = scope==='__ALL__' ? view() : acctRows(scope).filter(r=>MONTH==='All'||r.month===MONTH);
+  const head=['Account','Original customer','Label','Product','Size','Month','Cans'];
+  const lines=[head.join(',')];
+  for(const r of rs) lines.push([r.account,r.rawCust,r.label,r.product,r.size,r.month,r.qty].map(x=>{const s=String(x);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(','));
+  const blob=new Blob([lines.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=(scope==='__ALL__'?'sales_all':'sales_'+scope.replace(/[^a-z0-9]+/ig,'_'))+'_'+(MONTH==='All'?'YTD':MONTH)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+}
+
+/* ════════════════════════ EVENTS ════════════════════════ */
+const fileInput=document.getElementById('file');
+document.getElementById('stockFileInput').onchange=e=>{if(e.target.files[0])loadStockFile(e.target.files[0]);e.target.value='';}
+document.getElementById('targetFileInput').onchange=e=>{if(e.target.files[0])loadTargetFile(e.target.files[0]);e.target.value='';};
+// Label drill click: tap a label bar to drill in, tap again to close
+document.getElementById('lblShare').addEventListener('click',e=>{
+  const bar=e.target.closest('.lbl-bar');
+  if(!bar) return;
+  LABEL_DRILL=(LABEL_DRILL===bar.dataset.lbl)?null:bar.dataset.lbl;
+  // Refresh just the bars + drill panel (no full render needed)
+  document.querySelectorAll('#lblShare .lbl-bar').forEach(b=>b.classList.toggle('lbl-active',b.dataset.lbl===LABEL_DRILL));
+  const acct=acctRows(ACCOUNT), mp=monthsPresent(), v=ACCOUNT==='All'?DATA.rows:acct;
+  const total=v.reduce((s,r)=>s+r.qty,0);
+  renderLabelDrill(acct,mp,total);
+  if(LABEL_DRILL) document.getElementById('labelDrill').scrollIntoView({behavior:'smooth',block:'start'});
+});
+document.getElementById('drillClose').onclick=()=>{
+  LABEL_DRILL=null; SIZE_DRILL=null;
+  document.querySelectorAll('#lblShare .lbl-bar').forEach(b=>b.classList.remove('lbl-active'));
+  document.getElementById('labelDrill').classList.add('hide');
+};
+// Click on a size row → drill into SKUs for that size
+document.getElementById('drillTable').addEventListener('click',e=>{
+  const row=e.target.closest('.size-row');
+  if(!row) return;
+  SIZE_DRILL=row.dataset.size;
+  const acct=acctRows(ACCOUNT), mp=monthsPresent();
+  const total=(ACCOUNT==='All'?DATA.rows:acct).reduce((s,r)=>s+r.qty,0);
+  renderLabelDrill(acct,mp,total);
+  document.getElementById('labelDrill').scrollIntoView({behavior:'smooth',block:'start'});
+});
+// Back button → return to size overview
+document.getElementById('drillBack').onclick=()=>{
+  SIZE_DRILL=null;
+  const acct=acctRows(ACCOUNT), mp=monthsPresent();
+  const total=(ACCOUNT==='All'?DATA.rows:acct).reduce((s,r)=>s+r.qty,0);
+  renderLabelDrill(acct,mp,total);
+};
+const dz=document.getElementById('dz');
+const errEl=document.getElementById('err');
+function loadFile(file){
+  if(!file) return;
+  errEl.classList.add('hide');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    let res; try{ res=parseWorkbook(new Uint8Array(e.target.result)); }
+    catch(ex){ res={error:"Couldn't open that file ("+ex.message+'). Make sure it is a real .xlsx export.'}; }
+    if(res.error){ errEl.textContent='⚠️ '+res.error; errEl.classList.remove('hide'); return; }
+    DATA=res; MONTH='All'; ACCOUNT='All';
+    document.getElementById('upload').classList.add('hide');
+    document.getElementById('app').classList.remove('hide');
+    render();
+  };
+  reader.readAsArrayBuffer(file);
+}
+fileInput.onchange=e=>loadFile(e.target.files[0]);
+dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag');};
+dz.ondragleave=()=>dz.classList.remove('drag');
+dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');loadFile(e.dataTransfer.files[0]);};
+
+document.getElementById('monthChips').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;MONTH=c.dataset.m;render();};
+document.getElementById('acctChips').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;setAccount(c.dataset.a);};
+document.getElementById('acctSearch').oninput=e=>{const v=view();const total=v.reduce((s,r)=>s+r.qty,0);renderAccts(sorted(sumBy(v,'account')),total,e.target.value);};
+document.getElementById('newBtn').onclick=()=>{DATA=null;MONTH='All';ACCOUNT='All';TARGET=null;Object.keys(STOCK).forEach(k=>delete STOCK[k]);document.getElementById('app').classList.add('hide');document.getElementById('upload').classList.remove('hide');fileInput.value='';};
+document.getElementById('csvBtn').onclick=()=>downloadCSV(ACCOUNT==='All'?'__ALL__':ACCOUNT);
+/* ── PDF button helpers ── */
+function triggerPDF(scope, btn){
+  // Show loading state, then generate (setTimeout lets the UI repaint first)
+  const orig = btn ? btn.textContent : null;
+  if(btn){ btn.textContent='⏳ Generating…'; btn.disabled=true; }
+  setTimeout(()=>{
+    try{ downloadPDF(scope); }
+    finally{ if(btn){ btn.textContent=orig; btn.disabled=false; } }
+  }, 40);
+}
+document.getElementById('coReportBtn').onclick=function(){
+  triggerPDF(ACCOUNT==='All'?'__ALL__':ACCOUNT, this);
+};
+document.getElementById('custPdfBtn').onclick=function(){
+  triggerPDF(ACCOUNT==='All'?'__ALL__':ACCOUNT, this);
+};
+// PDF icons on each account bar in the overview
+document.getElementById('accts').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-pdf]');
+  if(!btn) return;
+  e.stopPropagation();   // don't also trigger setAccount
+  triggerPDF(btn.dataset.pdf, btn);
+});
+
+const themeBtn=document.getElementById('themeBtn');
+themeBtn.onclick=()=>{
+  const cur=document.documentElement.getAttribute('data-theme');
+  const next=cur==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  themeBtn.textContent=next==='dark'?'🌙 Dark':'☀︎ Light';
+};
+</script>
+</body>
+</html>
