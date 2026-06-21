@@ -246,6 +246,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .dsf-pill.nodata .dot{background:var(--warn)}
 .dsf-pill.missing .dot{background:var(--text4)}
 .dsf-pill .act{font-size:12px;color:var(--text4);font-weight:600}
+.dsf-pill.ro{cursor:default}
+.dsf-pill.ro:hover{border-color:var(--border2);color:var(--text2)}
 [data-theme="light"] .dsf-pill{border-color:#93C5FD}
 .dsf-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;background:var(--card2);border:1px solid var(--border2);border-radius:10px;flex-wrap:wrap}
 .dsf-left{display:flex;align-items:center;gap:9px;min-width:0}
@@ -261,6 +263,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .dsf-up:hover,.dsf-up.drag{background:var(--dz-bg);filter:brightness(1.05)}
 .dsf-replace{display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;font-weight:600;color:var(--text3);background:transparent;border:1px solid var(--border2);border-radius:7px;padding:4px 9px;transition:.12s;white-space:nowrap}
 .dsf-replace:hover,.dsf-replace.drag{border-color:var(--accent);color:var(--accent);background:var(--card2)}
+/* ── AOP 2026 annual target vs actual ── */
+.aop-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:620px){.aop-tiles{grid-template-columns:1fr 1fr}}
+.aop-tile{background:var(--card2);border:1px solid var(--border);border-radius:13px;padding:12px 13px}
+[data-theme="light"] .aop-tile{border-color:#93C5FD}
+.aop-tile .lab{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text4);margin-bottom:5px}
+.aop-tile .val{font-size:20px;font-weight:800;line-height:1.1}.aop-tile .sub{font-size:11.5px;color:var(--text3);margin-top:3px}
+.aop-pace{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:11px;font-size:13px;font-weight:600;margin-top:12px;flex-wrap:wrap}
+.aop-pill{font-weight:800;padding:3px 10px;border-radius:999px;font-size:12px;white-space:nowrap;color:#fff}
+.aop-legend{display:flex;gap:13px;font-size:11px;color:var(--text3);margin:2px 0 8px;font-weight:600;flex-wrap:wrap}
+.aop-legend span{display:inline-flex;align-items:center;gap:5px}.aop-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.aop-mrow{display:flex;gap:5px;align-items:flex-end;overflow-x:auto;padding-bottom:2px}
+.aop-mcol{flex:1;min-width:38px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.aop-mpct{font-size:10px;font-weight:800;height:12px}
+.aop-bars{height:110px;display:flex;align-items:flex-end;gap:3px;width:100%}
+.aop-bars .b{flex:1;border-radius:4px 4px 0 0;min-height:2px}
+.aop-mlab{font-size:10px;color:var(--text3);font-weight:700}
+.aop-mb{font-size:10px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--accent2);color:#fff;letter-spacing:.02em;text-transform:none}
+.aop-bar2{width:84px;height:8px;background:var(--track);border-radius:5px;overflow:hidden;display:inline-block;vertical-align:middle}.aop-bar2>i{display:block;height:100%;border-radius:5px}
 </style>
 </head>
 <body>
@@ -362,7 +383,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <div class="frow"><span class="flabel">Account</span><div class="fchips" id="acctChips"></div></div>
   </section>
 
-  <!-- data files (customer view only): reference files loaded for this customer -->
+  <!-- data files: Targets/Overdues are global, Stock is per-client; shown on the all-clients overview and on each client -->
   <div class="panel hide" id="custDataStatus">
     <div class="head"><span class="eyebrow">📋 Data files</span><span class="hint" id="custDataStatusHint"></span></div>
     <div class="dsf" id="custDataStatusRows"></div>
@@ -371,6 +392,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <input type="file" id="dsTargetInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
     <input type="file" id="dsARInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
     <input type="file" id="dsStockInput" accept=".txt,.TXT" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
+    <input type="file" id="dsAOPInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
   </div>
 
   <div class="kpis" id="kpis"></div>
@@ -405,6 +427,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <input type="file" id="targetFileInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
     <div id="targetTableAll" class="hide"></div>
   </div>
+
+  <!-- AOP 2026 annual target vs actual: all accounts view -->
+  <div class="panel" id="aopPanelAll"></div>
 
   <!-- AR overdues: all accounts view -->
   <div class="panel" id="arPanelAll">
@@ -473,6 +498,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <div class="panel" id="custLatestPanel"></div>
     <!-- customer target card: driven by global TARGET, sits right after monthly volume -->
     <div class="panel" id="custTargetPanel"></div>
+    <!-- customer AOP 2026 annual target vs actual -->
+    <div class="panel" id="custAOPPanel"></div>
     <!-- customer overdue card: driven by global AR -->
     <div class="panel" id="custARPanel"></div>
     <div class="panel">
@@ -541,7 +568,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 21 Jun 2026 · 23:55</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 22 Jun 2026 · 07:10</div>
 </div>
 
 <div id="report"></div>
@@ -561,20 +588,14 @@ const COMPANY_RULES = [
   { group:'Aqua Brown',          test:/aqua\s*brown|anorka/i },       // Anorka is Aqua Brown
   { group:'Arrow',               test:/\barrow\b/i },
   { group:'Abi Ramia',           test:/international\s+factory/i },
-  { group:'Ball India',          test:/kenya\s*breweries|\budv\b/i }, // consolidated under Ball India
+  { group:'Ball',                test:/kenya\s*breweries|\budv\b/i }, // Kenya/UDV kept with Ball
   { group:'Crown Dairy',         test:/crown\s*dairy/i },             // Crown Dairy Industries -> Crown Dairy
   { group:'Camel Step',          test:/came?l?\s*step/i },            // Came/Camel Step Corporation -> Camel Step
 ];
 function companyOf(raw){
   const s=String(raw||'').trim();
-  // Ball entities -> "Ball <Country>" (e.g. Ball Beverage Packaging India Pvt -> Ball India)
-  if(/^ball\b/i.test(s)){
-    const rest=s.replace(/ball|beverage|packaging/ig,' ')
-                .replace(/\b(pvt|pte|ltd|limited|inc|llc|co|company|the)\b\.?/ig,' ')
-                .replace(/\s+/g,' ').trim();
-    const c=(rest.split(' ')[0]||'');
-    return c ? 'Ball '+c.charAt(0).toUpperCase()+c.slice(1).toLowerCase() : 'Ball';
-  }
+  // All Ball entities (Egypt / India / Kenya) are kept together under one "Ball" account.
+  if(/^ball\b/i.test(s)) return 'Ball';
   for(const r of COMPANY_RULES) if(r.test.test(s)) return r.group;
   return s;
 }
@@ -692,6 +713,7 @@ let ACCOUNT='All';  // selected account, or 'All'
 const STOCK={};
 let TARGET=null;    // { month, customers:[{name,tgt,sizeTgts:{}}] }
 let AR=null;        // { date, customers:[{name,account,total,notDue,b1,b2,b3,b4,b5,overdue}] }
+let AOP=null;       // { uploadedAt, accounts:{ <account>:{ sizes:{label:[12 MM]}, byMonth:[12 MM], annual } } } — full-year 2026 plan, remembered permanently
 let LABEL_DRILL=null; // label family currently drilled into
 let SIZE_DRILL=null;  // can size currently drilled into within a label
 let MOM_MODE={label:'qty',size:'qty',sku:'qty'}; // per-box toggle: 'qty' = cans, 'var' = MoM %
@@ -780,13 +802,16 @@ const MM=n=>(n/1e6).toFixed(1)+' MM';
 const LS_TARGET='salesdash_target_v1';
 const LS_AR='salesdash_ar_v1';
 const LS_STOCK='salesdash_stock_v1';
+const LS_AOP='salesdash_aop_v1';   // AOP annual plan — uploaded once, never forgotten
 function saveTarget(){ try{ if(TARGET) localStorage.setItem(LS_TARGET,JSON.stringify(TARGET)); else localStorage.removeItem(LS_TARGET); }catch(e){} }
 function saveAR(){ try{ if(AR) localStorage.setItem(LS_AR,JSON.stringify(AR)); else localStorage.removeItem(LS_AR); }catch(e){} }
 function saveStock(){ try{ if(Object.keys(STOCK).length) localStorage.setItem(LS_STOCK,JSON.stringify(STOCK)); else localStorage.removeItem(LS_STOCK); }catch(e){} }
+function saveAOP(){ try{ if(AOP) localStorage.setItem(LS_AOP,JSON.stringify(AOP)); else localStorage.removeItem(LS_AOP); }catch(e){} }
 function loadSaved(){
   try{ const t=localStorage.getItem(LS_TARGET); if(t) TARGET=JSON.parse(t); }catch(e){}
   try{ const a=localStorage.getItem(LS_AR); if(a) AR=JSON.parse(a); }catch(e){}
   try{ const s=localStorage.getItem(LS_STOCK); if(s){ const obj=JSON.parse(s); Object.keys(obj).forEach(k=>{STOCK[k]=obj[k];}); } }catch(e){}
+  try{ const p=localStorage.getItem(LS_AOP); if(p) AOP=JSON.parse(p); }catch(e){}
 }
 // Friendly "uploaded" label from a saved timestamp (e.g. "uploaded 21 Jun, 14:30").
 function uploadedLabel(ts){
@@ -828,7 +853,7 @@ function render(){
   // account chips (ranked by total volume, stable across the month filter)
   const allAccts=sorted(sumBy(DATA.rows,'account')).map(x=>x[0]);
   document.getElementById('acctChips').innerHTML=
-    '<span class="chip'+(ACCOUNT==='All'?' on':'')+'" data-a="All">All accounts</span>'+
+    '<span class="chip'+(ACCOUNT==='All'?' on':'')+'" data-a="All">All clients</span>'+
     allAccts.map(a=>'<span class="chip acct'+(ACCOUNT===a?' on':'')+'" data-a="'+esc(a)+'" title="'+esc(a)+'">'+esc(a)+'</span>').join('');
 
   // scope = month + account
@@ -878,10 +903,12 @@ function render(){
   document.getElementById('concentration').classList.toggle('hide', isCust);
   document.getElementById('latestPanelAll').classList.toggle('hide', isCust);
   document.getElementById('targetPanelAll').classList.toggle('hide', isCust);
+  document.getElementById('aopPanelAll').classList.toggle('hide', isCust);
   document.getElementById('arPanelAll').classList.toggle('hide', isCust);
   document.getElementById('custView').classList.toggle('hide', !isCust);
-  document.getElementById('custDataStatus').classList.toggle('hide', !isCust);
+  document.getElementById('custDataStatus').classList.remove('hide'); // shown in both all-clients & customer views
   document.getElementById('allToolbar').classList.toggle('hide', isCust);
+  renderCustDataStatus();
 
   // Keep the upload panels before "Monthly volume" in BOTH views.
   // Customer view: move the shared monthly panel after the customer overdue card
@@ -923,8 +950,8 @@ function render(){
     syncMoMToggle('sizeMoMToggle',MOM_MODE.size);
     renderStock();
     renderCustTarget();
+    renderCustAOP();
     renderCustAR();
-    renderCustDataStatus();
   } else {
     // ── OVERVIEW ──
     document.getElementById('acctPanelTitle').textContent='Portfolio — accounts';
@@ -948,6 +975,7 @@ function render(){
     renderMovers();
     renderConcentration(accts,total);
     renderTarget();
+    renderAOPAll();
     renderAR();
   }
 
@@ -1248,7 +1276,7 @@ function showToast(msg, ms=6000){
 /* ── build a complete, self-contained HTML report page ── */
 function buildReportHTML(scope, only){
   const rs   = scope==='__ALL__' ? DATA.rows : acctRows(scope);
-  const title= scope==='__ALL__' ? 'All Accounts' : scope;
+  const title= scope==='__ALL__' ? 'All Clients' : scope;
   const mp   = monthsPresent();
   const total= rs.reduce((s,r)=>s+r.qty,0);
   if(!total) return null;
@@ -1300,7 +1328,7 @@ function buildReportHTML(scope, only){
   const sizeCount=new Set(rs.map(r=>r.size).filter(s=>REAL.includes(s))).size;
   const skuCount=new Set(rs.map(r=>r.product)).size;
   const isAll = scope==='__ALL__';
-  const dispName = isAll ? 'All Accounts' : scope;
+  const dispName = isAll ? 'All Clients' : scope;
   const allTotal=DATA.rows.reduce((s,r)=>s+r.qty,0);
   const sharePct=allTotal?(total/allTotal*100).toFixed(1):'0.0';
 
@@ -1668,7 +1696,7 @@ function buildReportHTML(scope, only){
 /* ════════════════════════ PDF DOWNLOAD ════════════════════════ */
 function downloadPDF(scope, only){
   if(!DATA){return;}
-  const title= scope==='__ALL__'?'All Accounts':scope;
+  const title= scope==='__ALL__'?'All Clients':scope;
   const rs   = scope==='__ALL__'?DATA.rows:acctRows(scope);
   if(!rs.length||!rs.reduce((s,r)=>s+r.qty,0)){ alert('No data found for "'+title+'"'); return; }
   const html=buildReportHTML(scope, only);
@@ -1678,7 +1706,7 @@ function downloadPDF(scope, only){
   const mp  =monthsPresent();
   const kindSuffix = only==='stock'?'_Stock' : only==='overdue'?'_Overdue' : only==='target'?'_Target_vs_Delivered' : '_Weekly_Update';
   const fname=(scope==='__ALL__'
-      ? (only ? 'All_Accounts'+kindSuffix : 'All_Accounts_'+mp[0]+'-'+mp[mp.length-1]+'_Report')
+      ? (only ? 'All_Clients'+kindSuffix : 'All_Clients_'+mp[0]+'-'+mp[mp.length-1]+'_Report')
       : title.replace(/[^a-z0-9]+/ig,'_')+kindSuffix)+'.html';
   // Open in a new tab (desktop) — fall back to a download if the popup is blocked (iOS).
   const w=window.open(url,'_blank');
@@ -2026,52 +2054,86 @@ function renderStock(){
 // 'missing' (offer a tap/drop upload, wired to the existing loader).
 function renderCustDataStatus(){
   const panel=document.getElementById('custDataStatus');
-  if(!panel||ACCOUNT==='All') return;
-  const custLow=ACCOUNT.toLowerCase();
+  if(!panel) return;
+  const isAll = ACCOUNT==='All';
+  let files, label;
 
-  // Targets (shared file) — match the same way renderCustTarget does.
-  let tgt;
-  if(!TARGET||!TARGET.customers||!TARGET.customers.length){ tgt={state:'missing'}; }
-  else{
-    const m=TARGET.customers.find(c=>(c.account||'').toLowerCase()===custLow)
-      ||TARGET.customers.find(c=>c.name.toLowerCase()===custLow)
-      ||TARGET.customers.find(c=>{const a=(c.account||'').toLowerCase(),n=c.name.toLowerCase();
-          return custLow.includes(a)||a.includes(custLow)||custLow.includes(n)||n.includes(custLow);});
-    tgt={state:m?'ok':'nodata',ts:TARGET.uploadedAt};
+  if(isAll){
+    // ALL CLIENTS overview: Targets & Overdues are single shared files (uploading here
+    // applies to everyone). Stock is per-client, so it's shown read-only here (uploaded
+    // from each client's own page) to avoid mis-keying a stock file to "All".
+    const tgt=(TARGET&&TARGET.customers&&TARGET.customers.length)?{state:'ok',ts:TARGET.uploadedAt}:{state:'missing'};
+    const ar =(AR&&AR.customers&&AR.customers.length)?{state:'ok',ts:AR.uploadedAt}:{state:'missing'};
+    const stockKeys=Object.keys(STOCK||{}).filter(k=>STOCK[k]&&STOCK[k].byLabel&&Object.keys(STOCK[k].byLabel).length);
+    let stk;
+    if(stockKeys.length){
+      const ts=stockKeys.map(k=>STOCK[k].uploadedAt).filter(Boolean).sort().pop();
+      stk={state:'ok',ts,note:stockKeys.length+' client'+(stockKeys.length>1?'s':'')};
+    } else stk={state:'missing',note:'per client'};
+    const aop=(AOP&&AOP.accounts&&Object.keys(AOP.accounts).length)?{state:'ok',ts:AOP.uploadedAt}:{state:'missing'};
+    files=[
+      {ic:'🎯', nm:'Targets',       input:'dsTargetInput', loader:'loadTargetFile', s:tgt, up:true },
+      {ic:'📅', nm:'AOP 2026',      input:'dsAOPInput',    loader:'loadAOPFile',    s:aop, up:true },
+      {ic:'💰', nm:'Overdues (AR)', input:'dsARInput',     loader:'loadARFile',     s:ar,  up:true },
+      {ic:'📦', nm:'Stock report',  input:'dsStockInput',  loader:'loadStockFile',  s:stk, up:false},
+    ];
+    label='All Clients';
+  } else {
+    const custLow=ACCOUNT.toLowerCase();
+    // Targets (shared file) — match the same way renderCustTarget does.
+    let tgt;
+    if(!TARGET||!TARGET.customers||!TARGET.customers.length){ tgt={state:'missing'}; }
+    else{
+      const m=TARGET.customers.find(c=>(c.account||'').toLowerCase()===custLow)
+        ||TARGET.customers.find(c=>c.name.toLowerCase()===custLow)
+        ||TARGET.customers.find(c=>{const a=(c.account||'').toLowerCase(),n=c.name.toLowerCase();
+            return custLow.includes(a)||a.includes(custLow)||custLow.includes(n)||n.includes(custLow);});
+      tgt={state:m?'ok':'nodata',ts:TARGET.uploadedAt};
+    }
+    // Overdues / AR (shared file)
+    let ar;
+    if(!AR||!AR.customers||!AR.customers.length){ ar={state:'missing'}; }
+    else{
+      const c=AR.customers.find(x=>(x.account||'').toLowerCase()===custLow)
+        ||AR.customers.find(x=>x.name.toLowerCase()===custLow);
+      ar={state:c?'ok':'nodata',ts:AR.uploadedAt};
+    }
+    // Stock (per-customer file)
+    const sd=STOCK[ACCOUNT];
+    const stk=(sd&&sd.byLabel&&Object.keys(sd.byLabel).length)?{state:'ok',ts:sd.uploadedAt}:{state:'missing'};
+    let aop;
+    if(!AOP||!AOP.accounts||!Object.keys(AOP.accounts).length){ aop={state:'missing'}; }
+    else { aop={state:(AOP.accounts[ACCOUNT]?'ok':'nodata'),ts:AOP.uploadedAt}; }
+    files=[
+      {ic:'🎯', nm:'Targets',        input:'dsTargetInput', loader:'loadTargetFile', s:tgt, up:true},
+      {ic:'📅', nm:'AOP 2026',       input:'dsAOPInput',    loader:'loadAOPFile',    s:aop, up:true},
+      {ic:'💰', nm:'Overdues (AR)',  input:'dsARInput',     loader:'loadARFile',     s:ar , up:true},
+      {ic:'📦', nm:'Stock report',   input:'dsStockInput',  loader:'loadStockFile',  s:stk, up:true},
+    ];
+    label=ACCOUNT;
   }
-  // Overdues / AR (shared file)
-  let ar;
-  if(!AR||!AR.customers||!AR.customers.length){ ar={state:'missing'}; }
-  else{
-    const c=AR.customers.find(x=>(x.account||'').toLowerCase()===custLow)
-      ||AR.customers.find(x=>x.name.toLowerCase()===custLow);
-    ar={state:c?'ok':'nodata',ts:AR.uploadedAt};
-  }
-  // Stock (per-customer file)
-  const sd=STOCK[ACCOUNT];
-  const stk=(sd&&sd.byLabel&&Object.keys(sd.byLabel).length)?{state:'ok',ts:sd.uploadedAt}:{state:'missing'};
-
-  const files=[
-    {ic:'🎯', nm:'Targets',        input:'dsTargetInput', loader:'loadTargetFile', s:tgt},
-    {ic:'💰', nm:'Overdues (AR)',  input:'dsARInput',     loader:'loadARFile',     s:ar },
-    {ic:'📦', nm:'Stock report',   input:'dsStockInput',  loader:'loadStockFile',  s:stk},
-  ];
 
   const okCount=files.filter(f=>f.s.state==='ok').length;
-  document.getElementById('custDataStatusHint').textContent=okCount+' of '+files.length+' loaded · '+ACCOUNT;
+  document.getElementById('custDataStatusHint').textContent=okCount+' of '+files.length+' loaded · '+label;
 
   document.getElementById('custDataStatusRows').innerHTML=files.map(f=>{
     const cls=f.s.state==='ok'?'ok':(f.s.state==='nodata'?'nodata':'missing');
-    const act=f.s.state==='missing'?'⬆':'↻';
     const when=f.s.ts?uploadedLabel(f.s.ts).replace(/^uploaded /,''):'';
-    const title=f.s.state==='ok'?('Uploaded '+when):(f.s.state==='nodata'?('Uploaded '+when+' · not in this file'):'Not uploaded — tap to add');
-    // Whole pill is the upload/replace tap target (drag-drop too), wired to the loader.
-    return '<label for="'+f.input+'" class="dsf-pill '+cls+'" title="'+title+'" '
-      +'ondragover="event.preventDefault();this.classList.add(\'drag\')" '
-      +'ondragleave="this.classList.remove(\'drag\')" '
-      +'ondrop="event.preventDefault();this.classList.remove(\'drag\');if(event.dataTransfer.files[0])'+f.loader+'(event.dataTransfer.files[0])">'
-      +'<span class="dsf-ic">'+f.ic+'</span><span class="dsf-nm">'+f.nm+'</span>'
-      +'<span class="dot"></span><span class="act">'+act+'</span></label>';
+    const act=f.up?(f.s.state==='missing'?'⬆':'↻'):(f.s.note||'');
+    const inner='<span class="dsf-ic">'+f.ic+'</span><span class="dsf-nm">'+f.nm+'</span>'
+      +'<span class="dot"></span><span class="act">'+act+'</span>';
+    if(f.up){
+      const title=f.s.state==='ok'?('Uploaded '+when):(f.s.state==='nodata'?('Uploaded '+when+' · not in this file'):'Not uploaded — tap to add');
+      // Whole pill is the upload/replace tap target (drag-drop too), wired to the loader.
+      return '<label for="'+f.input+'" class="dsf-pill '+cls+'" title="'+title+'" '
+        +'ondragover="event.preventDefault();this.classList.add(\'drag\')" '
+        +'ondragleave="this.classList.remove(\'drag\')" '
+        +'ondrop="event.preventDefault();this.classList.remove(\'drag\');if(event.dataTransfer.files[0])'+f.loader+'(event.dataTransfer.files[0])">'
+        +inner+'</label>';
+    }
+    // read-only status pill (stock on the all-clients overview)
+    const roTitle=f.s.state==='ok'?('Stock loaded for '+(f.s.note||'')+' — uploaded from each client\u2019s page'):'Uploaded from each client\u2019s own page';
+    return '<span class="dsf-pill ro '+cls+'" title="'+roTitle+'">'+inner+'</span>';
   }).join('');
 }
 
@@ -2408,6 +2470,214 @@ function renderCustTarget(){
   panel.innerHTML=h;
 }
 
+/* ════════════════════════ AOP 2026 — ANNUAL TARGET vs ACTUAL ════════════════════════ */
+// The AOP file is uploaded once and remembered permanently (localStorage). It holds the
+// full-year 2026 plan per customer / per size / per month (in MM). Actuals are NEVER stored
+// here — they are recomputed live from DATA on every render, so the comparison rolls forward
+// automatically as new days/months arrive (it never gets stuck on a given month).
+function loadAOPFile(file){
+  const reader=new FileReader();
+  reader.onload=e=>{ try{ const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellFormula:false,cellHTML:false,cellStyles:false}); parseAOPWorkbook(wb,file.name); }catch(ex){ showToast('⚠️ Could not read AOP file — '+ex.message); } };
+  reader.readAsArrayBuffer(file);
+}
+function removeAOPFile(){ AOP=null; saveAOP(); renderAOPAll(); renderCustAOP(); renderCustDataStatus(); }
+
+function parseAOPWorkbook(wb,fname){
+  const sheetName=wb.SheetNames.find(n=>/aop/i.test(n));
+  if(!sheetName){ showToast('⚠️ No "AOP" sheet found in '+fname+'.'); return; }
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,defval:''});
+  const MN=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  // Header row: contains a "Customer" cell + at least 6 month columns (D..O = Jan..Dec)
+  let hdr=-1, nameCol=-1, monthCols=[];
+  for(let r=0;r<rows.length;r++){
+    const cells=rows[r].map(c=>String(c==null?'':c).trim().toLowerCase());
+    const nc=cells.findIndex(c=>c.startsWith('customer'));
+    if(nc<0) continue;
+    const mc=[]; cells.forEach((c,i)=>{ const m=MN.indexOf(c.replace(/\.$/,'').slice(0,3)); if(m>=0&&mc[m]==null) mc[m]=i; });
+    if(mc.filter(x=>x!=null).length>=6){ hdr=r; nameCol=nc; monthCols=mc; break; }
+  }
+  if(hdr<0){ showToast('⚠️ Could not find the AOP header (needs a Customer column and month columns).'); return; }
+  const sizeCol=nameCol+1, accounts={};
+  let cur=null;
+  for(let r=hdr+1;r<rows.length;r++){
+    const row=rows[r];
+    const nm=String(row[nameCol]==null?'':row[nameCol]).trim(), low=nm.toLowerCase();
+    if(low.startsWith('grand total')||low==='g. total') break;     // end of customer blocks
+    if(nm && !/total/.test(low)) cur=companyOf(nm);                // start of a new customer block
+    const sc=String(row[sizeCol]==null?'':row[sizeCol]).trim();
+    const codeM=/^(\d{2,4})/.exec(sc);
+    if(!cur||!codeM) continue;
+    const label=SIZE_LABEL[codeM[1]]; if(!label) continue;
+    if(!accounts[cur]) accounts[cur]={sizes:{},byMonth:Array(12).fill(0),annual:0};
+    const a=accounts[cur];
+    if(!a.sizes[label]) a.sizes[label]=Array(12).fill(0);
+    for(let i=0;i<12;i++){ const ci=monthCols[i]; if(ci==null) continue; const v=parseFloat(row[ci]); const n=isFinite(v)?v:0; a.sizes[label][i]+=n; a.byMonth[i]+=n; a.annual+=n; }
+  }
+  if(!Object.keys(accounts).length){ showToast('⚠️ No AOP customer rows found on sheet "'+sheetName+'".'); return; }
+  AOP={uploadedAt:Date.now(), sheet:sheetName, accounts};
+  saveAOP(); renderAOPAll(); renderCustAOP(); renderCustDataStatus();
+  showToast('📅 AOP 2026 saved · '+Object.keys(accounts).length+' customers · remembered for the year');
+}
+
+// Latest month index present in the sales data (0=Jan … 11=Dec); -1 if none. Drives the
+// "plan to date" cut-off and the YTD month badge — recomputed each render so it auto-advances.
+function aopLatestMonthIdx(){
+  if(!DATA||!DATA.rows) return -1;
+  let mx=-1; for(const m of monthsPresent()){ const i=MONTHS.indexOf(m); if(i>mx) mx=i; } return mx;
+}
+
+// Body of the AOP section (tiles + progress + pace + by-month + by-size) for a scope
+// ('__ALL__' aggregates every client; otherwise a single account). Returns '' if no AOP file.
+function aopSectionHTML(scope){
+  if(!AOP||!AOP.accounts) return '';
+  const isAll=scope==='__ALL__';
+  const SIZES=['150ml','185ml','250ml','330ml SLK','355ml SLK'];
+  const SC={'150ml':'#7C3AED','185ml':'#2563EB','250ml':'#059669','330ml SLK':'#D97706','355ml SLK':'#DC2626','Other':'#6E7681'};
+  const f2=v=>(Math.round(v*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' MM';
+  const accs=isAll?Object.keys(AOP.accounts):[scope];
+  // target (MM): by month + by size
+  const tgtMonth=Array(12).fill(0), tgtSize={}; SIZES.forEach(s=>tgtSize[s]=0);
+  accs.forEach(a=>{ const o=AOP.accounts[a]; if(!o) return;
+    for(let i=0;i<12;i++) tgtMonth[i]+=(o.byMonth[i]||0);
+    SIZES.forEach(s=>{ const arr=o.sizes&&o.sizes[s]; if(arr) tgtSize[s]+=arr.reduce((x,y)=>x+(y||0),0); });
+  });
+  const annual=tgtMonth.reduce((a,b)=>a+b,0);
+  // actuals (cans→MM): by month + by size — recomputed live from DATA
+  const mi=aopLatestMonthIdx();
+  const actMonth=Array(12).fill(null); for(let i=0;i<=mi;i++) actMonth[i]=0;
+  const actSize={};
+  if(DATA) for(const r of DATA.rows){
+    if(!isAll && r.account!==scope) continue;
+    const i=MONTHS.indexOf(r.month); if(i<0) continue;
+    if(i<=mi) actMonth[i]=(actMonth[i]||0)+r.qty;
+    const lab=SIZE_LABEL[r.size]||'Other'; actSize[lab]=(actSize[lab]||0)+r.qty;
+  }
+  const ytd=(mi>=0?actMonth.slice(0,mi+1).reduce((a,b)=>a+(b||0),0):0)/1e6;
+  let planTD=0; for(let i=0;i<=mi;i++) planTD+=(tgtMonth[i]||0);
+  const hasTgt=annual>0.0001, hasAct=ytd>0.0001;
+  const pctAnnual=hasTgt?ytd/annual*100:null, ahead=ytd-planTD, on=ahead>=0;
+  const mlbl=mi>=0?MONTHS[mi]:'—';
+  // tiles
+  let h='<div class="aop-tiles">'
+    +'<div class="aop-tile"><div class="lab">Annual target</div><div class="val num">'+f2(annual)+'</div><div class="sub">full-year 2026 AOP</div></div>'
+    +'<div class="aop-tile"><div class="lab">Actual YTD</div><div class="val num" style="color:var(--accent)">'+f2(ytd)+'</div><div class="sub num">'+(hasTgt?pctAnnual.toFixed(1)+'% of annual':'no AOP target')+'</div></div>'
+    +'<div class="aop-tile"><div class="lab">Plan to date · Jan–'+mlbl+'</div><div class="val num">'+f2(planTD)+'</div><div class="sub num"'+(hasTgt?' style="color:'+(on?'var(--good)':'var(--bad)')+'"':'')+'>'+(hasTgt?(on?'ahead ':'behind ')+f2(Math.abs(ahead)):'—')+'</div></div>'
+    +'</div>';
+  if(hasTgt){
+    h+='<div style="font-size:12px;color:var(--text3);font-weight:700;margin-bottom:4px">Progress toward annual target</div>'
+      +'<div class="track" style="height:9px"><div class="fill" style="width:'+Math.min(pctAnnual,100)+'%;background:var(--accent)"></div></div>';
+  }
+  if(!hasTgt){
+    h+='<div class="aop-pace" style="border-left:3px solid var(--text4)"><span class="aop-pill" style="background:var(--text4)">No AOP target</span><span>Contract closed after the AOP was set — actuals (<b class="num">'+f2(ytd)+'</b>) shown for reference.</span></div>';
+  } else if(!hasAct){
+    h+='<div class="aop-pace" style="border-left:3px solid var(--bad)"><span class="aop-pill" style="background:var(--bad)">No deliveries yet</span><span>AOP target of <b class="num">'+f2(annual)+'</b> set, but no deliveries recorded yet — full plan-to-date (<b class="num">'+f2(planTD)+'</b>) outstanding.</span></div>';
+  } else {
+    const pace=planTD>0?ytd/planTD*100:0, pc=on?'var(--good)':'var(--bad)';
+    h+='<div class="aop-pace" style="border-left:3px solid '+pc+'"><span class="aop-pill" style="background:'+pc+'">'+pace.toFixed(0)+'% of plan-to-date</span><span>Through '+mlbl+', plan called for <b class="num">'+f2(planTD)+'</b> — actual is <b class="num">'+f2(ytd)+'</b>, '+(on?'ahead':'behind')+' by <b class="num">'+f2(Math.abs(ahead))+'</b>.</span></div>';
+  }
+  // by month
+  h+='<div style="height:1px;background:var(--border2);margin:16px 0 12px"></div><div class="eyebrow" style="margin-bottom:4px">By month — target vs actual</div>'
+    +'<div class="aop-legend"><span><i style="background:var(--border2)"></i>Target</span><span><i style="background:var(--good)"></i>Actual ≥ target</span><span><i style="background:var(--bad)"></i>Actual &lt; target</span><span><i style="background:var(--accent)"></i>Actual (no target)</span></div><div class="aop-mrow">';
+  let mx=0.001; for(let i=0;i<12;i++){ mx=Math.max(mx,tgtMonth[i]||0,(actMonth[i]||0)/1e6); }
+  for(let i=0;i<12;i++){
+    const t=tgtMonth[i]||0, a=actMonth[i], am=a==null?null:a/1e6;
+    const tH=Math.max(t/mx*100,t>0?1.5:0), aH=am!=null?Math.max(am/mx*100,am>0?1.5:0):0;
+    let ac='transparent', pct='', pcol='';
+    if(am!=null){ if(t>0){ const met=am>=t; ac=met?'var(--good)':'var(--bad)'; pct=(am/t*100).toFixed(0)+'%'; pcol=ac; } else if(am>0){ ac='var(--accent)'; } }
+    h+='<div class="aop-mcol"><div class="aop-mpct" style="color:'+pcol+'">'+pct+'</div><div class="aop-bars">'
+      +'<div class="b" style="height:'+tH+'%;background:var(--border2)"></div><div class="b" style="height:'+aH+'%;background:'+ac+'"></div></div><div class="aop-mlab">'+MONTHS[i]+'</div></div>';
+  }
+  h+='</div>';
+  // by size
+  const order=SIZES.slice(); if((actSize['Other']||0)>0) order.push('Other');
+  h+='<div style="height:1px;background:var(--border2);margin:16px 0 12px"></div><div class="eyebrow" style="margin-bottom:8px">By size — annual target vs actual YTD</div>'
+    +'<table class="momt"><thead><tr><th class="l">Size</th><th class="r">Annual target</th><th class="r">Actual YTD</th><th class="r">% of annual</th></tr></thead><tbody>';
+  order.forEach(s=>{
+    const t=tgtSize[s]||0, a=(actSize[s]||0)/1e6; if(t<=0.0001 && a<=0.0001) return;
+    const hp=t>0.0001, p=hp?a/t*100:0, col=SC[s]||'#888';
+    h+='<tr><td class="l"><span class="szb" style="background:'+col+'22;color:'+col+'">'+s+'</span></td>'
+      +'<td class="r num">'+f2(t)+'</td><td class="r num">'+f2(a)+'</td>'
+      +'<td class="r num"><span style="display:inline-block;min-width:46px">'+(hp?p.toFixed(0)+'%':'<span style="color:var(--text4)">no tgt</span>')+'</span>'
+      +'<span class="aop-bar2"><i style="width:'+(hp?Math.min(p,100):0)+'%;background:var(--accent)"></i></span></td></tr>';
+  });
+  const fp=annual>0.0001;
+  h+='<tr class="tfoot"><td class="l"><b>Total</b></td><td class="r num"><b>'+f2(annual)+'</b></td><td class="r num"><b>'+f2(ytd)+'</b></td><td class="r num"><b>'+(fp?(ytd/annual*100).toFixed(0)+'%':'—')+'</b></td></tr>';
+  h+='</tbody></table>';
+  return h;
+}
+
+// Section header (eyebrow + dynamic YTD month badge + uploaded-on hint).
+function aopHeadHTML(hintOverride){
+  const mi=aopLatestMonthIdx(), ml=mi>=0?MONTHS[mi]:'';
+  const hint=hintOverride!=null?hintOverride:(uploadedLabel(AOP&&AOP.uploadedAt)||'');
+  return '<div class="head"><span class="eyebrow">🎯 AOP 2026 — Annual Target vs Actual'
+    +(ml?' <span class="aop-mb">YTD · '+esc(ml)+'</span>':'')+'</span>'
+    +'<span class="hint">'+esc(hint)+'</span></div>';
+}
+function aopDropHTML(){
+  return '<label for="dsAOPInput" class="stockdz" '
+    +'ondragover="event.preventDefault();this.classList.add(\'drag\')" '
+    +'ondragleave="this.classList.remove(\'drag\')" '
+    +'ondrop="event.preventDefault();this.classList.remove(\'drag\');if(event.dataTransfer.files[0])loadAOPFile(event.dataTransfer.files[0])">'
+    +'<div>📂 Drop the AOP 2026 Excel here</div>'
+    +'<div style="margin-top:5px;font-size:11px">or <span class="stk-ul">tap to select file</span> · uploaded once, remembered all year</div></label>';
+}
+
+// All-clients AOP panel: aggregate section + a per-customer table covering EVERY client
+// (union of AOP + actuals — customers with no AOP show target 0, customers with no
+// deliveries show actual 0).
+function renderAOPAll(){
+  const panel=document.getElementById('aopPanelAll'); if(!panel) return;
+  if(!AOP||!AOP.accounts||!Object.keys(AOP.accounts).length){
+    panel.innerHTML=aopHeadHTML('upload AOP 2026 file')+aopDropHTML(); return;
+  }
+  let h=aopHeadHTML()+aopSectionHTML('__ALL__');
+  h+='<div style="height:1px;background:var(--border2);margin:16px 0 12px"></div><div class="eyebrow" style="margin-bottom:8px">By customer · values in MM</div>'+aopCustomerTableHTML();
+  h+=fileCtrls('dsAOPInput','removeAOPFile',true);
+  panel.innerHTML=h;
+}
+
+// Per-customer summary (all clients). Annual + plan-to-date from AOP, YTD live from DATA.
+function aopCustomerTableHTML(){
+  const mi=aopLatestMonthIdx();
+  const set=new Set(Object.keys(AOP.accounts));
+  if(DATA) for(const r of DATA.rows) set.add(r.account);
+  const list=[...set].map(a=>{
+    const o=AOP.accounts[a]; let annual=0, planTD=0;
+    if(o){ for(let i=0;i<12;i++){ annual+=o.byMonth[i]||0; if(i<=mi) planTD+=o.byMonth[i]||0; } }
+    let ytdC=0; if(DATA) for(const r of DATA.rows){ if(r.account===a){ const i=MONTHS.indexOf(r.month); if(i>=0&&i<=mi) ytdC+=r.qty; } }
+    return {a, annual, ytd:ytdC/1e6, planTD};
+  }).sort((x,y)=> y.annual-x.annual || y.ytd-x.ytd || x.a.localeCompare(y.a));
+  let h='<table class="momt"><thead><tr><th class="l">Customer</th><th class="r">Annual target</th><th class="r">Actual YTD</th><th class="r">% of annual</th><th class="r">Pace</th></tr></thead><tbody>';
+  let tA=0,tY=0,tP=0;
+  list.forEach(r=>{
+    tA+=r.annual; tY+=r.ytd; tP+=r.planTD;
+    const hasT=r.annual>0.0001;
+    const pctA=hasT?(r.ytd/r.annual*100):null;
+    const pace=r.planTD>0?(r.ytd/r.planTD*100):null, on=pace!=null&&pace>=100;
+    const pctCell=hasT?pctA.toFixed(0)+'%':'<span style="color:var(--text4)">—</span>';
+    const paceCell=!hasT?'<span style="color:var(--text4)">no tgt</span>':(pace==null?'<span style="color:var(--bad)">0%</span>':'<b class="'+(on?'up':'down')+'">'+pace.toFixed(0)+'%</b>');
+    h+='<tr><td class="l"><b>'+esc(r.a)+'</b></td><td class="r num">'+r.annual.toFixed(2)+'</td>'
+      +'<td class="r num">'+r.ytd.toFixed(2)+'</td><td class="r num">'+pctCell+'</td><td class="r num">'+paceCell+'</td></tr>';
+  });
+  const oP=tA>0?(tY/tA*100):0, oc=tP>0?(tY/tP*100):0;
+  h+='<tr class="tfoot"><td class="l"><b>Total</b></td><td class="r num"><b>'+tA.toFixed(2)+'</b></td><td class="r num"><b>'+tY.toFixed(2)+'</b></td>'
+    +'<td class="r num"><b>'+(tA>0?oP.toFixed(0)+'%':'—')+'</b></td><td class="r num"><b>'+(tP>0?oc.toFixed(0)+'%':'—')+'</b></td></tr></tbody></table>';
+  return h;
+}
+
+// Per-customer AOP card (customer page). Shows that account's annual plan vs live actuals.
+function renderCustAOP(){
+  const panel=document.getElementById('custAOPPanel'); if(!panel) return;
+  if(!AOP||!AOP.accounts||!Object.keys(AOP.accounts).length){
+    panel.innerHTML=aopHeadHTML('no AOP loaded')
+      +'<div style="padding:10px 0;font-size:12px;color:var(--text4)">Upload the AOP 2026 file once to see this customer\u2019s annual plan vs actuals here.</div>'
+      +fileCtrls('dsAOPInput','removeAOPFile',false);
+    return;
+  }
+  panel.innerHTML=aopHeadHTML()+aopSectionHTML(ACCOUNT)+fileCtrls('dsAOPInput','removeAOPFile',true);
+}
+
 /* ════════════════════════ AR OVERDUES ════════════════════════ */
 function loadARFile(file){
   const reader=new FileReader();
@@ -2596,6 +2866,7 @@ document.getElementById('arFileInput').onchange=e=>{if(e.target.files[0])loadARF
 // Customer-view "Data files" status box inputs → reuse the same loaders
 document.getElementById('dsStockInput').onchange=e=>{if(e.target.files[0])loadStockFile(e.target.files[0]);e.target.value='';};
 document.getElementById('dsTargetInput').onchange=e=>{if(e.target.files[0])loadTargetFile(e.target.files[0]);e.target.value='';};
+document.getElementById('dsAOPInput').onchange=e=>{if(e.target.files[0])loadAOPFile(e.target.files[0]);e.target.value='';};
 document.getElementById('dsARInput').onchange=e=>{if(e.target.files[0])loadARFile(e.target.files[0]);e.target.value='';};
 // MoM display toggles: switch a box between Quantity and Variance %
 document.getElementById('lblMoMToggle').addEventListener('click',e=>{
@@ -2677,7 +2948,7 @@ dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');loadFile(e.dataTran
 document.getElementById('monthChips').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;MONTH=c.dataset.m;render();};
 document.getElementById('acctChips').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;setAccount(c.dataset.a);};
 document.getElementById('acctSearch').oninput=e=>{const v=view();const total=v.reduce((s,r)=>s+r.qty,0);renderAccts(sorted(sumBy(v,'account')),total,e.target.value);};
-document.getElementById('newBtn').onclick=()=>{DATA=null;MONTH='All';ACCOUNT='All';TARGET=null;AR=null;Object.keys(STOCK).forEach(k=>delete STOCK[k]);document.getElementById('app').classList.add('hide');document.getElementById('upload').classList.remove('hide');fileInput.value='';};
+document.getElementById('newBtn').onclick=()=>{DATA=null;MONTH='All';ACCOUNT='All';TARGET=null;AR=null;AOP=null;Object.keys(STOCK).forEach(k=>delete STOCK[k]);document.getElementById('app').classList.add('hide');document.getElementById('upload').classList.remove('hide');fileInput.value='';};
 /* ── PDF button helpers ── */
 function triggerPDF(scope, btn, only){
   // Show loading state, then generate (setTimeout lets the UI repaint first)
