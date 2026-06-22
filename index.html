@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Sales Dashboard</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -330,7 +330,103 @@ body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:no
 .sec-removed{display:none!important}
 /* invisible cell that holds a deliberate gap so nothing flows up to fill it */
 .sec-spacer{min-height:0;height:0;padding:0;margin:0;border:0;background:none;pointer-events:none}
-@media(max-width:760px){ .sec-bar{gap:7px} .sec-toggle,.sec-remove,.sec-wseg,.move-handle{width:30px;height:30px} .sec-bar svg{width:15px;height:15px} }
+/* ══════════════════════════════════════════════════════
+   MOBILE OPTIMISATION — portrait + landscape
+   Breakpoints: ≤480px = phone portrait, ≤760px = phone landscape / tablet portrait
+   ══════════════════════════════════════════════════════ */
+
+/* safe-area insets (iPhone notch / home bar) */
+#app{padding-bottom:max(60px, env(safe-area-inset-bottom, 0px) + 24px);padding-left:max(clamp(12px,3.5vw,30px), env(safe-area-inset-left,0px));padding-right:max(clamp(12px,3.5vw,30px), env(safe-area-inset-right,0px))}
+
+/* ── PORTRAIT PHONE (≤480px) ── */
+@media(max-width:480px){
+  /* header */
+  #app{padding-top:14px}
+  .topbar{gap:8px;margin-bottom:12px}
+  .topbar h1{font-size:16px}
+  .tlines{font-size:11px}
+  .tools .btn{font-size:11.5px;padding:6px 10px;gap:4px}
+
+  /* filter bar: horizontal scroll instead of tall wrap */
+  .filters{padding:2px 12px;border-radius:12px;margin-bottom:12px}
+  .frow{grid-template-columns:56px 1fr;gap:8px;padding:10px 0}
+  .flabel{font-size:10px;padding-top:6px}
+  .fchips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;scrollbar-width:none}
+  .fchips::-webkit-scrollbar{display:none}
+  .chip{font-size:11px;padding:5px 11px}
+  .chip.acct{max-width:160px}
+
+  /* KPI tiles: 2-up on portrait */
+  .kpis{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .kpi{padding:11px 12px;border-radius:11px}
+  .kpi .val{font-size:19px}
+  .kpi .sub{font-size:10.5px}
+
+  /* cards */
+  .panel{padding:12px;border-radius:12px;margin-bottom:10px}
+  .panel .head{margin-bottom:10px}
+  .secgrid{gap:10px}
+
+  /* AOP tiles: 2-up (3rd wraps solo — better than squishing 3) */
+  .aop-tiles{grid-template-columns:1fr 1fr!important;gap:8px}
+  .aop-tile{padding:10px 11px;border-radius:11px}
+  .aop-tile .val{font-size:17px}
+
+  /* tables */
+  .momt{font-size:11px}
+  .momt th{font-size:9px;padding:5px 7px}
+  .momt td{padding:5px 7px}
+
+  /* AOP month chart: taller columns, smaller labels */
+  .aop-mrow{gap:7px}
+  .aop-mcol{min-width:36px}
+  .aop-mpct{font-size:9px}
+  .aop-mlab{font-size:9px}
+  .aop-mval{font-size:8.5px}
+  .aop-bars{height:90px}
+
+  /* control bar */
+  .sec-bar{gap:6px;margin-bottom:8px}
+  .sec-toggle,.sec-remove,.sec-wseg,.move-handle{width:28px;height:28px}
+
+  /* pace callout */
+  .aop-pace{font-size:12px;padding:9px 11px;gap:8px}
+  .aop-pill{font-size:11px;padding:2px 8px}
+
+  /* buttons in toolbars */
+  .btn{font-size:11.5px;padding:7px 10px}
+}
+
+/* ── LANDSCAPE PHONE / SMALL TABLET (481–760px) ── */
+@media(min-width:481px) and (max-width:760px){
+  .topbar h1{font-size:18px}
+  .filters{padding:2px 14px}
+  .frow{gap:10px;padding:11px 0}
+  .fchips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .fchips::-webkit-scrollbar{display:none}
+  .chip{font-size:11.5px;padding:6px 12px}
+
+  /* landscape: 3-column KPI is fine, reduce gap */
+  .kpis{gap:9px}
+  .kpi{padding:12px 13px}
+
+  /* cards slightly tighter */
+  .panel{padding:14px}
+  .secgrid{gap:12px}
+
+  /* AOP tiles stay 3-up in landscape */
+  .aop-tiles{grid-template-columns:repeat(3,1fr)!important}
+}
+
+/* ── ENSURE TABLES SCROLL ON ALL MOBILE (≤760px) ── */
+@media(max-width:760px){
+  /* tables inside .scrollx already scroll; this catches any bare .momt */
+  .momt{min-width:420px}
+  .panel>.momt,.aop-section>.momt{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* filter chips already handled above; keep grid collapsing */
+  .grid2{grid-template-columns:1fr}
+  /* sec-bar already has gap:7px, keep the 30px touch targets */
+}
 /* ── "+" insert bars between rows ── */
 .sec-add{grid-column:1 / -1;position:relative;display:flex;justify-content:flex-end;align-items:center;height:18px;margin:-4px 0}
 .sec-add::before{content:'';position:absolute;left:2px;right:40px;top:50%;height:1px;background:var(--border2);opacity:0;transition:opacity .15s}
@@ -636,7 +732,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 04:30</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 06:10</div>
 </div>
 
 <div id="report"></div>
@@ -1486,7 +1582,7 @@ function momTable(rows,key,mp,only,mode){
   const grand=arr.reduce((s,x)=>s+x.tot,0)||1;
   if(only){ const ord=new Map(only.map((n,i)=>[n,i])); arr=arr.filter(d=>ord.has(d.name)).sort((a,b)=>ord.get(a.name)-ord.get(b.name)); }
   const hdr=key==='size'?'Size':key==='product'?'SKU':'Label';
-  let h='<table class="momt"><thead><tr><th class="l">'+hdr+'</th><th>YTD</th>'+mp.map(m=>'<th>'+m+'</th>').join('')+'</tr></thead><tbody>';
+  let h='<div class="scrollx"><table class="momt"><thead><tr><th class="l">'+hdr+'</th><th>YTD</th>'+mp.map(m=>'<th>'+m+'</th>').join('')+'</tr></thead><tbody>';
   for(const d of arr){
     // YTD column: in qty mode show total cans + share %, in var mode show just total
     h+='<tr><td class="l">'+(key==='size'?sizeBadge(d.name):esc(d.name))+'</td>'
@@ -1511,7 +1607,7 @@ function momTable(rows,key,mp,only,mode){
     });
     h+='</tr>';
   }
-  return h+'</tbody></table>';
+  return h+'</tbody></table></div>';
 }
 
 // smallest set of top dims whose cumulative share first reaches `thr` (e.g. 0.5 = the SKUs making up 50%)
@@ -2365,7 +2461,7 @@ function renderStock(){
   let h='';
   if(STOCK_VIEW==='size'){
     // ── View 1: total available stock per size ──
-    h+='<table class="momt"><thead><tr>'
+    h+='<div class="scrollx"><table class="momt"><thead><tr>'
       +'<th class="l">Size</th><th class="r">Available Stock</th>'
       +'<th class="c">Avg / Month</th><th class="c">Months of Supply</th></tr></thead><tbody>';
     sizeOrder.forEach(sz=>{
@@ -2381,7 +2477,7 @@ function renderStock(){
     });
     h+='<tr class="tfoot"><td class="l"><b>Net available</b></td>'
       +'<td class="r num cv"><b>'+fmt(Math.round(totalAvail))+'</b></td>'
-      +'<td></td><td></td></tr></tbody></table>';
+      +'<td></td><td></td></tr></tbody></table></div>';
   } else if(STOCK_VIEW==='sku'){
     // ── View 2: SKUs and their available stock, grouped by size ──
     const bySizeSku=data.bySizeSku||{};
@@ -2770,7 +2866,7 @@ function renderTarget(){
   hintEl.textContent=(month?month+' targets · ':'')+'delivered '+(tmLabel?'for '+tmLabel:'YTD')+' · '+(oPct*100).toFixed(1)+'% overall achieved'+(upL?' · '+upL:'');
   const _rAll=totalTgt-totalDel, _onAll=_rAll<=0, _pcAll=_onAll?'var(--good)':'var(--bad)';
   let h='<div class="aop-pace" style="border-left:3px solid '+_pcAll+';margin-bottom:14px"><span class="aop-pill" style="background:'+_pcAll+'">'+(oPct*100).toFixed(0)+'% of target</span><span>Through '+esc(tmLabel||'the latest month')+', target was <b class="num">'+totalTgt.toFixed(2)+' MM</b> \u2014 delivered <b class="num">'+totalDel.toFixed(2)+' MM</b>, '+(_onAll?'ahead':'behind')+' by <b class="num">'+Math.abs(_rAll).toFixed(2)+' MM</b>.</span></div>';
-  h+='<table class="momt" style="margin-bottom:16px"><thead><tr>'
+h+='<div class="scrollx"><table class="momt" style="margin-bottom:16px"><thead><tr>'
     +'<th class="l">Customer</th><th class="r">Delivered</th><th class="r">Target</th>'
     +'<th class="r">Achieved</th><th class="r">Remaining</th></tr></thead><tbody>';
   en.forEach(c=>{
@@ -2787,7 +2883,7 @@ function renderTarget(){
     +'<td class="r num '+(oPct>=1?'up':'down')+'"><b>'+(oPct*100).toFixed(1)+'%</b></td>'
     +'<td class="r num '+(rTot<=0?'up':'down')+'"><b>'+(rTot<=0?'✓ ':'')+Math.abs(rTot).toFixed(2)+'</b></td>'
     +'</tr></tbody></table>';
-  h+='<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><label for="targetFileInput" class="btn" style="font-size:11px;cursor:pointer">↻ Replace file</label><button class="btn" id="clearTargetBtn" style="font-size:11px">✕ Remove</button></div>';
+  h+='<div style="margin-top:8px</div>;display:flex;gap:8px;flex-wrap:wrap"><label for="targetFileInput" class="btn" style="font-size:11px;cursor:pointer">↻ Replace file</label><button class="btn" id="clearTargetBtn" style="font-size:11px">✕ Remove</button></div>';
   tblEl.innerHTML=h;tblEl.classList.remove('hide');
   document.getElementById('clearTargetBtn').onclick=()=>{TARGET=null;saveTarget();renderTarget();renderCustTarget();renderCustDataStatus();};
 }
@@ -2857,7 +2953,7 @@ function renderCustTarget(){
   if(match.sizeTgtsValid===false){
     h+='<div class="size-warn">⚠️ Size Target incorrect in Excel file — the per-size targets for this customer don\u2019t add up to the total target, so they\u2019re hidden. Fix the size columns in the Sales Tracker to show this breakdown.</div>';
   } else {
-    h+='<table class="momt"><thead><tr>'
+h+='<div class="scrollx"><table class="momt"><thead><tr>'
       +'<th class="l">Size</th><th class="r">Delivered</th><th class="r">Target</th>'
       +'<th class="r">%</th><th class="r">Delta</th></tr></thead><tbody>';
     SIZES.forEach(sz=>{
@@ -2997,7 +3093,7 @@ function aopSectionHTML(scope, part){
   _month+='</div>';
   // ── by size (inner content) ──
   const order=SIZES.slice(); if((actSize['Other']||0)>0) order.push('Other');
-  let _size='<table class="momt"><thead><tr><th class="l">Size</th><th class="r">Delivered</th><th class="r">AOP</th><th class="r">Achieved</th><th class="r">Remaining</th></tr></thead><tbody>';
+let _size='<div class="scrollx"><table class="momt"><thead><tr><th class="l">Size</th><th class="r">Delivered</th><th class="r">AOP</th><th class="r">Achieved</th><th class="r">Remaining</th></tr></thead><tbody>';
   order.forEach(s=>{
     const t=tgtSize[s]||0, a=(actSize[s]||0)/1e6; if(t<=0.0001 && a<=0.0001) return;
     const hp=t>0.0001, p=hp?a/t*100:0, col=SC[s]||'#888';
@@ -3011,7 +3107,7 @@ function aopSectionHTML(scope, part){
   const fp=annual>0.0001;
   const _remT=annual-ytd, _rcT=_remT<=0?'up':'down';
   _size+='<tr class="tfoot"><td class="l"><b>Total</b></td><td class="r num cv"><b>'+f2(ytd)+'</b></td><td class="r num"><b>'+f2(annual)+'</b></td><td class="r num"><b>'+(fp?(ytd/annual*100).toFixed(0)+'%':'\u2014')+'</b></td><td class="r num '+(fp?_rcT:'')+'"><b>'+(fp?(_remT<=0?'\u2713 ':'')+f2(Math.abs(_remT)):'\u2014')+'</b></td></tr>';
-  _size+='</tbody></table>';
+  _size+='</tbody></table></div>';
   // ── assemble ──
   if(part==='overview') return _over;
   if(part==='month')    return _month;
@@ -3069,7 +3165,7 @@ function aopCustomerTableHTML(){
     let ytdC=0; if(DATA) for(const r of DATA.rows){ if(r.account===a){ const i=MONTHS.indexOf(r.month); if(i>=0&&i<=mi) ytdC+=r.qty; } }
     return {a, annual, ytd:ytdC/1e6, planTD};
   }).sort((x,y)=> y.annual-x.annual || y.ytd-x.ytd || x.a.localeCompare(y.a));
-  let h='<table class="momt"><thead><tr><th class="l">Customer</th><th class="r">Delivered</th><th class="r">AOP</th><th class="r">Achieved</th><th class="r">Remaining</th><th class="r">Pace</th></tr></thead><tbody>';
+let h='<div class="scrollx"><table class="momt"><thead><tr><th class="l">Customer</th><th class="r">Delivered</th><th class="r">AOP</th><th class="r">Achieved</th><th class="r">Remaining</th><th class="r">Pace</th></tr></thead><tbody>';
   let tA=0,tY=0,tP=0;
   list.forEach(r=>{
     tA+=r.annual; tY+=r.ytd; tP+=r.planTD;
@@ -3092,7 +3188,7 @@ function aopCustomerTableHTML(){
   return h;
 }
 
-// Per-customer AOP card (customer page). Shows that account's annual plan vs live actuals.
+// Per-customer AOP card</div> (customer page). Shows that account's annual plan vs live actuals.
 function renderCustAOP(){
   const ov=document.getElementById('custAOPPanel');
   const loaded=!!(AOP&&AOP.accounts&&Object.keys(AOP.accounts).length);
@@ -3212,7 +3308,7 @@ function renderAR(){
   const totOv=customers.reduce((s,c)=>s+c.overdue,0);
   const arUpL=uploadedLabel(AR&&AR.uploadedAt);
   hintEl.textContent=(date?date+' · ':'')+customers.length+' customers · '+fmt(totOv)+' SAR overdue'+(arUpL?' · '+arUpL:'');
-  let h='<table class="momt"><thead><tr>'
+let h='<div class="scrollx"><table class="momt"><thead><tr>'
     +'<th class="l">Customer</th><th class="r">Total Balance</th><th class="r">Total Overdue</th></tr></thead><tbody>';
   customers.forEach(c=>{
     const oc=c.overdue>0?'down':'mut';
@@ -3223,7 +3319,7 @@ function renderAR(){
   h+='<tr class="tfoot"><td class="l"><b>Total</b></td>'
     +'<td class="r num cv"><b>'+fmt(totBal)+'</b></td>'
     +'<td class="r num down"><b>'+fmt(totOv)+'</b></td></tr></tbody></table>';
-  h+='<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><label for="arFileInput" class="btn" style="font-size:11px;cursor:pointer">↻ Replace file</label><button class="btn" id="clearARBtn" style="font-size:11px">✕ Remove</button></div>';
+  h+='<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><label for="arFileInput"</div> class="btn" style="font-size:11px;cursor:pointer">↻ Replace file</label><button class="btn" id="clearARBtn" style="font-size:11px">✕ Remove</button></div>';
   tblEl.innerHTML=h;tblEl.classList.remove('hide');
   document.getElementById('clearARBtn').onclick=()=>{AR=null;saveAR();renderAR();renderCustAR();renderCustDataStatus();};
 }
@@ -3260,7 +3356,7 @@ function renderCustAR(){
     +'<div class="ar-kpi"><div class="ar-kpi-v cv">'+fmt(c.total)+'</div><div class="ar-kpi-l">Total balance SAR</div></div>'
     +'<div class="ar-kpi"><div class="ar-kpi-v '+(c.overdue>0?'down':'up')+'">'+fmt(c.overdue)+'</div><div class="ar-kpi-l">Total overdue SAR</div></div>'
     +'</div>';
-  h+='<table class="momt"><thead><tr><th class="l">Aging bucket</th><th class="r">Amount SAR</th><th class="r">% of balance</th></tr></thead><tbody>';
+h+='<div class="scrollx"><table class="momt"><thead><tr><th class="l">Aging bucket</th><th class="r">Amount SAR</th><th class="r">% of balance</th></tr></thead><tbody>';
   const bal=c.total||1;
   buckets.forEach(([lbl,val,cls])=>{
     h+='<tr><td class="l">'+lbl+'</td>'
