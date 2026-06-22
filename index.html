@@ -327,7 +327,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .sec-slot .so{display:inline-block;padding:3px 11px;margin:0 4px;border:1px solid var(--accent);border-radius:8px;opacity:.45}
 .sec-slot .so.on{opacity:1;background:var(--accent);color:#fff}
 .sec-slot.sec-full{grid-column:1 / -1}
-body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:none}
+body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:none;touch-action:none}
+@media (pointer:coarse){.secgrid>.panel{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
 /* ── half / full section grid ── */
 .secgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 .secgrid>.panel{margin-bottom:0}
@@ -743,7 +744,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 24 Jun 2026 · 00:30</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 24 Jun 2026 · 02:00</div>
 </div>
 
 <div id="report"></div>
@@ -1272,7 +1273,6 @@ function applySectionToggles(){
             h += '<button type="button" class="sec-remove" data-rm="'+id+'" aria-label="Remove '+esc(title)+'" title="Remove this section">'+SEC_IC.x+'</button>';
           }
           h += '<button type="button" class="sec-toggle" data-sec="'+id+'" aria-label="Hide '+esc(title)+'" title="Hide">'+SEC_IC.eye+'</button>';
-          if(!exclude) h += '<button type="button" class="move-handle" aria-label="Move section" title="Drag to move">'+grip+'</button>';
         }
         cbar.innerHTML=h;
       }
@@ -1290,7 +1290,7 @@ function _slotLabel(full, choice){ return choice ? ('<span class="so'+(full?'':'
 function _secMoveTo(x,y){ _drag.el.style.transform='translate('+(x-_drag.gx)+'px,'+(y-_drag.gy)+'px)'; }
 // reading-order test: is the item (rect r) positioned AFTER the pointer?
 function _secIsAfter(px,py,r){ if(py<r.top) return true; if(py>r.bottom) return false; return px < r.left+r.width/2; }
-function _onSecDragMove(e){ if(!_drag) return; _dragPt.x=e.clientX; _dragPt.y=e.clientY;
+function _onSecDragMove(e){ if(!_drag) return; if(e.cancelable) e.preventDefault(); _dragPt.x=e.clientX; _dragPt.y=e.clientY;
   _secMoveTo(e.clientX,e.clientY);                       // cheap transform every move (smooth)
   if(!_dragRAF) _dragRAF=requestAnimationFrame(_dragReflow);   // heavier reflow throttled to a frame
 }
@@ -1344,14 +1344,12 @@ function _onSecDragEnd(){
   _drag=null; _dragRef=null;
   applySectionToggles();   // re-ensure controls + reconnect observer
 }
-function _onSecDragStart(e){
-  const handle = e.target && e.target.closest ? e.target.closest('.move-handle') : null;
-  if(!handle) return;
-  const el=handle.closest('.panel'); const container=el?el.parentNode:null; if(!el||!container) return;
-  e.preventDefault();
+// Begin a section drag for panel `el` with the pointer at (px,py).
+function _beginSecDrag(el, px, py){
+  const container=el?el.parentNode:null; if(!el||!container) return;
   if(_secObs) _secObs.disconnect();   // freeze the observer for the duration of the drag
   const r=el.getBoundingClientRect();
-  _drag={ el, container, id:el.id, gx:e.clientX-r.left, gy:e.clientY-r.top };
+  _drag={ el, container, id:el.id, gx:px-r.left, gy:py-r.top };
   const slot=document.createElement('div');
   slot.className='sec-slot'+(el.classList.contains('sec-full')?' sec-full':'');
   slot.style.minHeight=r.height+'px'; slot.innerHTML=_slotLabel(el.classList.contains('sec-full'), !FULL_ONLY.has(el.id) && !_secNarrow());
@@ -1361,10 +1359,38 @@ function _onSecDragStart(e){
   el.style.position='fixed'; el.style.width=r.width+'px'; el.style.left='0'; el.style.top='0'; el.style.willChange='transform';
   el.style.zIndex='9998'; el.style.pointerEvents='none'; el.style.margin='0';
   document.body.classList.add('sec-dragging-active');
-  _secMoveTo(e.clientX,e.clientY);
+  _secMoveTo(px,py);
   document.addEventListener('pointermove',_onSecDragMove);
   document.addEventListener('pointerup',_onSecDragEnd,{once:true});
-  if(handle.setPointerCapture){ try{ handle.setPointerCapture(e.pointerId); }catch(_){} }
+}
+// A card is grabbed from any spot that is NOT an interactive control and (mouse only) NOT on text.
+function _hasOwnText(el){ if(!el||el.nodeType!==1||!el.childNodes) return false;
+  for(let i=0;i<el.childNodes.length;i++){ const n=el.childNodes[i]; if(n.nodeType===3 && n.textContent && n.textContent.trim()) return true; } return false; }
+const _CTRL_SEL='button,a,label,input,select,textarea,[role=\'button\'],.chip,.momtoggle,.barrow.click,.lbl-bar,.size-row,[data-acct],[data-lbl],[data-size],[data-view],[data-mode],[onclick]';
+function _ctrlAt(t){ return !!(t && t.closest && t.closest(_CTRL_SEL)); }
+function _isOnText(t,panel){ let el=t; for(let i=0;i<3 && el && el!==panel; i++){ if(_hasOwnText(el)) return true; el=el.parentElement; } return false; }
+// Touch long-press state.
+let _pressTimer=0,_pressInfo=null;
+function _clearPress(){ if(_pressTimer){ clearTimeout(_pressTimer); _pressTimer=0; } if(_pressInfo){ _pressInfo=null;
+  document.removeEventListener('pointermove',_pressMove); document.removeEventListener('pointerup',_clearPress); document.removeEventListener('pointercancel',_clearPress); } }
+function _pressMove(e){ if(!_pressInfo) return; if(Math.abs(e.clientX-_pressInfo.x)>8||Math.abs(e.clientY-_pressInfo.y)>8) _clearPress(); }
+// Pointer-down: mouse picks up immediately from a blank (non-text) spot; touch needs a tap-and-hold.
+function _onSecPointerDown(e){
+  if(e.pointerType==='mouse' && e.button!==0) return;
+  const t=e.target; const panel=(t&&t.closest)?t.closest('.panel'):null;
+  if(!panel||!panel.id||ORDER_EXCLUDE.has(panel.id)) return;
+  const container=panel.parentNode; if(!container||(container.id!=='allGrid'&&container.id!=='custView')) return;
+  if(_ctrlAt(t)) return;                                   // never hijack a control / tappable row
+  if(e.pointerType==='mouse'){
+    if(_isOnText(t,panel)) return;                         // leave text selectable with the mouse
+    e.preventDefault(); _beginSecDrag(panel, e.clientX, e.clientY);
+  } else {                                                 // touch / pen: tap-and-hold to pick up
+    _clearPress(); _pressInfo={x:e.clientX,y:e.clientY,panel};
+    document.addEventListener('pointermove',_pressMove);
+    document.addEventListener('pointerup',_clearPress,{once:true});
+    document.addEventListener('pointercancel',_clearPress,{once:true});
+    _pressTimer=setTimeout(function(){ const info=_pressInfo; _clearPress(); if(info) _beginSecDrag(info.panel, info.x, info.y); }, 300);
+  }
 }
 
 let _secWired=false;
@@ -1383,7 +1409,7 @@ function setupSectionObserver(){
       const add=closest('.sec-add-btn');
       if(add && app.contains(add)){ ev.stopPropagation(); ev.preventDefault(); const g=+add.getAttribute('data-visgap'); if(_addOpenGap===g){ closeAddMenu(); } else { openAddMenu(add, g); } return; }
     }, true);
-    app.addEventListener('pointerdown', _onSecDragStart);   // drag handles
+    app.addEventListener('pointerdown', _onSecPointerDown);   // mouse: drag from a blank spot · touch: long-press
     // picker menu (body-level): choose a section to add, or click-away to close
     document.addEventListener('click', function(ev){
       const it=ev.target && ev.target.closest ? ev.target.closest('#secAddMenu [data-addid]') : null;
