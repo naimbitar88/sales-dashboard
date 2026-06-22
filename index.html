@@ -327,12 +327,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .sec-slot .so{display:inline-block;padding:3px 11px;margin:0 4px;border:1px solid var(--accent);border-radius:8px;opacity:.45}
 .sec-slot .so.on{opacity:1;background:var(--accent);color:#fff}
 .sec-slot.sec-full{grid-column:1 / -1}
+.sec-slot.sec-hl{grid-column:1 / 2}
+.sec-slot.sec-hr{grid-column:2 / 3}
 body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:none;touch-action:none}
 @media (pointer:coarse){.secgrid>.panel{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
 /* ── half / full section grid ── */
 .secgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 .secgrid>.panel{margin-bottom:0}
 .secgrid>.panel.sec-full{grid-column:1 / -1}
+.secgrid>.panel.sec-hl{grid-column:1 / 2}
+.secgrid>.panel.sec-hr{grid-column:2 / 3}
 .secgrid>#labelDrill{grid-column:1 / -1}
 .secgrid>.sec-slot{align-self:stretch}
 .sec-removed{display:none!important}
@@ -744,7 +748,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 24 Jun 2026 · 02:00</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 24 Jun 2026 · 03:30</div>
 </div>
 
 <div id="report"></div>
@@ -1042,10 +1046,11 @@ let SECTION_STATE={};
 try{ const _ss=localStorage.getItem(LS_SECTIONS); if(_ss) SECTION_STATE=JSON.parse(_ss)||{}; }catch(e){}
 // per-view list of {id, w:'half'|'full'} (older saves stored plain id strings -> treated as full)
 function _normOrder(a){ return (Array.isArray(a)?a:[]).map(x=>{
-  if(x&&x.spacer) return {spacer:true};
-  if(typeof x==='string') return {id:x,w:'full',removed:false};
-  return {id:(x&&x.id)||'',w:((x&&x.w)==='half')?'half':'full',removed:!!(x&&x.removed)};
-}).filter(o=> o.spacer || o.id); }
+  if(x&&x.spacer) return null;                                   // spacers are no longer used (explicit columns now)
+  if(typeof x==='string') return {id:x,w:'full',side:'L',removed:false};
+  const w=((x&&x.w)==='half')?'half':'full';
+  return {id:(x&&x.id)||'', w, side:((x&&x.side)==='R'?'R':'L'), removed:!!(x&&x.removed)};
+}).filter(o=> o && o.id); }
 let SECTION_ORDER={all:[],cust:[]};
 try{ const _so=localStorage.getItem(LS_ORDER); if(_so){ const o=JSON.parse(_so); if(o&&typeof o==='object'){ SECTION_ORDER.all=_normOrder(o.all); SECTION_ORDER.cust=_normOrder(o.cust); } } }catch(e){}
 function saveSections(){ try{ localStorage.setItem(LS_SECTIONS,JSON.stringify(SECTION_STATE)); }catch(e){} }
@@ -1054,6 +1059,16 @@ const SECTION_EXCLUDE=new Set(['labelDrill']);                 // no Hide button
 const ORDER_EXCLUDE=new Set(['labelDrill']);  // not draggable / removable (pinned status bar)
 const FULL_ONLY=new Set(['targetPanelAll','arPanelAll','aopCustPanel']);      // big tables — never half-width (but still removable)
 function _panelWidth(id,w){ return FULL_ONLY.has(id) ? 'full' : ((w==='half')?'half':'full'); }
+// width+side a card currently shows, read from its classes (FULL_ONLY is always full)
+function _cardWS(el){ if(!el) return {w:'full',side:'L'};
+  if(FULL_ONLY.has(el.id) || el.classList.contains('sec-full')) return {w:'full',side:'L'};
+  if(el.classList.contains('sec-hr')) return {w:'half',side:'R'};
+  return {w:'half',side:'L'}; }
+// apply an entry's width+side to a card element: sec-full | sec-hl (left) | sec-hr (right)
+function _applyCW(el, e){ const full=_panelWidth(e.id,e.w)==='full';
+  el.classList.toggle('sec-full', full);
+  el.classList.toggle('sec-hl', !full && e.side!=='R');
+  el.classList.toggle('sec-hr', !full && e.side==='R'); }
 function _viewKey(){ return _isCustView()?'cust':'all'; }
 // Every reorderable panel in a container, INCLUDING removed (hidden) ones — i.e. this page's full catalog.
 function catalogPanels(container){ const out=[]; const kids=(container&&container.children)?container.children:[];
@@ -1075,43 +1090,28 @@ function effLayout(key, container){
   const cat=catalogPanels(container).map(c=>c.id); const catSet=new Set(cat);
   const raw=Array.isArray(SECTION_ORDER[key])?SECTION_ORDER[key]:[];
   const seen={}; const vis=[]; const removed=[];
-  raw.forEach(e=>{ if(_isSpacer(e)){ vis.push({spacer:true}); return; }
-    if(!e||!e.id||!catSet.has(e.id)||seen[e.id]) return; seen[e.id]=1;
-    if(e.removed) removed.push({id:e.id,w:(e.w==='half'?'half':'full'),removed:true});
-    else vis.push({id:e.id,w:(e.w==='half'?'half':'full'),removed:false}); });
-  cat.forEach(id=>{ if(!seen[id]){ vis.push({id,w:'full',removed:false}); seen[id]=1; } });   // new sections -> shown, full
-  return normalizeVis(vis).concat(removed);
+  raw.forEach(e=>{ if(!e||e.spacer||!e.id||!catSet.has(e.id)||seen[e.id]) return; seen[e.id]=1;
+    const w=_panelWidth(e.id,(e.w==='half'?'half':'full')), side=(e.side==='R'?'R':'L');
+    (e.removed?removed:vis).push({id:e.id, w, side, removed:!!e.removed}); });
+  cat.forEach(id=>{ if(!seen[id]){ vis.push({id,w:'full',side:'L',removed:false}); seen[id]=1; } });   // new sections -> shown, full
+  return vis.concat(removed);
 }
 // ── width toggle: half <-> full with position rules ──
 //   half -> full: card grows in place; the half beside it drops to the next row, stays half.
 //   full -> half: card packs LEFT; a hole is left on its right and nothing slides up to fill it.
 function setSecWidth(id, w){ if(FULL_ONLY.has(id)||ORDER_EXCLUDE.has(id)) return;
-  const key=_viewKey(); const L=effLayout(key); let vis=L.filter(e=>!e.removed); const removed=L.filter(e=>e.removed);
-  let idx=-1; for(let i=0;i<vis.length;i++){ if(!_isSpacer(vis[i])&&vis[i].id===id){ idx=i; break; } }
-  if(idx<0) return;
-  if(w==='full'){
-    if(idx+1<vis.length&&_isSpacer(vis[idx+1])) vis.splice(idx+1,1);
-    if(idx-1>=0&&_isSpacer(vis[idx-1])){ vis.splice(idx-1,1); idx--; }
-    if(_colAt(vis,idx)===1){ let p=idx-1; while(p>=0&&_isSpacer(vis[p])) p--; if(p>=0){ const c=vis.splice(idx,1)[0]; vis.splice(p,0,c); idx=p; } }
-    vis[idx].w='full';
-  } else {
-    vis[idx].w='half'; vis.splice(idx+1,0,{spacer:true}); vis.splice(idx,0,{spacer:true});   // guard+hole; normalize trims
-  }
-  vis=normalizeVis(vis); SECTION_ORDER[key]=vis.concat(removed); saveOrder(); _withFlip(applySectionToggles);
+  const key=_viewKey(); const L=effLayout(key); const e=L.find(o=>!o.removed&&o.id===id); if(!e) return;
+  if(w==='full') e.w='full'; else { e.w='half'; if(e.side!=='R') e.side='L'; }   // toggle keeps a half on its side; defaults left
+  SECTION_ORDER[key]=L; saveOrder(); _withFlip(applySectionToggles);
 }
 function removeSection(id){ if(ORDER_EXCLUDE.has(id)) return;
-  const key=_viewKey(); const L=effLayout(key); let vis=L.filter(e=>!e.removed); const removed=L.filter(e=>e.removed);
-  let idx=-1; for(let i=0;i<vis.length;i++){ if(!_isSpacer(vis[i])&&vis[i].id===id){ idx=i; break; } }
-  if(idx<0) return; const w=vis[idx].w;
-  vis.splice(idx,1); if(idx<vis.length&&_isSpacer(vis[idx])) vis.splice(idx,1);   // drop its hole too
-  vis=normalizeVis(vis); removed.push({id,w,removed:true});
-  SECTION_ORDER[key]=vis.concat(removed); saveOrder(); _withFlip(applySectionToggles);
+  const key=_viewKey(); const L=effLayout(key); const e=L.find(o=>!o.removed&&o.id===id); if(!e) return;
+  e.removed=true; SECTION_ORDER[key]=L; saveOrder(); _withFlip(applySectionToggles);
 }
 function addSection(id, visGap){
-  const key=_viewKey(); const L=effLayout(key); let vis=L.filter(e=>!e.removed); const removed=L.filter(e=>e.removed);
-  const ridx=removed.findIndex(o=>o.id===id); if(ridx<0) return; const w=removed[ridx].w; removed.splice(ridx,1);
-  let seen=0, at=vis.length; for(let i=0;i<vis.length;i++){ if(_isSpacer(vis[i])) continue; if(seen===visGap){ at=i; break; } seen++; }
-  vis.splice(at,0,{id,w,removed:false}); vis=normalizeVis(vis);
+  const key=_viewKey(); const L=effLayout(key); const vis=L.filter(e=>!e.removed); const removed=L.filter(e=>e.removed);
+  const ri=removed.findIndex(o=>o.id===id); if(ri<0) return; const item=removed.splice(ri,1)[0]; item.removed=false;
+  const at=Math.max(0,Math.min(visGap|0,vis.length)); vis.splice(at,0,item);
   SECTION_ORDER[key]=vis.concat(removed); saveOrder(); _withFlip(applySectionToggles);
 }
 function sectionTitle(panel){ const eb=panel.querySelector('.eyebrow'); return ((eb?eb.textContent:'')||'').trim()||'Section'; }
@@ -1148,19 +1148,13 @@ function applySectionOrder(){
   const container=_orderContainer(); if(!container) return;
   const key=_viewKey(); const cat=catalogPanels(container); if(cat.length<1) return;
   const byId=new Map(cat.map(c=>[c.id,c]));
-  childrenByClass(container,'sec-spacer').forEach(s=>{ try{ container.removeChild(s); }catch(e){} });   // clear old holes
+  childrenByClass(container,'sec-spacer').forEach(s=>{ try{ container.removeChild(s); }catch(e){} });   // clear any legacy holes
   const lay=effLayout(key,container); SECTION_ORDER[key]=lay;
   const vis=lay.filter(e=>!e.removed);
   const removedSet=new Set(lay.filter(e=>e.removed).map(e=>e.id));
   cat.forEach(c=>{ c.classList.toggle('sec-removed', removedSet.has(c.id)); });
-  vis.forEach(e=>{ if(_isSpacer(e)) return; const el=byId.get(e.id); if(el) el.classList.toggle('sec-full', _panelWidth(e.id,e.w)==='full'); });
-  // arrange cards in visible order, then drop in spacer cells where holes belong
-  const cardOrder=vis.filter(e=>!_isSpacer(e)).map(e=>byId.get(e.id)).filter(Boolean);
-  reorderDOM(container, cardOrder);
-  let prev=null;
-  vis.forEach(e=>{ if(_isSpacer(e)){ const sp=document.createElement('div'); sp.className='sec-spacer'; sp.setAttribute('aria-hidden','true');
-      if(prev&&prev.after) prev.after(sp); else if(prev&&prev.parentNode) prev.parentNode.insertBefore(sp, prev.nextSibling); else container.insertBefore(sp, container.firstChild||null); prev=sp; }
-    else { const el=byId.get(e.id); if(el) prev=el; } });
+  vis.forEach(e=>{ const el=byId.get(e.id); if(el) _applyCW(el, e); });   // sec-full | sec-hl | sec-hr -> grid creates empty cells itself
+  reorderDOM(container, vis.map(e=>byId.get(e.id)).filter(Boolean));
 }
 /* ---- add / remove: the "+" insert bars between rows + the picker dropdown ---- */
 let _addOpenGap=null;
@@ -1296,30 +1290,23 @@ function _onSecDragMove(e){ if(!_drag) return; if(e.cancelable) e.preventDefault
 }
 function _dragReflow(){ _dragRAF=0; if(!_drag) return; const x=_dragPt.x,y=_dragPt.y;
   const _choice=!FULL_ONLY.has(_drag.id) && !_secNarrow();
-  // Zones across the page: left 25% = HALF (left) · middle 50% = FULL · right 25% = HALF (right, pairs).
-  let full=true, alignRight=false;
+  // Three independent zones across the page: left 25% = HALF-left · middle 50% = FULL · right 25% = HALF-right.
+  // Each is a free choice; the card claims that column on its own. Pairing happens only when you drop a half
+  // beside an existing half (the grid simply fills the empty cell) -- it is never forced on a neighbour.
+  let mode='full';   // 'full' | 'hl' (half-left) | 'hr' (half-right)
   if(_choice){
     const gr=_drag.container.getBoundingClientRect(); const rel=(x-gr.left)/Math.max(1,gr.width);
-    if(rel<0.25){ full=false; }
-    else if(rel>0.75){ full=false; alignRight=true; }
+    if(rel<0.25) mode='hl'; else if(rel>0.75) mode='hr';
   }
-  _drag.slot.classList.toggle('sec-full', full);
+  _drag.slot.classList.toggle('sec-full', mode==='full');
+  _drag.slot.classList.toggle('sec-hl', mode==='hl');
+  _drag.slot.classList.toggle('sec-hr', mode==='hr');
+  _drag.slot.innerHTML=_slotLabel(mode!=='full', _choice);
+  _drag.mode=mode;
   const sibs=reorderItems(_drag.container,_drag.el,_drag.slot); let ref=null;
   for(const sIt of sibs){ if(_secIsAfter(x,y,sIt.getBoundingClientRect())){ ref=sIt; break; } }
   if(ref) _drag.container.insertBefore(_drag.slot, ref);
   else { const last=sibs[sibs.length-1]; if(last && last.after) last.after(_drag.slot); else _drag.container.appendChild(_drag.slot); }
-  // A right-aligned half pairs with the card on its left: a full neighbour is shrunk to half so the two
-  // sit side by side. No convertible neighbour -> fall back to full. (Full-only cards never pair.)
-  let neighbour=null;
-  if(!full && alignRight){
-    let p=_drag.slot.previousElementSibling;
-    while(p && (p===_drag.el || !(p.classList&&p.classList.contains('panel')) || p.classList.contains('sec-removed') || p.classList.contains('hide'))) p=p.previousElementSibling;
-    if(p && p.id && !FULL_ONLY.has(p.id)) neighbour=p; else full=true;
-  }
-  if(_drag.shrunk && _drag.shrunk!==neighbour){ _drag.shrunk.classList.add('sec-full'); _drag.shrunk=null; }
-  if(neighbour && neighbour.classList.contains('sec-full')){ neighbour.classList.remove('sec-full'); _drag.shrunk=neighbour; }
-  _drag.slot.classList.toggle('sec-full', full);
-  _drag.slot.innerHTML=_slotLabel(full,_choice);
   const edge=72,sp=14; clearInterval(_dragAuto);
   if(y<edge) _dragAuto=setInterval(()=>window.scrollBy(0,-sp),16);
   else if(y>window.innerHeight-edge) _dragAuto=setInterval(()=>window.scrollBy(0,sp),16);
@@ -1329,17 +1316,20 @@ function _onSecDragEnd(){
   document.removeEventListener('pointermove',_onSecDragMove);
   if(!_drag) return;
   const {el,slot,container}=_drag;
-  const full = slot.classList.contains('sec-full') || FULL_ONLY.has(el.id);
-  if(full && _drag.shrunk){ _drag.shrunk.classList.add('sec-full'); _drag.shrunk=null; }   // dropped full -> undo any pairing shrink
+  const fo=FULL_ONLY.has(el.id);
+  const full = fo || slot.classList.contains('sec-full');
+  const right = !full && slot.classList.contains('sec-hr');
   el.classList.remove('sec-dragging');
   el.style.position='';el.style.width='';el.style.left='';el.style.top='';el.style.transform='';el.style.zIndex='';el.style.pointerEvents='';el.style.margin='';el.style.willChange='';
   el.classList.toggle('sec-full', full);
+  el.classList.toggle('sec-hl', !full && !right);
+  el.classList.toggle('sec-hr', !full && right);
   container.insertBefore(el, slot); try{ container.removeChild(slot); }catch(e){}
   document.body.classList.remove('sec-dragging-active');
   const key=(container.id==='custView')?'cust':'all';
-  const removedEntries=effLayout(key,container).filter(o=>o.removed);   // keep removed cards (+ their widths)
-  const visEntries=reorderItems(container,null,null).map(c=>({id:c.id, w:c.classList.contains('sec-full')?'full':'half', removed:false}));
-  SECTION_ORDER[key]=visEntries.concat(removedEntries);   // a drag re-packs left-to-right (holes reset)
+  const removedEntries=effLayout(key,container).filter(o=>o.removed);   // keep removed cards (+ their width/side)
+  const visEntries=reorderItems(container,null,null).map(c=>{ const ws=_cardWS(c); return {id:c.id, w:ws.w, side:ws.side, removed:false}; });
+  SECTION_ORDER[key]=visEntries.concat(removedEntries);
   saveOrder();
   _drag=null; _dragRef=null;
   applySectionToggles();   // re-ensure controls + reconnect observer
@@ -1350,9 +1340,9 @@ function _beginSecDrag(el, px, py){
   if(_secObs) _secObs.disconnect();   // freeze the observer for the duration of the drag
   const r=el.getBoundingClientRect();
   _drag={ el, container, id:el.id, gx:px-r.left, gy:py-r.top };
-  const slot=document.createElement('div');
-  slot.className='sec-slot'+(el.classList.contains('sec-full')?' sec-full':'');
-  slot.style.minHeight=r.height+'px'; slot.innerHTML=_slotLabel(el.classList.contains('sec-full'), !FULL_ONLY.has(el.id) && !_secNarrow());
+  const slot=document.createElement('div'); const _ws=_cardWS(el);
+  slot.className='sec-slot'+(_ws.w==='full'?' sec-full':(_ws.side==='R'?' sec-hr':' sec-hl'));
+  slot.style.minHeight=r.height+'px'; slot.innerHTML=_slotLabel(_ws.w!=='full', !FULL_ONLY.has(el.id) && !_secNarrow());
   if(el.after) el.after(slot); else container.appendChild(slot);
   _drag.slot=slot; _dragRef=null;
   el.classList.add('sec-dragging');
