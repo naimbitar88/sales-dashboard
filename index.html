@@ -464,10 +464,10 @@ body.sec-dragging-active .sec-add{display:none}
   <div class="panel" id="allToolbar">
     <div class="head"><span class="eyebrow">🧰 PDF Reports</span><span class="hint">generate a report across all accounts</span></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn primary" id="allWeeklyBtn">📅 Weekly PDF</button>
-      <button class="btn" id="allStockBtn">📦 Stock PDF</button>
-      <button class="btn" id="allOverdueBtn">💰 Overdue PDF</button>
-      <button class="btn" id="allTargetBtn">🎯 Target vs Delivery PDF</button>
+      <button class="btn primary" id="allWeeklyBtn">📅 Weekly</button>
+      <button class="btn" id="allStockBtn">📦 Stock</button>
+      <button class="btn" id="allOverdueBtn">💰 Overdue</button>
+      <button class="btn" id="allTargetBtn">🎯 Target vs Delivery</button>
     </div>
   </div>
 
@@ -491,8 +491,11 @@ body.sec-dragging-active .sec-add{display:none}
     <div id="targetTableAll" class="hide"></div>
   </div>
 
-  <!-- AOP 2026 annual target vs actual: all accounts view -->
+  <!-- AOP VS Delivered: all accounts view (split into cards) -->
   <div class="panel" id="aopPanelAll"></div>
+  <div class="panel hide" id="aopMonthPanel"></div>
+  <div class="panel hide" id="aopSizePanel"></div>
+  <div class="panel hide" id="aopCustPanel"></div>
 
   <!-- AR overdues: all accounts view -->
   <div class="panel" id="arPanelAll">
@@ -548,18 +551,20 @@ body.sec-dragging-active .sec-add{display:none}
     <div class="panel" id="custToolbar">
       <div class="head"><span class="eyebrow">🧰 Customer reports</span><span class="hint">generate a focused PDF for this customer</span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn primary" id="custPdfBtn">📅 Weekly PDF</button>
-        <button class="btn" id="stockPdfBtn">📦 Stock PDF</button>
-        <button class="btn" id="overduePdfBtn">💰 Overdue PDF</button>
-        <button class="btn" id="targetPdfBtn">🎯 Target vs Delivery PDF</button>
+        <button class="btn primary" id="custPdfBtn">📅 Weekly</button>
+        <button class="btn" id="stockPdfBtn">📦 Stock</button>
+        <button class="btn" id="overduePdfBtn">💰 Overdue</button>
+        <button class="btn" id="targetPdfBtn">🎯 Target vs Delivery</button>
       </div>
     </div>
     <!-- latest delivery: customer -->
     <div class="panel" id="custLatestPanel"></div>
     <!-- customer target card: driven by global TARGET, sits right after monthly volume -->
     <div class="panel" id="custTargetPanel"></div>
-    <!-- customer AOP 2026 annual target vs actual -->
+    <!-- customer AOP VS Delivered (split into cards) -->
     <div class="panel" id="custAOPPanel"></div>
+    <div class="panel hide" id="custAOPMonthPanel"></div>
+    <div class="panel hide" id="custAOPSizePanel"></div>
     <!-- customer overdue card: driven by global AR -->
     <div class="panel" id="custARPanel"></div>
     <div class="panel" id="trendPanel">
@@ -628,7 +633,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 01:45</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 03:15</div>
 </div>
 
 <div id="report"></div>
@@ -922,7 +927,7 @@ function saveSections(){ try{ localStorage.setItem(LS_SECTIONS,JSON.stringify(SE
 function saveOrder(){ try{ localStorage.setItem(LS_ORDER,JSON.stringify(SECTION_ORDER)); }catch(e){} }
 const SECTION_EXCLUDE=new Set(['labelDrill']);                 // no Hide button (own close UX)
 const ORDER_EXCLUDE=new Set(['labelDrill','custDataStatus']);  // not draggable / removable (pinned status bar)
-const FULL_ONLY=new Set(['targetPanelAll','arPanelAll']);      // big tables — never half-width (but still removable)
+const FULL_ONLY=new Set(['targetPanelAll','arPanelAll','aopCustPanel']);      // big tables — never half-width (but still removable)
 function _panelWidth(id,w){ return FULL_ONLY.has(id) ? 'full' : ((w==='half')?'half':'full'); }
 function _viewKey(){ return _isCustView()?'cust':'all'; }
 // Every reorderable panel in a container, INCLUDING removed (hidden) ones — i.e. this page's full catalog.
@@ -2930,7 +2935,7 @@ function aopLatestMonthIdx(){
 
 // Body of the AOP section (tiles + progress + pace + by-month + by-size) for a scope
 // ('__ALL__' aggregates every client; otherwise a single account). Returns '' if no AOP file.
-function aopSectionHTML(scope){
+function aopSectionHTML(scope, part){
   if(!AOP||!AOP.accounts) return '';
   const isAll=scope==='__ALL__';
   const SIZES=['150ml','185ml','250ml','330ml SLK','355ml SLK'];
@@ -2959,53 +2964,53 @@ function aopSectionHTML(scope){
   const hasTgt=annual>0.0001, hasAct=ytd>0.0001;
   const pctAnnual=hasTgt?ytd/annual*100:null, ahead=ytd-planTD, on=ahead>=0;
   const mlbl=mi>=0?MONTHS[mi]:'—';
-  // tiles
-  let h='<div class="aop-tiles">'
+  // ── overview: tiles + progress + pace ──
+  let _over='<div class="aop-tiles">'
+    +'<div class="aop-tile"><div class="lab">Delivered YTD</div><div class="val num" style="color:var(--accent)">'+f2(ytd)+'</div><div class="sub num">'+(hasTgt?pctAnnual.toFixed(1)+'% of AOP':'no AOP target')+'</div></div>'
     +'<div class="aop-tile"><div class="lab">AOP</div><div class="val num">'+f2(annual)+'</div><div class="sub">full-year 2026 AOP</div></div>'
-    +'<div class="aop-tile"><div class="lab">Actual YTD</div><div class="val num" style="color:var(--accent)">'+f2(ytd)+'</div><div class="sub num">'+(hasTgt?pctAnnual.toFixed(1)+'% of annual':'no AOP target')+'</div></div>'
-    +'<div class="aop-tile"><div class="lab">Plan to date · Jan–'+mlbl+'</div><div class="val num">'+f2(planTD)+'</div><div class="sub num"'+(hasTgt?' style="color:'+(on?'var(--good)':'var(--bad)')+'"':'')+'>'+(hasTgt?(on?'ahead ':'behind ')+f2(Math.abs(ahead)):'—')+'</div></div>'
+    +'<div class="aop-tile"><div class="lab">Plan to date \u00b7 Jan\u2013'+mlbl+'</div><div class="val num">'+f2(planTD)+'</div><div class="sub num"'+(hasTgt?' style="color:'+(on?'var(--good)':'var(--bad)')+'"':'')+'>'+(hasTgt?(on?'ahead ':'behind ')+f2(Math.abs(ahead)):'\u2014')+'</div></div>'
     +'</div>';
-  if(hasTgt){
-    h+='<div style="font-size:12px;color:var(--text3);font-weight:700;margin-bottom:4px">Progress toward annual target</div>'
-      +'<div class="track" style="height:9px"><div class="fill" style="width:'+Math.min(pctAnnual,100)+'%;background:var(--accent)"></div></div>';
-  }
-  if(!hasTgt){
-    h+='<div class="aop-pace" style="border-left:3px solid var(--text4)"><span class="aop-pill" style="background:var(--text4)">No AOP target</span><span>Contract closed after the AOP was set — actuals (<b class="num">'+f2(ytd)+'</b>) shown for reference.</span></div>';
-  } else if(!hasAct){
-    h+='<div class="aop-pace" style="border-left:3px solid var(--bad)"><span class="aop-pill" style="background:var(--bad)">No deliveries yet</span><span>AOP target of <b class="num">'+f2(annual)+'</b> set, but no deliveries recorded yet — full plan-to-date (<b class="num">'+f2(planTD)+'</b>) outstanding.</span></div>';
-  } else {
-    const pace=planTD>0?ytd/planTD*100:0, pc=on?'var(--good)':'var(--bad)';
-    h+='<div class="aop-pace" style="border-left:3px solid '+pc+'"><span class="aop-pill" style="background:'+pc+'">'+pace.toFixed(0)+'% of plan-to-date</span><span>Through '+mlbl+', plan called for <b class="num">'+f2(planTD)+'</b> — actual is <b class="num">'+f2(ytd)+'</b>, '+(on?'ahead':'behind')+' by <b class="num">'+f2(Math.abs(ahead))+'</b>.</span></div>';
-  }
-  // by month
-  h+='<div style="height:1px;background:var(--border2);margin:16px 0 12px"></div><div class="eyebrow" style="margin-bottom:4px">By month — target vs actual</div>'
-    +'<div class="aop-legend"><span><i style="background:var(--border2)"></i>Target</span><span><i style="background:var(--good)"></i>Actual ≥ target</span><span><i style="background:var(--bad)"></i>Actual &lt; target</span><span><i style="background:var(--accent)"></i>Actual (no target)</span></div><div class="aop-mrow">';
+  if(hasTgt){ _over+='<div style="font-size:12px;color:var(--text3);font-weight:700;margin-bottom:4px">Progress toward annual target</div>'
+      +'<div class="track" style="height:9px"><div class="fill" style="width:'+Math.min(pctAnnual,100)+'%;background:var(--accent)"></div></div>'; }
+  if(!hasTgt){ _over+='<div class="aop-pace" style="border-left:3px solid var(--text4)"><span class="aop-pill" style="background:var(--text4)">No AOP target</span><span>Contract closed after the AOP was set \u2014 actuals (<b class="num">'+f2(ytd)+'</b>) shown for reference.</span></div>'; }
+  else if(!hasAct){ _over+='<div class="aop-pace" style="border-left:3px solid var(--bad)"><span class="aop-pill" style="background:var(--bad)">No deliveries yet</span><span>AOP target of <b class="num">'+f2(annual)+'</b> set, but no deliveries recorded yet \u2014 full plan-to-date (<b class="num">'+f2(planTD)+'</b>) outstanding.</span></div>'; }
+  else { const pace=planTD>0?ytd/planTD*100:0, pc=on?'var(--good)':'var(--bad)';
+    _over+='<div class="aop-pace" style="border-left:3px solid '+pc+'"><span class="aop-pill" style="background:'+pc+'">'+pace.toFixed(0)+'% of plan-to-date</span><span>Through '+mlbl+', plan called for <b class="num">'+f2(planTD)+'</b> \u2014 actual is <b class="num">'+f2(ytd)+'</b>, '+(on?'ahead':'behind')+' by <b class="num">'+f2(Math.abs(ahead))+'</b>.</span></div>'; }
+  // ── by month (inner content; the card supplies its own title) ──
+  let _month='<div class="aop-legend"><span><i style="background:var(--border2)"></i>Target</span><span><i style="background:var(--good)"></i>Actual \u2265 target</span><span><i style="background:var(--bad)"></i>Actual &lt; target</span><span><i style="background:var(--accent)"></i>Actual (no target)</span></div><div class="aop-mrow">';
   let mx=0.001; for(let i=0;i<12;i++){ mx=Math.max(mx,tgtMonth[i]||0,(actMonth[i]||0)/1e6); }
   for(let i=0;i<12;i++){
     const t=tgtMonth[i]||0, a=actMonth[i], am=a==null?null:a/1e6;
     const tH=Math.max(t/mx*100,t>0?1.5:0), aH=am!=null?Math.max(am/mx*100,am>0?1.5:0):0;
     let ac='transparent', pct='', pcol='';
     if(am!=null){ if(t>0){ const met=am>=t; ac=met?'var(--good)':'var(--bad)'; pct=(am/t*100).toFixed(0)+'%'; pcol=ac; } else if(am>0){ ac='var(--accent)'; } }
-    h+='<div class="aop-mcol"><div class="aop-mpct" style="color:'+pcol+'">'+pct+'</div><div class="aop-bars">'
+    _month+='<div class="aop-mcol"><div class="aop-mpct" style="color:'+pcol+'">'+pct+'</div><div class="aop-bars">'
       +'<div class="b" style="height:'+tH+'%;background:var(--border2)"></div><div class="b" style="height:'+aH+'%;background:'+ac+'"></div></div><div class="aop-mlab">'+MONTHS[i]+'</div></div>';
   }
-  h+='</div>';
-  // by size
+  _month+='</div>';
+  // ── by size (inner content) ──
   const order=SIZES.slice(); if((actSize['Other']||0)>0) order.push('Other');
-  h+='<div style="height:1px;background:var(--border2);margin:16px 0 12px"></div><div class="eyebrow" style="margin-bottom:8px">AOP Vs Delivered by Size</div>'
-    +'<table class="momt"><thead><tr><th class="l">Size</th><th class="r">AOP</th><th class="r">Actual YTD</th><th class="r">% of annual</th></tr></thead><tbody>';
+  let _size='<table class="momt"><thead><tr><th class="l">Size</th><th class="r">Delivered</th><th class="r">AOP</th><th class="r">Achieved</th><th class="r">Remaining</th></tr></thead><tbody>';
   order.forEach(s=>{
     const t=tgtSize[s]||0, a=(actSize[s]||0)/1e6; if(t<=0.0001 && a<=0.0001) return;
     const hp=t>0.0001, p=hp?a/t*100:0, col=SC[s]||'#888';
-    h+='<tr><td class="l"><span class="szb" style="background:'+col+'22;color:'+col+'">'+s+'</span></td>'
-      +'<td class="r num">'+f2(t)+'</td><td class="r num">'+f2(a)+'</td>'
-      +'<td class="r num"><span style="display:inline-block;min-width:46px">'+(hp?p.toFixed(0)+'%':'<span style="color:var(--text4)">no tgt</span>')+'</span>'
-      +'<span class="aop-bar2"><i style="width:'+(hp?Math.min(p,100):0)+'%;background:var(--accent)"></i></span></td></tr>';
+    const _rem=t-a, _rc=_rem<=0?'up':'down';
+    _size+='<tr><td class="l"><span class="szb" style="background:'+col+'22;color:'+col+'">'+s+'</span></td>'
+      +'<td class="r num cv">'+f2(a)+'</td><td class="r num">'+(hp?f2(t):'<span style="color:var(--text4)">no tgt</span>')+'</td>'
+      +'<td class="r num"><span style="display:inline-block;min-width:46px">'+(hp?p.toFixed(0)+'%':'\u2014')+'</span>'
+      +'<span class="aop-bar2"><i style="width:'+(hp?Math.min(p,100):0)+'%;background:var(--accent)"></i></span></td>'
+      +'<td class="r num '+(hp?_rc:'')+'">'+(hp?(_rem<=0?'\u2713 ':'')+f2(Math.abs(_rem)):'\u2014')+'</td></tr>';
   });
   const fp=annual>0.0001;
-  h+='<tr class="tfoot"><td class="l"><b>Total</b></td><td class="r num"><b>'+f2(annual)+'</b></td><td class="r num"><b>'+f2(ytd)+'</b></td><td class="r num"><b>'+(fp?(ytd/annual*100).toFixed(0)+'%':'—')+'</b></td></tr>';
-  h+='</tbody></table>';
-  return h;
+  const _remT=annual-ytd, _rcT=_remT<=0?'up':'down';
+  _size+='<tr class="tfoot"><td class="l"><b>Total</b></td><td class="r num cv"><b>'+f2(ytd)+'</b></td><td class="r num"><b>'+f2(annual)+'</b></td><td class="r num"><b>'+(fp?(ytd/annual*100).toFixed(0)+'%':'\u2014')+'</b></td><td class="r num '+(fp?_rcT:'')+'"><b>'+(fp?(_remT<=0?'\u2713 ':'')+f2(Math.abs(_remT)):'\u2014')+'</b></td></tr>';
+  _size+='</tbody></table>';
+  // ── assemble ──
+  if(part==='overview') return _over;
+  if(part==='month')    return _month;
+  if(part==='size')     return _size;
+  const _divEye=t=>'<div style="height:1px;background:var(--border2);margin:16px 0 12px"></div><div class="eyebrow" style="margin-bottom:8px">'+t+'</div>';
+  return _over+_divEye('By month \u2014 target vs actual')+_month+_divEye('AOP Vs Delivered by Size')+_size;
 }
 
 // Section header (eyebrow + dynamic YTD month badge + uploaded-on hint).
@@ -3016,6 +3021,12 @@ function aopHeadHTML(hintOverride){
     +(ml?' <span class="aop-mb">YTD · '+esc(ml)+'</span>':'')+'</span>'
     +'<span class="hint">'+esc(hint)+'</span></div>';
 }
+// header for a split-out AOP sub-card (title only — the data card supplies its own controls)
+function aopSubHead(title){ return '<div class="head"><span class="eyebrow">'+title+'</span></div>'; }
+// show a sub-card (with built content) when AOP is loaded, hide+empty it otherwise
+function _aopSub(id, show, builder){ const p=document.getElementById(id); if(!p) return;
+  if(show){ p.classList.remove('hide'); p.innerHTML=builder(); }
+  else { p.classList.add('hide'); p.innerHTML=''; } }
 function aopDropHTML(){
   return '<label for="dsAOPInput" class="stockdz" '
     +'ondragover="event.preventDefault();this.classList.add(\'drag\')" '
@@ -3029,14 +3040,15 @@ function aopDropHTML(){
 // (union of AOP + actuals — customers with no AOP show target 0, customers with no
 // deliveries show actual 0).
 function renderAOPAll(){
-  const panel=document.getElementById('aopPanelAll'); if(!panel) return;
-  if(!AOP||!AOP.accounts||!Object.keys(AOP.accounts).length){
-    panel.innerHTML=aopHeadHTML('upload AOP 2026 file')+aopDropHTML(); return;
+  const ov=document.getElementById('aopPanelAll');
+  const loaded=!!(AOP&&AOP.accounts&&Object.keys(AOP.accounts).length);
+  if(ov){
+    if(!loaded){ ov.innerHTML=aopHeadHTML('upload AOP 2026 file')+aopDropHTML(); }
+    else { ov.innerHTML=aopHeadHTML()+aopSectionHTML('__ALL__','overview')+fileCtrls('dsAOPInput','removeAOPFile',true); }
   }
-  let h=aopHeadHTML()+aopSectionHTML('__ALL__');
-  h+='<div style="height:1px;background:var(--border2);margin:16px 0 12px"></div><div class="eyebrow" style="margin-bottom:8px">AOP VS Delivered By Customer</div>'+aopCustomerTableHTML();
-  h+=fileCtrls('dsAOPInput','removeAOPFile',true);
-  panel.innerHTML=h;
+  _aopSub('aopMonthPanel', loaded, ()=>aopSubHead('🎯 AOP Vs Delivered by Month')+aopSectionHTML('__ALL__','month'));
+  _aopSub('aopSizePanel', loaded, ()=>aopSubHead('🎯 AOP Vs Delivered by Size')+aopSectionHTML('__ALL__','size'));
+  _aopSub('aopCustPanel', loaded, ()=>aopSubHead('🎯 AOP VS Delivered By Customer')+aopCustomerTableHTML());
 }
 
 // Per-customer summary (all clients). Annual + plan-to-date from AOP, YTD live from DATA.
@@ -3050,7 +3062,7 @@ function aopCustomerTableHTML(){
     let ytdC=0; if(DATA) for(const r of DATA.rows){ if(r.account===a){ const i=MONTHS.indexOf(r.month); if(i>=0&&i<=mi) ytdC+=r.qty; } }
     return {a, annual, ytd:ytdC/1e6, planTD};
   }).sort((x,y)=> y.annual-x.annual || y.ytd-x.ytd || x.a.localeCompare(y.a));
-  let h='<table class="momt"><thead><tr><th class="l">Customer</th><th class="r">AOP</th><th class="r">Actual YTD</th><th class="r">% of annual</th><th class="r">Pace</th></tr></thead><tbody>';
+  let h='<table class="momt"><thead><tr><th class="l">Customer</th><th class="r">Delivered</th><th class="r">AOP</th><th class="r">Achieved</th><th class="r">Remaining</th><th class="r">Pace</th></tr></thead><tbody>';
   let tA=0,tY=0,tP=0;
   list.forEach(r=>{
     tA+=r.annual; tY+=r.ytd; tP+=r.planTD;
@@ -3059,25 +3071,32 @@ function aopCustomerTableHTML(){
     const pace=r.planTD>0?(r.ytd/r.planTD*100):null, on=pace!=null&&pace>=100;
     const pctCell=hasT?pctA.toFixed(0)+'%':'<span style="color:var(--text4)">—</span>';
     const paceCell=!hasT?'<span style="color:var(--text4)">no tgt</span>':(pace==null?'<span style="color:var(--bad)">0%</span>':'<b class="'+(on?'up':'down')+'">'+pace.toFixed(0)+'%</b>');
-    h+='<tr><td class="l"><b>'+esc(r.a)+'</b></td><td class="r num">'+r.annual.toFixed(2)+'</td>'
-      +'<td class="r num">'+r.ytd.toFixed(2)+'</td><td class="r num">'+pctCell+'</td><td class="r num">'+paceCell+'</td></tr>';
+    const _rem=r.annual-r.ytd, _rc=hasT?(_rem<=0?'up':'down'):'';
+    const remCell=hasT?((_rem<=0?'✓ ':'')+Math.abs(_rem).toFixed(2)):'<span style="color:var(--text4)">—</span>';
+    h+='<tr><td class="l"><b>'+esc(r.a)+'</b></td><td class="r num">'+r.ytd.toFixed(2)+'</td>'
+      +'<td class="r num">'+r.annual.toFixed(2)+'</td><td class="r num">'+pctCell+'</td><td class="r num '+_rc+'">'+remCell+'</td><td class="r num">'+paceCell+'</td></tr>';
   });
   const oP=tA>0?(tY/tA*100):0, oc=tP>0?(tY/tP*100):0;
-  h+='<tr class="tfoot"><td class="l"><b>Total</b></td><td class="r num"><b>'+tA.toFixed(2)+'</b></td><td class="r num"><b>'+tY.toFixed(2)+'</b></td>'
-    +'<td class="r num"><b>'+(tA>0?oP.toFixed(0)+'%':'—')+'</b></td><td class="r num"><b>'+(tP>0?oc.toFixed(0)+'%':'—')+'</b></td></tr></tbody></table>';
+  const _remTot=tA-tY, _rcTot=_remTot<=0?'up':'down';
+  h+='<tr class="tfoot"><td class="l"><b>Total</b></td><td class="r num"><b>'+tY.toFixed(2)+'</b></td><td class="r num"><b>'+tA.toFixed(2)+'</b></td>'
+    +'<td class="r num"><b>'+(tA>0?oP.toFixed(0)+'%':'—')+'</b></td>'
+    +'<td class="r num '+(tA>0?_rcTot:'')+'"><b>'+(tA>0?(_remTot<=0?'✓ ':'')+Math.abs(_remTot).toFixed(2):'—')+'</b></td>'
+    +'<td class="r num"><b>'+(tP>0?oc.toFixed(0)+'%':'—')+'</b></td></tr></tbody></table>';
   return h;
 }
 
 // Per-customer AOP card (customer page). Shows that account's annual plan vs live actuals.
 function renderCustAOP(){
-  const panel=document.getElementById('custAOPPanel'); if(!panel) return;
-  if(!AOP||!AOP.accounts||!Object.keys(AOP.accounts).length){
-    panel.innerHTML=aopHeadHTML('no AOP loaded')
-      +'<div style="padding:10px 0;font-size:12px;color:var(--text4)">Upload the AOP 2026 file once to see this customer\u2019s annual plan vs actuals here.</div>'
-      +fileCtrls('dsAOPInput','removeAOPFile',false);
-    return;
+  const ov=document.getElementById('custAOPPanel');
+  const loaded=!!(AOP&&AOP.accounts&&Object.keys(AOP.accounts).length);
+  if(ov){
+    if(!loaded){ ov.innerHTML=aopHeadHTML('no AOP loaded')
+        +'<div style="padding:10px 0;font-size:12px;color:var(--text4)">Upload the AOP 2026 file once to see this customer\u2019s annual plan vs actuals here.</div>'
+        +fileCtrls('dsAOPInput','removeAOPFile',false); }
+    else { ov.innerHTML=aopHeadHTML()+aopSectionHTML(ACCOUNT,'overview')+fileCtrls('dsAOPInput','removeAOPFile',true); }
   }
-  panel.innerHTML=aopHeadHTML()+aopSectionHTML(ACCOUNT)+fileCtrls('dsAOPInput','removeAOPFile',true);
+  _aopSub('custAOPMonthPanel', loaded, ()=>aopSubHead('🎯 AOP Vs Delivered by Month')+aopSectionHTML(ACCOUNT,'month'));
+  _aopSub('custAOPSizePanel', loaded, ()=>aopSubHead('🎯 AOP Vs Delivered by Size')+aopSectionHTML(ACCOUNT,'size'));
 }
 
 /* ════════════════════════ AR OVERDUES ════════════════════════ */
