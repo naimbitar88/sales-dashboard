@@ -743,7 +743,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 22:40</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 23:10</div>
 </div>
 
 <div id="report"></div>
@@ -1298,7 +1298,7 @@ function _dragReflow(){ _dragRAF=0; if(!_drag) return; const x=_dragPt.x,y=_drag
   let full=true; const _choice=!FULL_ONLY.has(_drag.id) && !_secNarrow();
   if(_choice){
     const gr=_drag.container.getBoundingClientRect(); const rel=(x-gr.left)/Math.max(1,gr.width);
-    full=(rel>=0.5);          // left half of the page -> HALF; centre & right -> FULL
+    full=(rel>=0.30);         // only the left 30% -> HALF; middle & right -> FULL
   }
   _drag.slot.classList.toggle('sec-full', full); _drag.slot.innerHTML=_slotLabel(full,_choice);
   const sibs=reorderItems(_drag.container,_drag.el,_drag.slot); let ref=null;
