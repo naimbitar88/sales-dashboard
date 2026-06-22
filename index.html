@@ -282,6 +282,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .aop-mlab{font-size:10px;color:var(--text3);font-weight:700}
 .aop-mb{font-size:10px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--accent2);color:#fff;letter-spacing:.02em;text-transform:none}
 .aop-bar2{width:84px;height:8px;background:var(--track);border-radius:5px;overflow:hidden;display:inline-block;vertical-align:middle}.aop-bar2>i{display:block;height:100%;border-radius:5px}
+/* ── collapsible sections: hide / show per section, state persisted ── */
+.panel.sec{position:relative}
+.panel.sec>.head{padding-right:62px}
+.sec-toggle{position:absolute;top:11px;right:12px;z-index:20;display:inline-flex;align-items:center;gap:5px;background:var(--card2);color:var(--text3);border:1px solid var(--border2);border-radius:8px;font-family:inherit;font-size:11px;font-weight:700;line-height:1;padding:6px 10px;cursor:pointer;transition:.12s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.sec-toggle:hover{color:var(--accent);border-color:var(--accent)}
+[data-theme="light"] .sec-toggle{border-color:#93C5FD}
+.panel.sec-collapsed{padding:0;overflow:hidden}
+.panel.sec-collapsed>*{display:none!important}
+.panel.sec-collapsed>.sec-toggle{display:flex!important;position:static;width:100%;justify-content:space-between;align-items:center;padding:13px 16px;border:none;border-radius:14px;background:var(--card);color:var(--text2);font-size:13px;font-weight:700}
+.panel.sec-collapsed>.sec-toggle:hover{color:var(--accent)}
+.sec-toggle .sec-x{font-weight:600;font-size:11px;color:var(--text4);letter-spacing:.03em}
+.sec-toggle:hover .sec-x{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -454,7 +466,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
   </div>
 
   <div class="grid2" id="gridSizeMovers">
-    <div class="panel" style="margin-bottom:0">
+    <div class="panel" id="sizePanel" style="margin-bottom:0">
       <div class="head"><span class="eyebrow">Size analysis</span><span class="hint">green = standard · grey = recovered</span></div>
       <div id="sizes"></div>
       <div class="footnote" id="sizeNote"></div>
@@ -474,7 +486,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
       <div class="searchwrap" id="acctSearchWrap"><input id="acctSearch" placeholder="Search accounts…"/></div>
       <div id="accts"></div>
     </div>
-    <div class="panel" style="margin-bottom:0">
+    <div class="panel" id="labelPanel" style="margin-bottom:0">
       <div class="head"><span class="eyebrow" id="labelTitle">Portfolio by label</span><span class="hint" id="labelHint"></span></div>
       <div id="labels"></div>
     </div>
@@ -502,12 +514,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <div class="panel" id="custAOPPanel"></div>
     <!-- customer overdue card: driven by global AR -->
     <div class="panel" id="custARPanel"></div>
-    <div class="panel">
+    <div class="panel" id="trendPanel">
       <div class="head"><span class="eyebrow">Delivery trend</span><span class="hint">month by month · MoM %</span></div>
       <div id="trendVerdict" style="margin-bottom:12px"></div>
       <svg class="tchart" id="trendChart" viewBox="0 0 600 180" preserveAspectRatio="xMidYMid meet" style="height:180px"></svg>
     </div>
-    <div class="panel">
+    <div class="panel" id="sizeMoMPanel">
       <div class="head"><span class="eyebrow">Can size — by month</span>
         <div class="momtoggle" id="sizeMoMToggle">
           <button data-mode="qty" class="on">Quantity</button><button data-mode="var">Variance %</button>
@@ -515,7 +527,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
       </div>
       <div class="scrollx"><div id="sizeMoM"></div></div>
     </div>
-    <div class="panel">
+    <div class="panel" id="lblSharePanel">
       <div class="head"><span class="eyebrow">Label family — % of total deliveries</span><span class="hint" id="lblShareHint"></span></div>
       <div id="lblShare"></div>
     </div>
@@ -534,7 +546,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
       <div class="scrollx" style="margin-top:12px"><div id="drillTable"></div></div>
       <div id="drillSummary" class="drill-summary"></div>
     </div>
-    <div class="panel">
+    <div class="panel" id="lblMoMPanel">
       <div class="head"><span class="eyebrow">Label family — by month</span>
         <div class="momtoggle" id="lblMoMToggle">
           <button data-mode="qty" class="on">Quantity</button><button data-mode="var">Variance %</button>
@@ -542,7 +554,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
       </div>
       <div class="scrollx"><div id="lblMoM"></div></div>
     </div>
-    <div class="panel">
+    <div class="panel" id="skuPanel">
       <div class="head"><span class="eyebrow">Top SKUs by size</span><span class="hint" id="skuHint"></span></div>
       <div id="skuMoM"></div>
     </div>
@@ -568,7 +580,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 22 Jun 2026 · 07:10</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 22 Jun 2026 · 14:10</div>
 </div>
 
 <div id="report"></div>
@@ -591,6 +603,7 @@ const COMPANY_RULES = [
   { group:'Ball',                test:/kenya\s*breweries|\budv\b/i }, // Kenya/UDV kept with Ball
   { group:'Crown Dairy',         test:/crown\s*dairy/i },             // Crown Dairy Industries -> Crown Dairy
   { group:'Camel Step',          test:/came?l?\s*step/i },            // Came/Camel Step Corporation -> Camel Step
+  { group:'Al Jameel',           test:/jameel/i },                    // "Al Jameel International Company" (AR) -> "Al Jameel" (matches the AOP plan name)
 ];
 function companyOf(raw){
   const s=String(raw||'').trim();
@@ -842,6 +855,77 @@ function barRows(entries,total,color,clickable){
 }
 
 /* ════════════════════════ RENDER APP ════════════════════════ */
+/* ════════════════════════ SECTION HIDE / SHOW (persisted) ════════════════════════ */
+// Each content panel gets a small "Hide" button; collapsed panels show a slim "Show" bar.
+// State is keyed by the panel's id and saved in localStorage, so it survives reloads.
+const LS_SECTIONS='salesdash_sections_v1';
+let SECTION_STATE={};
+try{ const _ss=localStorage.getItem(LS_SECTIONS); if(_ss) SECTION_STATE=JSON.parse(_ss)||{}; }catch(e){}
+function saveSections(){ try{ localStorage.setItem(LS_SECTIONS,JSON.stringify(SECTION_STATE)); }catch(e){} }
+const SECTION_EXCLUDE=new Set(['labelDrill']); // panels with their own close UX
+function sectionTitle(panel){ const eb=panel.querySelector('.eyebrow'); return ((eb?eb.textContent:'')||'').trim()||'Section'; }
+function toggleSection(id){ if(!id) return; SECTION_STATE[id]=!SECTION_STATE[id]; saveSections(); applySectionToggles(); }
+// One direct child of `panel` carrying class `sec-toggle`. Returns all of them so we can de-dupe.
+function secToggleChildren(panel){
+  const out=[]; const kids=panel.children||[];
+  for(let i=0;i<kids.length;i++){ const c=kids[i]; if(c.classList && c.classList.contains('sec-toggle')) out.push(c); }
+  return out;
+}
+let _secObs=null;
+function applySectionToggles(){
+  const app=document.getElementById('app'); if(!app) return;
+  if(_secObs) _secObs.disconnect();              // pause so our own edits don't retrigger us
+  try{
+    app.querySelectorAll('.panel').forEach(panel=>{
+      const id=panel.id;
+      if(!id || SECTION_EXCLUDE.has(id)) return;
+      if(!panel.querySelector('.eyebrow')) return;   // skip empty / not-yet-rendered panels
+      panel.classList.add('sec');
+      const collapsed=!!SECTION_STATE[id];
+      panel.classList.toggle('sec-collapsed', collapsed);
+      // ensure EXACTLY ONE toggle button (full-panel re-renders can wipe/duplicate it)
+      const existing=secToggleChildren(panel);
+      let btn=existing[0]||null;
+      for(let i=1;i<existing.length;i++){ try{ panel.removeChild(existing[i]); }catch(e){} }
+      if(!btn){
+        btn=document.createElement('button');
+        btn.type='button'; btn.className='sec-toggle';
+        panel.appendChild(btn);                      // NO per-button handler — clicks handled by delegation
+      }
+      btn.setAttribute('data-sec', id);
+      const want = collapsed ? ('c:'+sectionTitle(panel)) : 'e';
+      if(btn.getAttribute('data-st')!==want){        // only rewrite when state/title actually changes
+        btn.setAttribute('data-st', want);
+        btn.innerHTML = collapsed
+          ? ('<span>▸ '+esc(sectionTitle(panel))+'</span><span class="sec-x">Show ▾</span>')
+          : '⊟ Hide';
+        btn.setAttribute('aria-label',(collapsed?'Show ':'Hide ')+sectionTitle(panel)+' section');
+        btn.title=(collapsed?'Show ':'Hide ')+sectionTitle(panel);
+      }
+    });
+  } finally { if(_secObs) _secObs.observe(app,{childList:true,subtree:true}); }
+}
+let _secClickWired=false;
+function setupSectionObserver(){
+  const app=document.getElementById('app'); if(!app) return;
+  if(!_secClickWired){
+    // Single delegated, capture-phase listener: works no matter how often buttons are
+    // re-created by renders, and resolves clicks that land on the inner <span>s via closest().
+    app.addEventListener('click', function(ev){
+      const t = ev.target && ev.target.closest ? ev.target.closest('.sec-toggle') : null;
+      if(!t || !app.contains(t)) return;
+      ev.stopPropagation(); ev.preventDefault();
+      toggleSection(t.getAttribute('data-sec'));
+    }, true);
+    _secClickWired=true;
+  }
+  if(!_secObs){
+    _secObs=new MutationObserver(()=>applySectionToggles());
+    _secObs.observe(app,{childList:true,subtree:true});
+  }
+  applySectionToggles();
+}
+
 function render(){
   const isCust = ACCOUNT!=='All';
   document.getElementById('titleLines').textContent=' · '+fmt(DATA.rows.length)+' lines';
@@ -979,6 +1063,7 @@ function render(){
     renderAR();
   }
 
+  applySectionToggles();
 }
 
 function sizeBadge(s){const lbl=SIZE_LABEL[s]||(REAL.includes(s)?s+'ml':s);return '<span class="szb" style="background:'+sizeColor(s)+'22;color:'+sizeColor(s)+'">'+esc(lbl)+'</span>';}
@@ -2695,6 +2780,7 @@ function accountsWithData(){
   const set=new Set();
   if(DATA&&DATA.rows) for(const r of DATA.rows) set.add(r.account);
   if(TARGET&&TARGET.customers) for(const c of TARGET.customers) set.add(c.account||c.name);
+  if(AOP&&AOP.accounts) for(const a of Object.keys(AOP.accounts)) set.add(a); // AOP-only customers (e.g. Al Jameel) so their overdues surface
   return set;
 }
 
@@ -2937,6 +3023,7 @@ function loadFile(file){
     document.getElementById('upload').classList.add('hide');
     document.getElementById('app').classList.remove('hide');
     render();
+    setupSectionObserver();
   };
   reader.readAsArrayBuffer(file);
 }
