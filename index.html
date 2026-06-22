@@ -275,14 +275,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .aop-pill{font-weight:800;padding:3px 10px;border-radius:999px;font-size:12px;white-space:nowrap;color:#fff}
 .aop-legend{display:flex;gap:13px;font-size:11px;color:var(--text3);margin:2px 0 8px;font-weight:600;flex-wrap:wrap}
 .aop-legend span{display:inline-flex;align-items:center;gap:5px}.aop-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
-.aop-mrow{display:flex;gap:5px;align-items:flex-end;overflow-x:auto;padding-bottom:2px}
-.aop-mcol{flex:1;min-width:38px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.aop-mrow{display:flex;gap:11px;align-items:flex-end;overflow-x:auto;padding-bottom:2px}
+.aop-mcol{flex:1;min-width:46px;display:flex;flex-direction:column;align-items:center;gap:4px}
 .aop-mpct{font-size:10px;font-weight:800;height:12px}
-.aop-bars{height:110px;display:flex;align-items:flex-end;gap:3px;width:100%}
+.aop-bars{height:110px;display:flex;align-items:flex-end;gap:4px;width:100%}
 .aop-bars .b{flex:1;border-radius:4px 4px 0 0;min-height:2px}
 .aop-mlab{font-size:10px;color:var(--text3);font-weight:700}
+.aop-mval{display:flex;flex-direction:column;align-items:center;line-height:1.3;font-size:9.5px;font-weight:700;font-variant-numeric:tabular-nums}
+.aop-mval .dv{color:var(--accent)}
+.aop-mval .tv{color:var(--text4)}
 .aop-mb{font-size:10px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--accent2);color:#fff;letter-spacing:.02em;text-transform:none}
-.aop-bar2{width:84px;height:8px;background:var(--track);border-radius:5px;overflow:hidden;display:inline-block;vertical-align:middle}.aop-bar2>i{display:block;height:100%;border-radius:5px}
+.aop-bar2{width:72px;height:8px;margin-left:12px;background:var(--track);border-radius:5px;overflow:hidden;display:inline-block;vertical-align:middle}.aop-bar2>i{display:block;height:100%;border-radius:5px}
 /* ── collapsible / resizable sections: a flowing control bar that never overlaps the title ── */
 .panel.sec{position:relative;transition:box-shadow .15s ease,border-color .15s ease}
 /* the bar sits at the top of the card, right-aligned, and WRAPS instead of overlapping the title */
@@ -633,7 +636,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 03:15</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 04:30</div>
 </div>
 
 <div id="report"></div>
@@ -2765,7 +2768,9 @@ function renderTarget(){
   const tmLabel=targetMonthFilter();
   const upL=uploadedLabel(TARGET&&TARGET.uploadedAt);
   hintEl.textContent=(month?month+' targets · ':'')+'delivered '+(tmLabel?'for '+tmLabel:'YTD')+' · '+(oPct*100).toFixed(1)+'% overall achieved'+(upL?' · '+upL:'');
-  let h='<table class="momt" style="margin-bottom:16px"><thead><tr>'
+  const _rAll=totalTgt-totalDel, _onAll=_rAll<=0, _pcAll=_onAll?'var(--good)':'var(--bad)';
+  let h='<div class="aop-pace" style="border-left:3px solid '+_pcAll+';margin-bottom:14px"><span class="aop-pill" style="background:'+_pcAll+'">'+(oPct*100).toFixed(0)+'% of target</span><span>Through '+esc(tmLabel||'the latest month')+', target was <b class="num">'+totalTgt.toFixed(2)+' MM</b> \u2014 delivered <b class="num">'+totalDel.toFixed(2)+' MM</b>, '+(_onAll?'ahead':'behind')+' by <b class="num">'+Math.abs(_rAll).toFixed(2)+' MM</b>.</span></div>';
+  h+='<table class="momt" style="margin-bottom:16px"><thead><tr>'
     +'<th class="l">Customer</th><th class="r">Delivered</th><th class="r">Target</th>'
     +'<th class="r">Achieved</th><th class="r">Remaining</th></tr></thead><tbody>';
   en.forEach(c=>{
@@ -2844,10 +2849,10 @@ function renderCustTarget(){
     +'<span class="nm" style="font-weight:700;font-size:14px">Overall</span>'
     +'<span class="vv"><b>'+totalDel.toFixed(2)+' MM</b> / '+match.tgt.toFixed(2)+' MM</span>'
     +'<span class="tgt-pct '+pC+'">'+(pct*100).toFixed(1)+'%</span></div>'
-    +'<div class="track" style="margin-bottom:4px"><div class="fill" style="width:'+bW+'%;background:'+bC+'"></div></div>'
-    +'<div style="font-size:11px;margin-bottom:14px"><span class="'+rC+'" style="font-weight:700">'
-    +(rem<=0?'✓ On target — ahead by '+Math.abs(rem).toFixed(2)+' MM':'Behind by '+Math.abs(rem).toFixed(2)+' MM')
-    +'</span></div>';
+    +'<div class="track" style="margin-bottom:10px"><div class="fill" style="width:'+bW+'%;background:'+bC+'"></div></div>';
+  { const _on=rem<=0, _pc=_on?'var(--good)':'var(--bad)';
+    h+='<div class="aop-pace" style="border-left:3px solid '+_pc+'"><span class="aop-pill" style="background:'+_pc+'">'+(pct*100).toFixed(0)+'% of target</span><span>Through '+esc(month||'the latest month')+', target was <b class="num">'+match.tgt.toFixed(2)+' MM</b> \u2014 delivered <b class="num">'+totalDel.toFixed(2)+' MM</b>, '+(_on?'ahead':'behind')+' by <b class="num">'+Math.abs(rem).toFixed(2)+' MM</b>.</span></div>'; }
+  h+='<div style="height:14px"></div>';
   h+='<div class="eyebrow" style="margin-bottom:8px">By size</div>';
   if(match.sizeTgtsValid===false){
     h+='<div class="size-warn">⚠️ Size Target incorrect in Excel file — the per-size targets for this customer don\u2019t add up to the total target, so they\u2019re hidden. Fix the size columns in the Sales Tracker to show this breakdown.</div>';
@@ -2977,7 +2982,7 @@ function aopSectionHTML(scope, part){
   else { const pace=planTD>0?ytd/planTD*100:0, pc=on?'var(--good)':'var(--bad)';
     _over+='<div class="aop-pace" style="border-left:3px solid '+pc+'"><span class="aop-pill" style="background:'+pc+'">'+pace.toFixed(0)+'% of plan-to-date</span><span>Through '+mlbl+', plan called for <b class="num">'+f2(planTD)+'</b> \u2014 actual is <b class="num">'+f2(ytd)+'</b>, '+(on?'ahead':'behind')+' by <b class="num">'+f2(Math.abs(ahead))+'</b>.</span></div>'; }
   // ── by month (inner content; the card supplies its own title) ──
-  let _month='<div class="aop-legend"><span><i style="background:var(--border2)"></i>Target</span><span><i style="background:var(--good)"></i>Actual \u2265 target</span><span><i style="background:var(--bad)"></i>Actual &lt; target</span><span><i style="background:var(--accent)"></i>Actual (no target)</span></div><div class="aop-mrow">';
+  let _month='<div class="aop-legend"><span><i style="background:var(--border2)"></i>Target</span><span><i style="background:var(--good)"></i>Actual \u2265 target</span><span><i style="background:var(--bad)"></i>Actual &lt; target</span><span><i style="background:var(--accent)"></i>Actual (no target)</span><span style="color:var(--text4)">numbers = <b style="color:var(--accent)">delivered</b> / target (MM)</span></div><div class="aop-mrow">';
   let mx=0.001; for(let i=0;i<12;i++){ mx=Math.max(mx,tgtMonth[i]||0,(actMonth[i]||0)/1e6); }
   for(let i=0;i<12;i++){
     const t=tgtMonth[i]||0, a=actMonth[i], am=a==null?null:a/1e6;
@@ -2985,7 +2990,9 @@ function aopSectionHTML(scope, part){
     let ac='transparent', pct='', pcol='';
     if(am!=null){ if(t>0){ const met=am>=t; ac=met?'var(--good)':'var(--bad)'; pct=(am/t*100).toFixed(0)+'%'; pcol=ac; } else if(am>0){ ac='var(--accent)'; } }
     _month+='<div class="aop-mcol"><div class="aop-mpct" style="color:'+pcol+'">'+pct+'</div><div class="aop-bars">'
-      +'<div class="b" style="height:'+tH+'%;background:var(--border2)"></div><div class="b" style="height:'+aH+'%;background:'+ac+'"></div></div><div class="aop-mlab">'+MONTHS[i]+'</div></div>';
+      +'<div class="b" style="height:'+tH+'%;background:var(--border2)"></div><div class="b" style="height:'+aH+'%;background:'+ac+'"></div></div>'
+      +'<div class="aop-mlab">'+MONTHS[i]+'</div>'
+      +'<div class="aop-mval"><span class="dv">'+(am!=null?am.toFixed(1):'\u2013')+'</span><span class="tv">'+(t>0?t.toFixed(1):'\u2013')+'</span></div></div>';
   }
   _month+='</div>';
   // ── by size (inner content) ──
