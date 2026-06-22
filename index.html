@@ -462,7 +462,7 @@ body.sec-dragging-active .sec-add{display:none}
   <div id="allGrid" class="secgrid">
   <!-- all-accounts report toolbar (mirrors the per-customer one) -->
   <div class="panel" id="allToolbar">
-    <div class="head"><span class="eyebrow">🧰 Reports</span><span class="hint">generate a report across all accounts</span></div>
+    <div class="head"><span class="eyebrow">🧰 PDF Reports</span><span class="hint">generate a report across all accounts</span></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn primary" id="allWeeklyBtn">📅 Weekly PDF</button>
       <button class="btn" id="allStockBtn">📦 Stock PDF</button>
@@ -477,7 +477,7 @@ body.sec-dragging-active .sec-add{display:none}
   <!-- target vs delivered: all accounts view -->
   <div class="panel" id="targetPanelAll">
     <div class="head">
-      <span class="eyebrow">🎯 Target vs Delivered</span>
+      <span class="eyebrow">🎯 Demand Target VS Delivered</span>
       <span class="hint" id="targetHint">upload monthly targets file</span>
     </div>
     <label for="targetFileInput" class="stockdz" id="targetDrop"
@@ -512,7 +512,7 @@ body.sec-dragging-active .sec-add{display:none}
   </div>
 
   <div class="panel" id="monthlyPanel">
-    <div class="head"><span class="eyebrow" id="monthlyTitle">Monthly volume</span><span class="hint">cans · pick a month above</span></div>
+    <div class="head"><span class="eyebrow" id="monthlyTitle">YTD Delivered By Month</span><span class="hint">cans · pick a month above</span></div>
     <div class="months" id="months"></div>
   </div>
 
@@ -568,7 +568,7 @@ body.sec-dragging-active .sec-add{display:none}
       <svg class="tchart" id="trendChart" viewBox="0 0 600 180" preserveAspectRatio="xMidYMid meet" style="height:180px"></svg>
     </div>
     <div class="panel" id="sizeMoMPanel">
-      <div class="head"><span class="eyebrow">Can size — by month</span>
+      <div class="head"><span class="eyebrow">Delivered By Size &amp; Month</span>
         <div class="momtoggle" id="sizeMoMToggle">
           <button data-mode="qty" class="on">Quantity</button><button data-mode="var">Variance %</button>
         </div>
@@ -576,7 +576,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div class="scrollx"><div id="sizeMoM"></div></div>
     </div>
     <div class="panel" id="lblSharePanel">
-      <div class="head"><span class="eyebrow">Label family — % of total deliveries</span><span class="hint" id="lblShareHint"></span></div>
+      <div class="head"><span class="eyebrow">Delivery By Label %</span><span class="hint" id="lblShareHint"></span></div>
       <div id="lblShare"></div>
     </div>
     <!-- ── label drill-down: appears when a label bar is tapped ── -->
@@ -595,7 +595,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="drillSummary" class="drill-summary"></div>
     </div>
     <div class="panel" id="lblMoMPanel">
-      <div class="head"><span class="eyebrow">Label family — by month</span>
+      <div class="head"><span class="eyebrow">Delivered By Label &amp; Month</span>
         <div class="momtoggle" id="lblMoMToggle">
           <button data-mode="qty" class="on">Quantity</button><button data-mode="var">Variance %</button>
         </div>
@@ -609,7 +609,7 @@ body.sec-dragging-active .sec-add{display:none}
     <!-- ── stock available panel ── -->
     <div class="panel" id="stockPanel">
       <div class="head">
-        <span class="eyebrow">📦 Stock available</span>
+        <span class="eyebrow">📦 Stock Report</span>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">
           <span class="hint" id="stockHint">upload SAP stock report</span>
           <div class="momtoggle hide" id="stockViewToggle">
@@ -628,7 +628,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 01:05</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 01:45</div>
 </div>
 
 <div id="report"></div>
@@ -1296,7 +1296,7 @@ function render(){
   // monthly columns
   const monthVols=mp.map(m=>[m,monthBase.filter(r=>r.month===m).reduce((s,r)=>s+r.qty,0)]);
   const maxV=Math.max(...monthVols.map(x=>x[1]),1);
-  document.getElementById('monthlyTitle').textContent = isCust ? ('Monthly volume — '+ACCOUNT) : 'Monthly volume';
+  document.getElementById('monthlyTitle').textContent = isCust ? ('YTD Delivered By Month — '+ACCOUNT) : 'YTD Delivered By Month';
   document.getElementById('months').innerHTML=monthVols.map(([m,val],i)=>{
     const h=Math.max(val/maxV*100,2);
     // Latest month present = blue (accent); all earlier months = grey.
@@ -1311,7 +1311,7 @@ function render(){
   document.getElementById('allToolbar').classList.remove('hide');     // lives inside #allGrid; never individually hidden
   renderCustDataStatus();
 
-  // Keep the upload panels before "Monthly volume" in BOTH views.
+  // Keep the upload panels before "YTD Delivered By Month" in BOTH views.
   // Customer view: move the shared monthly panel after the customer overdue card
   //   (so order is Target → Overdue → Monthly).
   // All-accounts: keep it after the AR panel (which follows the target panel).
@@ -2796,7 +2796,7 @@ function renderCustTarget(){
   const panel=document.getElementById('custTargetPanel');
   if(!panel) return;
   if(!TARGET||!TARGET.customers||!TARGET.customers.length){
-    panel.innerHTML='<div class="head"><span class="eyebrow">🎯 Target vs Delivered</span>'
+    panel.innerHTML='<div class="head"><span class="eyebrow">🎯 Demand Target VS Delivered</span>'
       +'<span class="hint">no targets loaded</span></div>'
       +'<div style="padding:10px 0;font-size:12px;color:var(--text4)">Upload your monthly targets file to see this customer\u2019s targets here.</div>'
       +fileCtrls('dsTargetInput','removeTargetFile',false);
@@ -2813,7 +2813,7 @@ function renderCustTarget(){
   const SC={'150ml':'#7C3AED','185ml':'#2563EB','250ml':'#059669','330ml SLK':'#D97706','355ml SLK':'#DC2626'};
   const month=TARGET.month;
   if(!match){
-    panel.innerHTML='<div class="head"><span class="eyebrow">🎯 Target vs Delivered'+(month?' <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--accent2);color:#fff;letter-spacing:.02em;text-transform:none">'+esc(month)+'</span>':'')+'</span>'
+    panel.innerHTML='<div class="head"><span class="eyebrow">🎯 Demand Target VS Delivered'+(month?' <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--accent2);color:#fff;letter-spacing:.02em;text-transform:none">'+esc(month)+'</span>':'')+'</span>'
       +'<span class="hint">'+(uploadedLabel(TARGET&&TARGET.uploadedAt)||'')+'</span></div>'
       +'<div style="padding:10px 0;font-size:12px;color:var(--text4)">No target data found for <b>'+esc(ACCOUNT)+'</b> in the loaded file.</div>'
       +fileCtrls('dsTargetInput','removeTargetFile',true);
@@ -2833,7 +2833,7 @@ function renderCustTarget(){
   const bC=pct>=1?'var(--good)':'var(--bad)';
   const pC=pct>=1?'on-track':'behind';
   const rem=match.tgt-totalDel;const rC=rem<=0?'up':'down';
-  let h='<div class="head"><span class="eyebrow">🎯 Target vs Delivered'+(month?' <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--accent2);color:#fff;letter-spacing:.02em;text-transform:none">'+esc(month)+'</span>':'')+'</span>'
+  let h='<div class="head"><span class="eyebrow">🎯 Demand Target VS Delivered'+(month?' <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--accent2);color:#fff;letter-spacing:.02em;text-transform:none">'+esc(month)+'</span>':'')+'</span>'
     +'<span class="hint">'+esc(match.name)+(uploadedLabel(TARGET&&TARGET.uploadedAt)?' · '+uploadedLabel(TARGET.uploadedAt):'')+'</span></div>';
   h+='<div class="tgt-bar" style="margin-bottom:6px">'
     +'<span class="nm" style="font-weight:700;font-size:14px">Overall</span>'
@@ -2961,7 +2961,7 @@ function aopSectionHTML(scope){
   const mlbl=mi>=0?MONTHS[mi]:'—';
   // tiles
   let h='<div class="aop-tiles">'
-    +'<div class="aop-tile"><div class="lab">Annual target</div><div class="val num">'+f2(annual)+'</div><div class="sub">full-year 2026 AOP</div></div>'
+    +'<div class="aop-tile"><div class="lab">AOP</div><div class="val num">'+f2(annual)+'</div><div class="sub">full-year 2026 AOP</div></div>'
     +'<div class="aop-tile"><div class="lab">Actual YTD</div><div class="val num" style="color:var(--accent)">'+f2(ytd)+'</div><div class="sub num">'+(hasTgt?pctAnnual.toFixed(1)+'% of annual':'no AOP target')+'</div></div>'
     +'<div class="aop-tile"><div class="lab">Plan to date · Jan–'+mlbl+'</div><div class="val num">'+f2(planTD)+'</div><div class="sub num"'+(hasTgt?' style="color:'+(on?'var(--good)':'var(--bad)')+'"':'')+'>'+(hasTgt?(on?'ahead ':'behind ')+f2(Math.abs(ahead)):'—')+'</div></div>'
     +'</div>';
@@ -2992,8 +2992,8 @@ function aopSectionHTML(scope){
   h+='</div>';
   // by size
   const order=SIZES.slice(); if((actSize['Other']||0)>0) order.push('Other');
-  h+='<div style="height:1px;background:var(--border2);margin:16px 0 12px"></div><div class="eyebrow" style="margin-bottom:8px">By size — annual target vs actual YTD</div>'
-    +'<table class="momt"><thead><tr><th class="l">Size</th><th class="r">Annual target</th><th class="r">Actual YTD</th><th class="r">% of annual</th></tr></thead><tbody>';
+  h+='<div style="height:1px;background:var(--border2);margin:16px 0 12px"></div><div class="eyebrow" style="margin-bottom:8px">AOP Vs Delivered by Size</div>'
+    +'<table class="momt"><thead><tr><th class="l">Size</th><th class="r">AOP</th><th class="r">Actual YTD</th><th class="r">% of annual</th></tr></thead><tbody>';
   order.forEach(s=>{
     const t=tgtSize[s]||0, a=(actSize[s]||0)/1e6; if(t<=0.0001 && a<=0.0001) return;
     const hp=t>0.0001, p=hp?a/t*100:0, col=SC[s]||'#888';
@@ -3012,7 +3012,7 @@ function aopSectionHTML(scope){
 function aopHeadHTML(hintOverride){
   const mi=aopLatestMonthIdx(), ml=mi>=0?MONTHS[mi]:'';
   const hint=hintOverride!=null?hintOverride:(uploadedLabel(AOP&&AOP.uploadedAt)||'');
-  return '<div class="head"><span class="eyebrow">🎯 AOP 2026 — Annual Target vs Actual'
+  return '<div class="head"><span class="eyebrow">🎯 AOP VS Delivered'
     +(ml?' <span class="aop-mb">YTD · '+esc(ml)+'</span>':'')+'</span>'
     +'<span class="hint">'+esc(hint)+'</span></div>';
 }
@@ -3034,7 +3034,7 @@ function renderAOPAll(){
     panel.innerHTML=aopHeadHTML('upload AOP 2026 file')+aopDropHTML(); return;
   }
   let h=aopHeadHTML()+aopSectionHTML('__ALL__');
-  h+='<div style="height:1px;background:var(--border2);margin:16px 0 12px"></div><div class="eyebrow" style="margin-bottom:8px">By customer · values in MM</div>'+aopCustomerTableHTML();
+  h+='<div style="height:1px;background:var(--border2);margin:16px 0 12px"></div><div class="eyebrow" style="margin-bottom:8px">AOP VS Delivered By Customer</div>'+aopCustomerTableHTML();
   h+=fileCtrls('dsAOPInput','removeAOPFile',true);
   panel.innerHTML=h;
 }
@@ -3050,7 +3050,7 @@ function aopCustomerTableHTML(){
     let ytdC=0; if(DATA) for(const r of DATA.rows){ if(r.account===a){ const i=MONTHS.indexOf(r.month); if(i>=0&&i<=mi) ytdC+=r.qty; } }
     return {a, annual, ytd:ytdC/1e6, planTD};
   }).sort((x,y)=> y.annual-x.annual || y.ytd-x.ytd || x.a.localeCompare(y.a));
-  let h='<table class="momt"><thead><tr><th class="l">Customer</th><th class="r">Annual target</th><th class="r">Actual YTD</th><th class="r">% of annual</th><th class="r">Pace</th></tr></thead><tbody>';
+  let h='<table class="momt"><thead><tr><th class="l">Customer</th><th class="r">AOP</th><th class="r">Actual YTD</th><th class="r">% of annual</th><th class="r">Pace</th></tr></thead><tbody>';
   let tA=0,tY=0,tP=0;
   list.forEach(r=>{
     tA+=r.annual; tY+=r.ytd; tP+=r.planTD;
