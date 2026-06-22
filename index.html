@@ -285,13 +285,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .aop-bar2{width:84px;height:8px;background:var(--track);border-radius:5px;overflow:hidden;display:inline-block;vertical-align:middle}.aop-bar2>i{display:block;height:100%;border-radius:5px}
 /* ── collapsible sections: hide / show per section, state persisted ── */
 .panel.sec{position:relative}
-.panel.sec>.head{padding-right:62px}
-.sec-toggle{position:absolute;top:11px;right:12px;z-index:20;display:inline-flex;align-items:center;gap:5px;background:var(--card2);color:var(--text3);border:1px solid var(--border2);border-radius:8px;font-family:inherit;font-size:11px;font-weight:700;line-height:1;padding:6px 10px;cursor:pointer;transition:.12s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.panel.sec>.head{padding-right:210px}
+.sec-toggle{position:absolute;top:11px;right:12px;z-index:20;display:inline-flex;align-items:center;gap:5px;height:26px;box-sizing:border-box;background:var(--card2);color:var(--text3);border:1px solid var(--border2);border-radius:8px;font-family:inherit;font-size:10px;font-weight:700;line-height:1;padding:0 9px;cursor:pointer;transition:.12s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
 .sec-toggle:hover{color:var(--accent);border-color:var(--accent)}
 [data-theme="light"] .sec-toggle{border-color:#93C5FD}
 .panel.sec-collapsed{padding:0;overflow:hidden}
 .panel.sec-collapsed>*{display:none!important}
-.panel.sec-collapsed>.sec-toggle{display:flex!important;position:static;width:100%;justify-content:space-between;align-items:center;padding:13px 16px;border:none;border-radius:14px;background:var(--card);color:var(--text2);font-size:13px;font-weight:700}
+.panel.sec-collapsed>.sec-toggle{display:flex!important;position:static;width:100%;height:auto;justify-content:space-between;align-items:center;padding:13px 16px;border:none;border-radius:14px;background:var(--card);color:var(--text2);font-size:13px;font-weight:700}
 .panel.sec-collapsed>.sec-toggle:hover{color:var(--accent)}
 .sec-toggle .sec-x{font-weight:600;font-size:11px;color:var(--text4);letter-spacing:.03em}
 .sec-toggle:hover .sec-x{color:var(--accent)}
@@ -314,6 +314,44 @@ body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:no
 .secgrid>.panel.sec-full{grid-column:1 / -1}     /* full = span both columns */
 .secgrid>#labelDrill{grid-column:1 / -1}         /* drill-down is always full width */
 .secgrid>.sec-slot{align-self:stretch}
+/* ── Remove button (left of Hide) + removed (hidden) state ── */
+/* top-right control cluster: [width tag][Remove], sitting just left of Hide */
+.sec-ctrls{position:absolute;top:11px;right:72px;z-index:20;display:inline-flex;align-items:center;gap:6px}
+/* width tag: a segmented Half|Full toggle — same height + font as Remove/Hide */
+.sec-wtag{display:inline-flex;align-items:stretch;height:26px;box-sizing:border-box;border:1px solid var(--border2);border-radius:8px;background:var(--card2);overflow:hidden;font:700 10px/1 inherit;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.sec-wtag .sec-wseg{display:inline-flex;align-items:center;padding:0 9px;color:var(--text3);cursor:pointer;border-right:1px solid var(--border2);transition:.12s}
+.sec-wtag .sec-wseg:last-child{border-right:0}
+.sec-wtag .sec-wseg.on{background:var(--accent);color:#fff}
+.sec-wtag .sec-wseg:not(.on):hover{color:var(--accent)}
+.sec-wtag.locked{cursor:default}
+.sec-wtag.locked .sec-wseg{cursor:default}
+.sec-wtag.locked .sec-wseg.on{background:var(--text4);color:#fff}
+.sec-wtag.locked .sec-wseg.off{opacity:.5;text-decoration:line-through}
+[data-theme="light"] .sec-wtag,[data-theme="light"] .sec-wtag .sec-wseg{border-color:#93C5FD}
+.sec-remove{display:inline-flex;align-items:center;gap:4px;height:26px;box-sizing:border-box;padding:0 9px;background:var(--card2);color:var(--text3);border:1px solid var(--border2);border-radius:8px;font:700 10px/1 inherit;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.sec-remove:hover{color:var(--bad);border-color:var(--bad)}
+[data-theme="light"] .sec-remove{border-color:#93C5FD}
+.panel.sec-collapsed>.sec-ctrls{display:none!important}
+/* invisible cell that holds a deliberate gap so nothing flows up to fill it (desktop only) */
+.sec-spacer{min-height:0;height:0;padding:0;margin:0;border:0;background:none;pointer-events:none}
+@media(max-width:760px){ .sec-wtag{display:none} .sec-spacer{display:none} .panel.sec>.head{padding-right:150px} }
+.sec-removed{display:none!important}
+/* ── "+" insert bars between rows ── */
+.sec-add{grid-column:1 / -1;position:relative;display:flex;justify-content:flex-end;align-items:center;height:18px;margin:-4px 0}
+.sec-add::before{content:'';position:absolute;left:2px;right:40px;top:50%;height:1px;background:var(--border2);opacity:0;transition:opacity .15s}
+.sec-add:hover::before,.sec-add.open::before{opacity:.5}
+.sec-add-btn{width:25px;height:25px;border-radius:50%;border:1px dashed var(--border2);background:var(--card2);color:var(--text3);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;line-height:1;padding:0;opacity:.4;transition:opacity .15s,border-color .15s,color .15s;-webkit-tap-highlight-color:transparent}
+.sec-add:hover .sec-add-btn,.sec-add-btn.open{opacity:1;border-style:solid;border-color:var(--accent);color:var(--accent)}
+[data-theme="light"] .sec-add-btn{border-color:#93C5FD}
+body.sec-dragging-active .sec-add{display:none}
+/* ── the section picker dropdown ── */
+#secAddMenu{position:absolute;z-index:9999;background:var(--card);border:1px solid var(--border2);border-radius:11px;box-shadow:0 12px 34px rgba(0,0,0,.45);min-width:230px;max-height:60vh;overflow:auto;padding:6px;display:none}
+#secAddMenu.open{display:block}
+[data-theme="light"] #secAddMenu{border-color:#93C5FD;box-shadow:0 12px 34px rgba(15,23,42,.18)}
+#secAddMenu h5{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--text4);margin:5px 8px 7px;font-weight:800}
+#secAddMenu button{display:block;width:100%;text-align:left;background:none;border:none;color:var(--text);font:inherit;font-size:13px;font-weight:600;padding:8px 9px;border-radius:8px;cursor:pointer}
+#secAddMenu button:hover{background:var(--card2);color:var(--accent)}
+#secAddMenu .empty{color:var(--text4);font-size:12px;padding:8px 9px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -598,7 +636,7 @@ body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:no
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 22 Jun 2026 · 18:40</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 22 Jun 2026 · 21:35</div>
 </div>
 
 <div id="report"></div>
@@ -881,15 +919,79 @@ const LS_ORDER='salesdash_order_v1';
 let SECTION_STATE={};
 try{ const _ss=localStorage.getItem(LS_SECTIONS); if(_ss) SECTION_STATE=JSON.parse(_ss)||{}; }catch(e){}
 // per-view list of {id, w:'half'|'full'} (older saves stored plain id strings -> treated as full)
-function _normOrder(a){ return (Array.isArray(a)?a:[]).map(x=> (typeof x==='string')?{id:x,w:'full'}:{id:(x&&x.id)||'',w:((x&&x.w)==='half')?'half':'full'} ).filter(o=>o.id); }
+function _normOrder(a){ return (Array.isArray(a)?a:[]).map(x=>{
+  if(x&&x.spacer) return {spacer:true};
+  if(typeof x==='string') return {id:x,w:'full',removed:false};
+  return {id:(x&&x.id)||'',w:((x&&x.w)==='half')?'half':'full',removed:!!(x&&x.removed)};
+}).filter(o=> o.spacer || o.id); }
 let SECTION_ORDER={all:[],cust:[]};
 try{ const _so=localStorage.getItem(LS_ORDER); if(_so){ const o=JSON.parse(_so); if(o&&typeof o==='object'){ SECTION_ORDER.all=_normOrder(o.all); SECTION_ORDER.cust=_normOrder(o.cust); } } }catch(e){}
 function saveSections(){ try{ localStorage.setItem(LS_SECTIONS,JSON.stringify(SECTION_STATE)); }catch(e){} }
 function saveOrder(){ try{ localStorage.setItem(LS_ORDER,JSON.stringify(SECTION_ORDER)); }catch(e){} }
 const SECTION_EXCLUDE=new Set(['labelDrill']);                 // no Hide button (own close UX)
-const ORDER_EXCLUDE=new Set(['labelDrill','custDataStatus']);  // not draggable (contextual / pinned status bar)
-const FULL_ONLY=new Set(['targetPanelAll','arPanelAll']);      // big tables — never half-width
+const ORDER_EXCLUDE=new Set(['labelDrill','custDataStatus']);  // not draggable / removable (pinned status bar)
+const FULL_ONLY=new Set(['targetPanelAll','arPanelAll']);      // big tables — never half-width (but still removable)
 function _panelWidth(id,w){ return FULL_ONLY.has(id) ? 'full' : ((w==='half')?'half':'full'); }
+function _viewKey(){ return _isCustView()?'cust':'all'; }
+// Every reorderable panel in a container, INCLUDING removed (hidden) ones — i.e. this page's full catalog.
+function catalogPanels(container){ const out=[]; const kids=(container&&container.children)?container.children:[];
+  for(let i=0;i<kids.length;i++){ const c=kids[i]; if(c.classList&&c.classList.contains('panel')&&c.id&&!ORDER_EXCLUDE.has(c.id)) out.push(c); } return out; }
+// Layout entries are: {id,w,removed:false} visible card · {id,w,removed:true} removed card · {spacer:true} a hole.
+function _isSpacer(e){ return !!(e&&e.spacer); }
+// column (0 or 1) a card at index `idx` of the visible list would start in (full cards reset to 0).
+function _colAt(vis,idx){ let col=0; for(let i=0;i<idx;i++){ const e=vis[i];
+  if(_isSpacer(e)) col=col?0:1; else if(_panelWidth(e.id,e.w)==='full') col=0; else col=col?0:1; } return col; }
+// keep only valid holes: a spacer is valid only at column 1 (right cell), after a left-packed half.
+function normalizeVis(vis){ const out=[]; let col=0;
+  for(const e of vis){ if(_isSpacer(e)){ if(col===0) continue; out.push(e); col=0; }
+    else if(_panelWidth(e.id,e.w)==='full'){ out.push(e); col=0; }
+    else { out.push(e); col=col?0:1; } }
+  return out; }
+// merge saved layout with the live catalog -> [visible cards/spacers ..., removed cards ...]
+function effLayout(key, container){
+  container=container||_orderContainer();
+  const cat=catalogPanels(container).map(c=>c.id); const catSet=new Set(cat);
+  const raw=Array.isArray(SECTION_ORDER[key])?SECTION_ORDER[key]:[];
+  const seen={}; const vis=[]; const removed=[];
+  raw.forEach(e=>{ if(_isSpacer(e)){ vis.push({spacer:true}); return; }
+    if(!e||!e.id||!catSet.has(e.id)||seen[e.id]) return; seen[e.id]=1;
+    if(e.removed) removed.push({id:e.id,w:(e.w==='half'?'half':'full'),removed:true});
+    else vis.push({id:e.id,w:(e.w==='half'?'half':'full'),removed:false}); });
+  cat.forEach(id=>{ if(!seen[id]){ vis.push({id,w:'full',removed:false}); seen[id]=1; } });   // new sections -> shown, full
+  return normalizeVis(vis).concat(removed);
+}
+// ── width toggle: half <-> full with position rules ──
+//   half -> full: card grows in place; the half beside it drops to the next row, stays half.
+//   full -> half: card packs LEFT; a hole is left on its right and nothing slides up to fill it.
+function setSecWidth(id, w){ if(FULL_ONLY.has(id)||ORDER_EXCLUDE.has(id)) return;
+  const key=_viewKey(); const L=effLayout(key); let vis=L.filter(e=>!e.removed); const removed=L.filter(e=>e.removed);
+  let idx=-1; for(let i=0;i<vis.length;i++){ if(!_isSpacer(vis[i])&&vis[i].id===id){ idx=i; break; } }
+  if(idx<0) return;
+  if(w==='full'){
+    if(idx+1<vis.length&&_isSpacer(vis[idx+1])) vis.splice(idx+1,1);
+    if(idx-1>=0&&_isSpacer(vis[idx-1])){ vis.splice(idx-1,1); idx--; }
+    if(_colAt(vis,idx)===1){ let p=idx-1; while(p>=0&&_isSpacer(vis[p])) p--; if(p>=0){ const c=vis.splice(idx,1)[0]; vis.splice(p,0,c); idx=p; } }
+    vis[idx].w='full';
+  } else {
+    vis[idx].w='half'; vis.splice(idx+1,0,{spacer:true}); vis.splice(idx,0,{spacer:true});   // guard+hole; normalize trims
+  }
+  vis=normalizeVis(vis); SECTION_ORDER[key]=vis.concat(removed); saveOrder(); applySectionToggles();
+}
+function removeSection(id){ if(ORDER_EXCLUDE.has(id)) return;
+  const key=_viewKey(); const L=effLayout(key); let vis=L.filter(e=>!e.removed); const removed=L.filter(e=>e.removed);
+  let idx=-1; for(let i=0;i<vis.length;i++){ if(!_isSpacer(vis[i])&&vis[i].id===id){ idx=i; break; } }
+  if(idx<0) return; const w=vis[idx].w;
+  vis.splice(idx,1); if(idx<vis.length&&_isSpacer(vis[idx])) vis.splice(idx,1);   // drop its hole too
+  vis=normalizeVis(vis); removed.push({id,w,removed:true});
+  SECTION_ORDER[key]=vis.concat(removed); saveOrder(); applySectionToggles();
+}
+function addSection(id, visGap){
+  const key=_viewKey(); const L=effLayout(key); let vis=L.filter(e=>!e.removed); const removed=L.filter(e=>e.removed);
+  const ridx=removed.findIndex(o=>o.id===id); if(ridx<0) return; const w=removed[ridx].w; removed.splice(ridx,1);
+  let seen=0, at=vis.length; for(let i=0;i<vis.length;i++){ if(_isSpacer(vis[i])) continue; if(seen===visGap){ at=i; break; } seen++; }
+  vis.splice(at,0,{id,w,removed:false}); vis=normalizeVis(vis);
+  SECTION_ORDER[key]=vis.concat(removed); saveOrder(); applySectionToggles();
+}
 function sectionTitle(panel){ const eb=panel.querySelector('.eyebrow'); return ((eb?eb.textContent:'')||'').trim()||'Section'; }
 function toggleSection(id){ if(!id) return; SECTION_STATE[id]=!SECTION_STATE[id]; saveSections(); applySectionToggles(); }
 function _isCustView(){ return (typeof ACCOUNT!=='undefined') && ACCOUNT!=='All'; }
@@ -899,7 +1001,7 @@ function reorderItems(container, ex1, ex2){
   const out=[]; const kids=(container && container.children) ? container.children : [];
   for(let i=0;i<kids.length;i++){ const c=kids[i];
     if(c===ex1||c===ex2) continue;
-    if(c.classList && c.classList.contains('panel') && c.id && !ORDER_EXCLUDE.has(c.id) && !c.classList.contains('hide')) out.push(c);
+    if(c.classList && c.classList.contains('panel') && c.id && !ORDER_EXCLUDE.has(c.id) && !c.classList.contains('hide') && !c.classList.contains('sec-removed')) out.push(c);
   }
   return out;
 }
@@ -909,27 +1011,78 @@ function childrenByClass(panel, cls){
   for(let i=0;i<kids.length;i++){ const c=kids[i]; if(c.classList && c.classList.contains(cls)) out.push(c); }
   return out;
 }
-// Reorder + resize (half/full) the active view's panels to match the saved layout. A marker per
-// slot keeps any non-reorderable interior nodes in place. Widths applied every call (idempotent).
+// Apply width (half/full) + removed (hidden) + holes to the active view, then arrange the DOM so
+// auto-flow lays cards out left-to-right; invisible spacer cells hold the deliberate gaps.
+function reorderDOM(container, order){
+  const cur=reorderItems(container,null,null); if(cur.length<1) return;
+  let same=(cur.length===order.length); if(same){ for(let i=0;i<order.length;i++){ if(cur[i]!==order[i]){ same=false; break; } } }
+  if(same) return;
+  const markers=cur.map(it=>{ const m=document.createComment('o'); container.insertBefore(m,it); return m; });
+  cur.forEach(it=>container.removeChild(it));
+  order.forEach((el,i)=>{ if(el&&markers[i]) container.insertBefore(el, markers[i]); });
+  markers.forEach(m=>{ try{ container.removeChild(m); }catch(e){} });
+}
 function applySectionOrder(){
   const container=_orderContainer(); if(!container) return;
-  const key=_isCustView()?'cust':'all';
-  const items=reorderItems(container,null,null);
-  if(items.length<1) return;
-  const byId=new Map(items.map(c=>[c.id,c]));
-  const saved=SECTION_ORDER[key]||[]; const desired=[];
-  saved.forEach(o=>{ if(byId.has(o.id) && !desired.some(d=>d.id===o.id)) desired.push({id:o.id,w:o.w}); });
-  items.forEach(c=>{ if(!desired.some(d=>d.id===c.id)) desired.push({id:c.id,w:'full'}); });   // unsaved -> full
-  // apply widths (also enforces the FULL_ONLY tables)
-  desired.forEach(o=>{ const el=byId.get(o.id); if(el) el.classList.toggle('sec-full', _panelWidth(o.id,o.w)==='full'); });
-  // reorder only when the sequence actually differs
-  if(items.length<2) return;
-  let same=true; for(let i=0;i<items.length;i++){ if(items[i].id!==desired[i].id){ same=false; break; } }
-  if(same) return;
-  const markers=items.map(it=>{ const m=document.createComment('o'); container.insertBefore(m,it); return m; });
-  items.forEach(it=>container.removeChild(it));
-  desired.forEach((o,i)=>{ const el=byId.get(o.id); if(el) container.insertBefore(el, markers[i]); });
-  markers.forEach(m=>container.removeChild(m));
+  const key=_viewKey(); const cat=catalogPanels(container); if(cat.length<1) return;
+  const byId=new Map(cat.map(c=>[c.id,c]));
+  childrenByClass(container,'sec-spacer').forEach(s=>{ try{ container.removeChild(s); }catch(e){} });   // clear old holes
+  const lay=effLayout(key,container); SECTION_ORDER[key]=lay;
+  const vis=lay.filter(e=>!e.removed);
+  const removedSet=new Set(lay.filter(e=>e.removed).map(e=>e.id));
+  cat.forEach(c=>{ c.classList.toggle('sec-removed', removedSet.has(c.id)); });
+  vis.forEach(e=>{ if(_isSpacer(e)) return; const el=byId.get(e.id); if(el) el.classList.toggle('sec-full', _panelWidth(e.id,e.w)==='full'); });
+  // arrange cards in visible order, then drop in spacer cells where holes belong
+  const cardOrder=vis.filter(e=>!_isSpacer(e)).map(e=>byId.get(e.id)).filter(Boolean);
+  reorderDOM(container, cardOrder);
+  let prev=null;
+  vis.forEach(e=>{ if(_isSpacer(e)){ const sp=document.createElement('div'); sp.className='sec-spacer'; sp.setAttribute('aria-hidden','true');
+      if(prev&&prev.after) prev.after(sp); else if(prev&&prev.parentNode) prev.parentNode.insertBefore(sp, prev.nextSibling); else container.insertBefore(sp, container.firstChild||null); prev=sp; }
+    else { const el=byId.get(e.id); if(el) prev=el; } });
+}
+/* ---- add / remove: the "+" insert bars between rows + the picker dropdown ---- */
+let _addOpenGap=null;
+function _secAddMenuEl(){ let m=document.getElementById('secAddMenu'); if(!m){ m=document.createElement('div'); m.id='secAddMenu'; document.body.appendChild(m); } return m; }
+function closeAddMenu(){ const m=document.getElementById('secAddMenu'); if(m) m.classList.remove('open');
+  if(document.querySelectorAll){ document.querySelectorAll('.sec-add-btn.open').forEach(b=>b.classList.remove('open')); document.querySelectorAll('.sec-add.open').forEach(b=>b.classList.remove('open')); }
+  _addOpenGap=null; }
+function openAddMenu(btn, visGap){
+  const key=_viewKey(), container=_orderContainer();
+  const lay=effLayout(key,container), avail=lay.filter(o=>o.removed);
+  const titleOf=id=>{ const el=document.getElementById(id); return el?sectionTitle(el):id; };
+  const m=_secAddMenuEl();
+  m.innerHTML='<h5>Add a section here</h5>'+(avail.length
+    ? avail.map(o=>'<button type="button" data-addid="'+o.id+'">+ '+esc(titleOf(o.id))+'</button>').join('')
+    : '<div class="empty">All of this page\u2019s sections are already shown.</div>');
+  m.setAttribute('data-gap', visGap);
+  m.classList.add('open'); btn.classList.add('open'); const row=btn.closest?btn.closest('.sec-add'):null; if(row) row.classList.add('open');
+  const r=btn.getBoundingClientRect(), mw=m.offsetWidth||240, mh=m.offsetHeight||120;
+  let left=r.right-mw+(window.scrollX||0); if(left<8) left=8;
+  let top=r.bottom+6+(window.scrollY||0);
+  if(r.bottom+6+mh>(window.innerHeight||800)){ top=r.top-6-mh+(window.scrollY||0); if(top<(window.scrollY||0)+8) top=(window.scrollY||0)+8; }
+  m.style.left=left+'px'; m.style.top=top+'px'; _addOpenGap=visGap;
+}
+// "+" insert bars: one above the first card, and one after the last cell of each ROW (cards + holes),
+// so half-pairs and a card+hole are never split. data-visgap is the card insertion index.
+function renderAddBars(){
+  const container=_orderContainer(); if(!container) return;
+  ['allGrid','custView'].forEach(cid=>{ const c=document.getElementById(cid); if(!c) return; childrenByClass(c,'sec-add').forEach(o=>{ try{ c.removeChild(o); }catch(e){} }); });
+  const kids=[]; const ch=container.children||[];
+  for(let i=0;i<ch.length;i++){ const c=ch[i]; if(!c.classList) continue;
+    if(c.classList.contains('sec-add')) continue;
+    if(c.classList.contains('panel')){ if(c.id&&!ORDER_EXCLUDE.has(c.id)&&!c.classList.contains('hide')&&!c.classList.contains('sec-removed')) kids.push({el:c,card:true}); }
+    else if(c.classList.contains('sec-spacer')) kids.push({el:c,card:false});
+  }
+  function bar(g){ const b=document.createElement('div'); b.className='sec-add';
+    b.innerHTML='<button type="button" class="sec-add-btn" data-visgap="'+g+'" aria-label="Add a section here" title="Add a section here">+</button>'; return b; }
+  if(kids.length===0){ container.appendChild(bar(0)); return; }
+  const tops=kids.map(k=>(typeof k.el.offsetTop==='number')?k.el.offsetTop:0);
+  container.insertBefore(bar(0), kids[0].el);
+  let cards=0;
+  for(let i=0;i<kids.length;i++){ if(kids[i].card) cards++;
+    const lastInRow=(i===kids.length-1)||(tops[i+1]!==tops[i]);
+    if(lastInRow){ const b=bar(cards); if(kids[i].el.after) kids[i].el.after(b); else container.appendChild(b); }
+  }
 }
 let _secObs=null;
 function applySectionToggles(){
@@ -956,16 +1109,37 @@ function applySectionToggles(){
         btn.setAttribute('aria-label',(collapsed?'Show ':'Hide ')+sectionTitle(panel)+' section');
         btn.title=(collapsed?'Show ':'Hide ')+sectionTitle(panel);
       }
-      // ── Move handle (exactly one) on draggable panels ──
+      // ── Move handle + control cluster (width tag + Remove) on draggable panels ──
       const mh=childrenByClass(panel,'move-handle');
-      if(ORDER_EXCLUDE.has(id)){ mh.forEach(m=>{ try{ panel.removeChild(m); }catch(e){} }); }
-      else {
+      const ccs=childrenByClass(panel,'sec-ctrls');
+      childrenByClass(panel,'sec-remove').forEach(m=>{ try{ panel.removeChild(m); }catch(e){} });   // clear any legacy direct-child Remove
+      if(ORDER_EXCLUDE.has(id)){
+        mh.forEach(m=>{ try{ panel.removeChild(m); }catch(e){} });
+        ccs.forEach(m=>{ try{ panel.removeChild(m); }catch(e){} });
+      } else {
         let mv=mh[0]||null; for(let i=1;i<mh.length;i++){ try{ panel.removeChild(mh[i]); }catch(e){} }
         if(!mv){ mv=document.createElement('button'); mv.type='button'; mv.className='move-handle';
           mv.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M12 3 9.5 5.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></svg>';
           mv.setAttribute('aria-label','Move section'); mv.title='Drag to move or resize this section'; panel.appendChild(mv); }
+        let cl=ccs[0]||null; for(let i=1;i<ccs.length;i++){ try{ panel.removeChild(ccs[i]); }catch(e){} }
+        if(!cl){ cl=document.createElement('div'); cl.className='sec-ctrls'; panel.appendChild(cl); }
+        // width tag — segmented Half | Full (click to resize); locked "Full only" for full-width-only sections
+        let tg=childrenByClass(cl,'sec-wtag')[0]||null;
+        if(!tg){ tg=document.createElement('span'); tg.className='sec-wtag'; cl.appendChild(tg); }
+        const fullOnly=FULL_ONLY.has(id), isFull=panel.classList.contains('sec-full');
+        const twant=fullOnly?'f':(isFull?'wf':'wh');
+        if(tg.getAttribute('data-wt')!==twant){ tg.setAttribute('data-wt',twant);
+          tg.classList.toggle('locked',fullOnly);
+          if(fullOnly){ tg.innerHTML='<span class="sec-wseg off">Half</span><span class="sec-wseg on">Full only</span>'; tg.title='This section is always full width'; }
+          else { tg.innerHTML='<span class="sec-wseg'+(!isFull?' on':'')+'" data-w="half" data-wid="'+id+'">Half</span><span class="sec-wseg'+(isFull?' on':'')+'" data-w="full" data-wid="'+id+'">Full</span>'; tg.title='Set this card to half or full width'; }
+        }
+        // Remove button
+        let rb=childrenByClass(cl,'sec-remove')[0]||null;
+        if(!rb){ rb=document.createElement('button'); rb.type='button'; rb.className='sec-remove'; rb.innerHTML='\u2715 Remove'; cl.appendChild(rb); }
+        rb.setAttribute('data-rm', id); rb.setAttribute('aria-label','Remove '+sectionTitle(panel)+' section'); rb.title='Remove this section';
       }
     });
+    renderAddBars();
   } finally { if(_secObs) _secObs.observe(app,{childList:true,subtree:true}); }
 }
 
@@ -1009,7 +1183,9 @@ function _onSecDragEnd(){
   container.insertBefore(el, slot); try{ container.removeChild(slot); }catch(e){}
   document.body.classList.remove('sec-dragging-active');
   const key=(container.id==='custView')?'cust':'all';
-  SECTION_ORDER[key]=reorderItems(container,null,null).map(c=>({id:c.id, w:c.classList.contains('sec-full')?'full':'half'}));
+  const removedEntries=effLayout(key,container).filter(o=>o.removed);   // keep removed cards (+ their widths)
+  const visEntries=reorderItems(container,null,null).map(c=>({id:c.id, w:c.classList.contains('sec-full')?'full':'half', removed:false}));
+  SECTION_ORDER[key]=visEntries.concat(removedEntries);   // a drag re-packs left-to-right (holes reset)
   saveOrder();
   _drag=null; _dragRef=null;
   applySectionToggles();   // re-ensure controls + reconnect observer
@@ -1041,14 +1217,26 @@ let _secWired=false;
 function setupSectionObserver(){
   const app=document.getElementById('app'); if(!app) return;
   if(!_secWired){
-    // single delegated, capture-phase click for Hide (resolves clicks on inner <span>s via closest)
+    // single delegated, capture-phase click for the per-card controls
     app.addEventListener('click', function(ev){
-      const t = ev.target && ev.target.closest ? ev.target.closest('.sec-toggle') : null;
-      if(!t || !app.contains(t)) return;
-      ev.stopPropagation(); ev.preventDefault();
-      toggleSection(t.getAttribute('data-sec'));
+      const closest = sel => ev.target && ev.target.closest ? ev.target.closest(sel) : null;
+      const seg=closest('.sec-wtag:not(.locked) .sec-wseg');
+      if(seg && app.contains(seg)){ ev.stopPropagation(); ev.preventDefault(); closeAddMenu(); setSecWidth(seg.getAttribute('data-wid'), seg.getAttribute('data-w')); return; }
+      const tog=closest('.sec-toggle');
+      if(tog && app.contains(tog)){ ev.stopPropagation(); ev.preventDefault(); closeAddMenu(); toggleSection(tog.getAttribute('data-sec')); return; }
+      const rm=closest('.sec-remove');
+      if(rm && app.contains(rm)){ ev.stopPropagation(); ev.preventDefault(); closeAddMenu(); removeSection(rm.getAttribute('data-rm')); return; }
+      const add=closest('.sec-add-btn');
+      if(add && app.contains(add)){ ev.stopPropagation(); ev.preventDefault(); const g=+add.getAttribute('data-visgap'); if(_addOpenGap===g){ closeAddMenu(); } else { openAddMenu(add, g); } return; }
     }, true);
     app.addEventListener('pointerdown', _onSecDragStart);   // drag handles
+    // picker menu (body-level): choose a section to add, or click-away to close
+    document.addEventListener('click', function(ev){
+      const it=ev.target && ev.target.closest ? ev.target.closest('#secAddMenu [data-addid]') : null;
+      if(it){ ev.preventDefault(); const gap=+( _secAddMenuEl().getAttribute('data-gap')||0 ); const id=it.getAttribute('data-addid'); closeAddMenu(); addSection(id, gap); return; }
+      if(_addOpenGap!==null){ const inMenu=ev.target.closest && (ev.target.closest('#secAddMenu')||ev.target.closest('.sec-add-btn')); if(!inMenu) closeAddMenu(); }
+    });
+    window.addEventListener('resize', closeAddMenu);
     _secWired=true;
   }
   if(!_secObs){ _secObs=new MutationObserver(()=>applySectionToggles()); _secObs.observe(app,{childList:true,subtree:true}); }
