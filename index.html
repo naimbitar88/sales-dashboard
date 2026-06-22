@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Sales Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <style>
 /* ───────────────────────── THEME TOKENS ───────────────────────── */
 :root,[data-theme="dark"]{
@@ -77,7 +77,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .chip.acct{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* KPI */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px;margin-bottom:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px}
+.panel .kpis{margin-top:4px}
+/* when kpis grid is the sole content of a panel, shrink the head */
+#kpisPanel .head,#kpisPanelCust .head{margin-bottom:8px;padding-bottom:6px}
 .kpi{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px 15px;box-shadow:var(--shadow)}
 .kpi .lab{display:flex;align-items:center;gap:7px;margin-bottom:9px}
 .kpi .dot{width:7px;height:7px;border-radius:2px;background:var(--accent)}
@@ -543,23 +546,23 @@ body.sec-dragging-active .sec-add{display:none}
   <section class="filters">
     <div class="frow"><span class="flabel">Month</span><div class="fchips" id="monthChips"></div></div>
     <div class="frow"><span class="flabel">Account</span><div class="fchips" id="acctChips"></div></div>
-  </section>
-
-  <!-- data files: Targets/Overdues are global, Stock is per-client; shown on the all-clients overview and on each client -->
-  <div class="panel hide" id="custDataStatus">
-    <div class="head"><span class="eyebrow">📋 Data files</span><span class="hint" id="custDataStatusHint"></span></div>
-    <div class="dsf" id="custDataStatusRows"></div>
-    <!-- dedicated inputs so upload works from the customer view (shared inputs sit in
-         display:none panels, which breaks tapping on iOS) -->
+    <div class="frow" id="dataFilesRow" style="align-items:center">
+      <span class="flabel">Files</span>
+      <div id="custDataStatusRows" style="display:flex;flex-wrap:wrap;gap:8px;min-width:0"></div>
+    </div>
+    <!-- file inputs: must never be in a display:none element or iOS tap breaks -->
     <input type="file" id="dsTargetInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
     <input type="file" id="dsARInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
     <input type="file" id="dsStockInput" accept=".txt,.TXT" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
     <input type="file" id="dsAOPInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
-  </div>
-
-  <div class="kpis" id="kpis"></div>
+  </section>
 
   <div id="allGrid" class="secgrid">
+  <!-- KPI summary tiles -->
+  <div class="panel sec-full" id="kpisPanel">
+    <div class="head"><span class="eyebrow">📊 Key Metrics</span></div>
+    <div class="kpis" id="kpis"></div>
+  </div>
   <!-- all-accounts report toolbar (mirrors the per-customer one) -->
   <div class="panel" id="allToolbar">
     <div class="head"><span class="eyebrow">🧰 PDF Reports</span><span class="hint">generate a report across all accounts</span></div>
@@ -647,6 +650,11 @@ body.sec-dragging-active .sec-add{display:none}
 
   <!-- customer view: trend, % breakdown + MoM variance -->
   <div id="custView" class="hide secgrid">
+    <!-- KPI summary tiles -->
+    <div class="panel sec-full" id="kpisPanelCust">
+      <div class="head"><span class="eyebrow">📊 Key Metrics</span></div>
+      <div class="kpis" id="kpisCust"></div>
+    </div>
     <!-- per-customer report toolbar -->
     <div class="panel" id="custToolbar">
       <div class="head"><span class="eyebrow">🧰 Customer reports</span><span class="hint">generate a focused PDF for this customer</span></div>
@@ -733,7 +741,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 08:30</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 12:00</div>
 </div>
 
 <div id="report"></div>
@@ -968,16 +976,19 @@ const MM=n=>(n/1e6).toFixed(1)+' MM';
 const LS_TARGET='salesdash_target_v1';
 const LS_AR='salesdash_ar_v1';
 const LS_STOCK='salesdash_stock_v1';
-const LS_AOP='salesdash_aop_v1';   // AOP annual plan — uploaded once, never forgotten
+const LS_AOP='salesdash_aop_v1';
+const LS_DATA='salesdash_data_v2';   // sales rows — persists between sessions
 function saveTarget(){ try{ if(TARGET) localStorage.setItem(LS_TARGET,JSON.stringify(TARGET)); else localStorage.removeItem(LS_TARGET); }catch(e){} }
 function saveAR(){ try{ if(AR) localStorage.setItem(LS_AR,JSON.stringify(AR)); else localStorage.removeItem(LS_AR); }catch(e){} }
 function saveStock(){ try{ if(Object.keys(STOCK).length) localStorage.setItem(LS_STOCK,JSON.stringify(STOCK)); else localStorage.removeItem(LS_STOCK); }catch(e){} }
 function saveAOP(){ try{ if(AOP) localStorage.setItem(LS_AOP,JSON.stringify(AOP)); else localStorage.removeItem(LS_AOP); }catch(e){} }
+function saveData(){ try{ if(DATA&&DATA.rows&&DATA.rows.length){ localStorage.setItem(LS_DATA,JSON.stringify({rows:DATA.rows,sheet:DATA.sheet||'',lines:DATA.rows.length})); } else { localStorage.removeItem(LS_DATA); } }catch(e){ try{ localStorage.removeItem(LS_DATA); }catch(e2){} } }
 function loadSaved(){
   try{ const t=localStorage.getItem(LS_TARGET); if(t) TARGET=JSON.parse(t); }catch(e){}
   try{ const a=localStorage.getItem(LS_AR); if(a) AR=JSON.parse(a); }catch(e){}
   try{ const s=localStorage.getItem(LS_STOCK); if(s){ const obj=JSON.parse(s); Object.keys(obj).forEach(k=>{STOCK[k]=obj[k];}); } }catch(e){}
   try{ const p=localStorage.getItem(LS_AOP); if(p) AOP=JSON.parse(p); }catch(e){}
+  try{ const d=localStorage.getItem(LS_DATA); if(d){ const parsed=JSON.parse(d); if(parsed&&parsed.rows&&parsed.rows.length) DATA=parsed; } }catch(e){}
 }
 // Friendly "uploaded" label from a saved timestamp (e.g. "uploaded 21 Jun, 14:30").
 function uploadedLabel(ts){
@@ -1026,7 +1037,7 @@ try{ const _so=localStorage.getItem(LS_ORDER); if(_so){ const o=JSON.parse(_so);
 function saveSections(){ try{ localStorage.setItem(LS_SECTIONS,JSON.stringify(SECTION_STATE)); }catch(e){} }
 function saveOrder(){ try{ localStorage.setItem(LS_ORDER,JSON.stringify(SECTION_ORDER)); }catch(e){} }
 const SECTION_EXCLUDE=new Set(['labelDrill']);                 // no Hide button (own close UX)
-const ORDER_EXCLUDE=new Set(['labelDrill','custDataStatus']);  // not draggable / removable (pinned status bar)
+const ORDER_EXCLUDE=new Set(['labelDrill']);  // not draggable / removable (pinned status bar)
 const FULL_ONLY=new Set(['targetPanelAll','arPanelAll','aopCustPanel']);      // big tables — never half-width (but still removable)
 function _panelWidth(id,w){ return FULL_ONLY.has(id) ? 'full' : ((w==='half')?'half':'full'); }
 function _viewKey(){ return _isCustView()?'cust':'all'; }
@@ -1390,23 +1401,72 @@ function render(){
   const peak=mp.map(m=>[m,monthBase.filter(r=>r.month===m).reduce((s,r)=>s+r.qty,0)]).sort((a,b)=>b[1]-a[1])[0];
   const derivedVol=v.filter(r=>r.derived).reduce((s,r)=>s+r.qty,0);
 
-  // KPIs (set adapts to scope)
-  const grandAll=DATA.rows.reduce((s,r)=>s+r.qty,0);
-  const kpiData = isCust
-    ? [['Total volume',MM(total),fmt(total)+' cans'],
-       ['Labels',labels.length,'brand families'],
-       ['Sizes',sizesArr.length,'can formats'],
-       ['SKUs',skus.toLocaleString(),'unique products'],
-       ['Peak month',peak?peak[0]:'—',peak?MM(peak[1]):''],
-       ['Share of total',(grandAll?acctRows(ACCOUNT).reduce((s,r)=>s+r.qty,0)/grandAll*100:0).toFixed(1)+'%','of portfolio YTD']]
-    : [['Total volume',MM(total),fmt(total)+' cans'],
-       ['Accounts',sorted(sumBy(v,'account')).length,DATA.rows.length.toLocaleString()+' shipment lines'],
-       ['Labels',labels.length,'brand families'],
-       ['Sizes',sizesArr.length,'can formats'],
-       ['SKUs',skus.toLocaleString(),'unique products'],
-       ['Peak month',peak?peak[0]:'—',peak?MM(peak[1]):'']];
-  document.getElementById('kpis').innerHTML=kpiData.map(k=>'<div class="kpi"><div class="lab"><span class="dot"></span><span class="eyebrow">'+k[0]+'</span></div>'
-     +'<div class="val num">'+k[1]+'</div><div class="sub num">'+k[2]+'</div></div>').join('');
+  // ── Key Metric helpers (inline, scoped to current view) ──
+  // % vs AOP
+  let aopPct='—', aopSub='upload AOP file', aopCol='';
+  if(AOP&&AOP.accounts){
+    const scope=isCust?ACCOUNT:'__ALL__';
+    let aopAnnual=0;
+    if(scope==='__ALL__') for(const a of Object.values(AOP.accounts)) aopAnnual+=(a.annual||0);
+    else if(AOP.accounts[scope]) aopAnnual=AOP.accounts[scope].annual||0;
+    const ytdMM=(isCust?acctRows(ACCOUNT):DATA.rows).reduce((s,r)=>s+r.qty,0)/1e6;
+    if(aopAnnual>0){
+      const p=ytdMM/aopAnnual*100; aopPct=p.toFixed(1)+'%';
+      aopCol=p>=100?'var(--good)':'var(--bad)'; aopSub='of full-year AOP';
+    } else { aopPct='—'; aopSub='no AOP target'; }
+  }
+  // % vs Demand Target (month-scoped)
+  let tgtPct='—', tgtSub='upload target file', tgtCol='';
+  if(TARGET&&TARGET.customers&&TARGET.customers.length){
+    if(isCust){
+      const cl=ACCOUNT.toLowerCase();
+      const m=TARGET.customers.find(c=>(c.account||'').toLowerCase()===cl||c.name.toLowerCase()===cl)
+        ||TARGET.customers.find(c=>{const a=(c.account||'').toLowerCase(),n=c.name.toLowerCase();return cl.includes(a)||a.includes(cl)||cl.includes(n)||n.includes(cl);});
+      if(m&&m.tgt>0){const d=deliveredTotalFromSales(ACCOUNT);const p=d/m.tgt*100;tgtPct=p.toFixed(1)+'%';tgtCol=p>=100?'var(--good)':'var(--bad)';tgtSub='of '+targetMonthFilter()+' target';}
+      else tgtSub='no target this month';
+    } else {
+      const totalTgt=TARGET.customers.reduce((s,c)=>s+(c.tgt||0),0);
+      const totalDel=TARGET.customers.reduce((s,c)=>s+deliveredTotalFromSales(c.account),0);
+      if(totalTgt>0){const p=totalDel/totalTgt*100;tgtPct=p.toFixed(1)+'%';tgtCol=p>=100?'var(--good)':'var(--bad)';tgtSub='of '+targetMonthFilter()+' target';}
+    }
+  }
+  // Total Overdues (SAR)
+  let ovdVal='—', ovdSub='upload AR file';
+  if(AR&&AR.customers&&AR.customers.length){
+    const fSAR=v=>v>=1e6?(v/1e6).toFixed(1)+'M SAR':v>=1e3?(v/1e3).toFixed(0)+'K SAR':fmt(Math.round(v))+' SAR';
+    if(isCust){
+      const cl=ACCOUNT.toLowerCase();
+      const c=AR.customers.find(x=>(x.account||'').toLowerCase()===cl)||AR.customers.find(x=>x.name.toLowerCase()===cl);
+      ovdVal=c&&c.overdue>0?fSAR(c.overdue):'None'; ovdSub='total overdue';
+    } else {
+      const t=AR.customers.reduce((s,c)=>s+(c.overdue||0),0);
+      ovdVal=t>0?fSAR(t):'None'; ovdSub='total overdue';
+    }
+  }
+  // Total Stock (cans)
+  let stkVal='—', stkSub='upload stock file';
+  const stkKeys=Object.keys(STOCK||{});
+  if(stkKeys.length){
+    if(isCust){
+      const sd=STOCK[ACCOUNT];
+      if(sd&&sd.bySize){const t=Object.values(sd.bySize).reduce((s,x)=>s+(x||0),0);stkVal=MM(t);stkSub=fmt(Math.round(t))+' cans available';}
+    } else {
+      let t=0; for(const k of stkKeys){const sd=STOCK[k];if(sd&&sd.bySize) t+=Object.values(sd.bySize).reduce((s,x)=>s+(x||0),0);}
+      if(t>0){stkVal=MM(t);stkSub=fmt(Math.round(t))+' cans available';}
+    }
+  }
+
+  // KPI tiles — same 6 for both scopes
+  const kpiData=[
+    ['Total Volume',         MM(total),  fmt(total)+' cans', ''],
+    ['% vs AOP',             aopPct,     aopSub,              aopCol],
+    ['% vs Demand Target',   tgtPct,     tgtSub,              tgtCol],
+    ['Total Overdues',       ovdVal,     ovdSub,              ''],
+    ['Total Stocks',         stkVal,     stkSub,              ''],
+    ['Peak Month',           peak?peak[0]:'—', peak?MM(peak[1]):'', ''],
+  ];
+  document.getElementById(isCust?'kpisCust':'kpis').innerHTML=kpiData.map(k=>'<div class="kpi"><div class="lab"><span class="dot"></span><span class="eyebrow">'+k[0]+'</span></div>'
+     +'<div class="val num"'+(k[3]?' style="color:'+k[3]+'"':'')+'>'+(k[1])+'</div><div class="sub num">'+k[2]+'</div></div>').join('');
 
   // monthly columns
   const monthVols=mp.map(m=>[m,monthBase.filter(r=>r.month===m).reduce((s,r)=>s+r.qty,0)]);
@@ -1422,7 +1482,6 @@ function render(){
   // ── toggle which view's grid is visible for this scope ──
   document.getElementById('allGrid').classList.toggle('hide', isCust);
   document.getElementById('custView').classList.toggle('hide', !isCust);
-  document.getElementById('custDataStatus').classList.remove('hide'); // shown in both all-clients & customer views
   document.getElementById('allToolbar').classList.remove('hide');     // lives inside #allGrid; never individually hidden
   renderCustDataStatus();
 
@@ -2570,8 +2629,7 @@ function renderStock(){
 // 'nodata' (file loaded but this customer not in it — shared files only), or
 // 'missing' (offer a tap/drop upload, wired to the existing loader).
 function renderCustDataStatus(){
-  const panel=document.getElementById('custDataStatus');
-  if(!panel) return;
+  const rowsEl=document.getElementById('custDataStatusRows'); if(!rowsEl) return;
   const isAll = ACCOUNT==='All';
   let files, label;
 
@@ -2631,7 +2689,9 @@ function renderCustDataStatus(){
   }
 
   const okCount=files.filter(f=>f.s.state==='ok').length;
-  document.getElementById('custDataStatusHint').textContent=okCount+' of '+files.length+' loaded · '+label;
+  // always show the Files row so users can see status and upload missing files
+  const _dfr=document.getElementById('dataFilesRow');
+  if(_dfr) _dfr.classList.remove('hide');
 
   document.getElementById('custDataStatusRows').innerHTML=files.map(f=>{
     const cls=f.s.state==='ok'?'ok':(f.s.state==='nodata'?'nodata':'missing');
@@ -3469,7 +3529,8 @@ function loadFile(file){
     catch(ex){ res={error:"Couldn't open that file ("+ex.message+'). Make sure it is a real .xlsx export.'}; }
     if(res.error){ errEl.textContent='⚠️ '+res.error; errEl.classList.remove('hide'); return; }
     DATA=res; MONTH='All'; ACCOUNT='All';
-    loadSaved(); // restore saved targets & overdues (only the sales file is uploaded each session)
+    loadSaved(); // restore saved targets, overdues, AOP, stock
+    saveData();  // persist this sales upload so next session opens directly
     document.getElementById('upload').classList.add('hide');
     document.getElementById('app').classList.remove('hide');
     render();
@@ -3485,7 +3546,20 @@ dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');loadFile(e.dataTran
 document.getElementById('monthChips').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;MONTH=c.dataset.m;render();};
 document.getElementById('acctChips').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;setAccount(c.dataset.a);};
 document.getElementById('acctSearch').oninput=e=>{const v=view();const total=v.reduce((s,r)=>s+r.qty,0);renderAccts(sorted(sumBy(v,'account')),total,e.target.value);};
-document.getElementById('newBtn').onclick=()=>{DATA=null;MONTH='All';ACCOUNT='All';TARGET=null;AR=null;AOP=null;Object.keys(STOCK).forEach(k=>delete STOCK[k]);document.getElementById('app').classList.add('hide');document.getElementById('upload').classList.remove('hide');fileInput.value='';};
+document.getElementById('newBtn').onclick=()=>{DATA=null;MONTH='All';ACCOUNT='All';TARGET=null;AR=null;AOP=null;Object.keys(STOCK).forEach(k=>delete STOCK[k]);localStorage.removeItem(LS_DATA);document.getElementById('app').classList.add('hide');document.getElementById('upload').classList.remove('hide');fileInput.value='';};
+// ── Auto-boot: if sales data was saved from a previous session, reveal immediately ──
+(function(){
+  try{
+    loadSaved();
+    if(DATA&&DATA.rows&&DATA.rows.length){
+      MONTH='All'; ACCOUNT='All';
+      document.getElementById('upload').classList.add('hide');
+      document.getElementById('app').classList.remove('hide');
+      render();
+      setupSectionObserver();
+    }
+  }catch(e){ console.warn('Auto-boot failed:',e); }
+})();
 /* ── PDF button helpers ── */
 function triggerPDF(scope, btn, only){
   // Open the tab NOW, while we're still inside the user gesture (click).
