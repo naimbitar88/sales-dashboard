@@ -733,7 +733,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 07:30</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 08:30</div>
 </div>
 
 <div id="report"></div>
@@ -3089,7 +3089,7 @@ function aopSectionHTML(scope, part){
   else { const pace=planTD>0?ytd/planTD*100:0, pc=on?'var(--good)':'var(--bad)';
     _over+='<div class="aop-pace" style="border-left:3px solid '+pc+'"><span class="aop-pill" style="background:'+pc+'">'+pace.toFixed(0)+'% of plan-to-date</span><span>Through '+mlbl+', plan called for <b class="num">'+f2(planTD)+'</b> \u2014 actual is <b class="num">'+f2(ytd)+'</b>, '+(on?'ahead':'behind')+' by <b class="num">'+f2(Math.abs(ahead))+'</b>.</span></div>'; }
   // ── by month (inner content; the card supplies its own title) ──
-  let _month='<div class="aop-legend"><span><i style="background:var(--border2)"></i>Target</span><span><i style="background:var(--good)"></i>Actual \u2265 target</span><span><i style="background:var(--bad)"></i>Actual &lt; target</span><span><i style="background:var(--accent)"></i>Actual (no target)</span><span style="color:var(--text4)">numbers = <b style="color:var(--accent)">delivered</b> / target (MM)</span></div><div class="aop-mrow">';
+  let _month='<div class="aop-mrow">';
   let mx=0.001; for(let i=0;i<12;i++){ mx=Math.max(mx,tgtMonth[i]||0,(actMonth[i]||0)/1e6); }
   for(let i=0;i<12;i++){
     const t=tgtMonth[i]||0, a=actMonth[i], am=a==null?null:a/1e6;
@@ -3488,12 +3488,43 @@ document.getElementById('acctSearch').oninput=e=>{const v=view();const total=v.r
 document.getElementById('newBtn').onclick=()=>{DATA=null;MONTH='All';ACCOUNT='All';TARGET=null;AR=null;AOP=null;Object.keys(STOCK).forEach(k=>delete STOCK[k]);document.getElementById('app').classList.add('hide');document.getElementById('upload').classList.remove('hide');fileInput.value='';};
 /* ── PDF button helpers ── */
 function triggerPDF(scope, btn, only){
-  // Show loading state, then generate (setTimeout lets the UI repaint first)
+  // Open the tab NOW, while we're still inside the user gesture (click).
+  // Doing it inside setTimeout loses the gesture association and gets blocked as a popup on iOS.
+  const pw = (() => { try{ return window.open('','_blank'); } catch(e){ return null; } })();
+
   const orig = btn ? btn.textContent : null;
-  if(btn){ btn.textContent='⏳ Generating…'; btn.disabled=true; }
+  if(btn){ btn.textContent='\u23f3 Generating\u2026'; btn.disabled=true; }
+
   setTimeout(()=>{
-    try{ downloadPDF(scope, only); }
-    finally{ if(btn){ btn.textContent=orig; btn.disabled=false; } }
+    try{
+      if(!DATA){ if(pw) pw.close(); return; }
+      const html=buildReportHTML(scope, only);
+      if(!html){ if(pw) pw.close(); alert('No data found for this report.'); return; }
+
+      if(pw && !pw.closed){
+        // Write directly into the pre-opened tab — no blob URL needed, no navigation risk.
+        pw.document.open('text/html','replace');
+        pw.document.write(html);
+        pw.document.close();
+      } else {
+        // Popup was blocked despite the early open (shouldn't happen often) — fall back to download.
+        const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        const mp=monthsPresent();
+        const kindSuffix=only==='stock'?'_Stock':only==='overdue'?'_Overdue':only==='target'?'_Target_vs_Delivered':'_Weekly_Update';
+        a.download=(scope==='__ALL__'?(only?'All_Clients'+kindSuffix:'All_Clients_'+mp[0]+'-'+mp[mp.length-1]+'_Report'):(scope.replace(/[^a-z0-9]+/ig,'_')+kindSuffix))+'.html';
+        a.href=url; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url),30000);
+        showToast('\ud83d\udcc4 Report downloaded \u2014 open it, then tap \u201cSave as PDF\u201d.');
+      }
+    } catch(e){
+      if(pw && !pw.closed) pw.close();
+      console.error('PDF generation error:',e);
+      showToast('\u26a0\ufe0f Could not generate report \u2014 '+e.message);
+    } finally{
+      if(btn){ btn.textContent=orig; btn.disabled=false; }
+    }
   }, 40);
 }
 document.getElementById('custPdfBtn').onclick=function(){
