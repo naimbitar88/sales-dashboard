@@ -741,7 +741,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 12:00</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 21:15</div>
 </div>
 
 <div id="report"></div>
@@ -888,6 +888,8 @@ const STOCK={};
 let TARGET=null;    // { month, customers:[{name,tgt,sizeTgts:{}}] }
 let AR=null;        // { date, customers:[{name,account,total,notDue,b1,b2,b3,b4,b5,overdue}] }
 let AOP=null;       // { uploadedAt, accounts:{ <account>:{ sizes:{label:[12 MM]}, byMonth:[12 MM], annual } } } — full-year 2026 plan, remembered permanently
+let DEMAND=null;    // { uploadedAt, snapshot:'5+7', firstForecastIdx, month, accounts:{ ...same shape as AOP } } — latest rolling-forecast snapshot; drives the monthly Demand target
+let __demandStale=false;   // set true when loadSaved finds an OLD-format saved demand (pre per-month snapshots) so we can prompt a re-upload
 let LABEL_DRILL=null; // label family currently drilled into
 let SIZE_DRILL=null;  // can size currently drilled into within a label
 let MOM_MODE={label:'qty',size:'qty',sku:'qty'}; // per-box toggle: 'qty' = cans, 'var' = MoM %
@@ -977,17 +979,26 @@ const LS_TARGET='salesdash_target_v1';
 const LS_AR='salesdash_ar_v1';
 const LS_STOCK='salesdash_stock_v1';
 const LS_AOP='salesdash_aop_v1';
+const LS_DEMAND='salesdash_demand_v1';   // latest rolling-forecast snapshot — uploaded monthly with the AOP workbook
 const LS_DATA='salesdash_data_v2';   // sales rows — persists between sessions
 function saveTarget(){ try{ if(TARGET) localStorage.setItem(LS_TARGET,JSON.stringify(TARGET)); else localStorage.removeItem(LS_TARGET); }catch(e){} }
 function saveAR(){ try{ if(AR) localStorage.setItem(LS_AR,JSON.stringify(AR)); else localStorage.removeItem(LS_AR); }catch(e){} }
 function saveStock(){ try{ if(Object.keys(STOCK).length) localStorage.setItem(LS_STOCK,JSON.stringify(STOCK)); else localStorage.removeItem(LS_STOCK); }catch(e){} }
 function saveAOP(){ try{ if(AOP) localStorage.setItem(LS_AOP,JSON.stringify(AOP)); else localStorage.removeItem(LS_AOP); }catch(e){} }
+function saveDemand(){ try{ if(DEMAND) localStorage.setItem(LS_DEMAND,JSON.stringify(DEMAND)); else localStorage.removeItem(LS_DEMAND); }catch(e){} }
 function saveData(){ try{ if(DATA&&DATA.rows&&DATA.rows.length){ localStorage.setItem(LS_DATA,JSON.stringify({rows:DATA.rows,sheet:DATA.sheet||'',lines:DATA.rows.length})); } else { localStorage.removeItem(LS_DATA); } }catch(e){ try{ localStorage.removeItem(LS_DATA); }catch(e2){} } }
 function loadSaved(){
   try{ const t=localStorage.getItem(LS_TARGET); if(t) TARGET=JSON.parse(t); }catch(e){}
   try{ const a=localStorage.getItem(LS_AR); if(a) AR=JSON.parse(a); }catch(e){}
   try{ const s=localStorage.getItem(LS_STOCK); if(s){ const obj=JSON.parse(s); Object.keys(obj).forEach(k=>{STOCK[k]=obj[k];}); } }catch(e){}
   try{ const p=localStorage.getItem(LS_AOP); if(p) AOP=JSON.parse(p); }catch(e){}
+  try{ const dm=localStorage.getItem(LS_DEMAND); if(dm){ DEMAND=JSON.parse(dm);
+    // Stale guard: the OLD single-sheet demand format (before per-month snapshots) has no
+    // 'snapshots' array. Its monthly targets are wrong (every month read from one sheet), so we
+    // discard it and flag a re-upload rather than display stale numbers.
+    if(DEMAND && !Array.isArray(DEMAND.snapshots)){ DEMAND=null; try{localStorage.removeItem(LS_DEMAND);}catch(e2){} __demandStale=true; }
+    else { const t=targetFromDemand(); if(t) TARGET=t; }
+  } }catch(e){}
   try{ const d=localStorage.getItem(LS_DATA); if(d){ const parsed=JSON.parse(d); if(parsed&&parsed.rows&&parsed.rows.length) DATA=parsed; } }catch(e){}
 }
 // Friendly "uploaded" label from a saved timestamp (e.g. "uploaded 21 Jun, 14:30").
@@ -1379,6 +1390,16 @@ function render(){
   const isCust = ACCOUNT!=='All';
   document.getElementById('titleLines').textContent=' · '+fmt(DATA.rows.length)+' lines';
 
+  // When a Demand snapshot is loaded, the monthly demand target follows the active month filter
+  // (so filtering \u201cFeb\u201d shows Feb\u2019s demand target vs Feb deliveries). With no filter it
+  // pins to the snapshot\u2019s default forecast month. Rebuilt every render before any TARGET read.
+  if(DEMAND&&DEMAND.accounts){
+    const _mf=targetMonthFilter();
+    const _mi=_mf?MONTHS.indexOf(_mf):-1;
+    const _t=targetFromDemand(_mi);
+    if(_t) TARGET=_t;
+  }
+
   // month chips
   const mchips=['All',...monthsPresent()];
   document.getElementById('monthChips').innerHTML=mchips.map(m=>'<span class="chip'+(MONTH===m?' on':'')+'" data-m="'+m+'">'+m+'</span>').join('');
@@ -1406,14 +1427,19 @@ function render(){
   let aopPct='—', aopSub='upload AOP file', aopCol='';
   if(AOP&&AOP.accounts){
     const scope=isCust?ACCOUNT:'__ALL__';
-    let aopAnnual=0;
-    if(scope==='__ALL__') for(const a of Object.values(AOP.accounts)) aopAnnual+=(a.annual||0);
-    else if(AOP.accounts[scope]) aopAnnual=AOP.accounts[scope].annual||0;
-    const ytdMM=(isCust?acctRows(ACCOUNT):DATA.rows).reduce((s,r)=>s+r.qty,0)/1e6;
-    if(aopAnnual>0){
-      const p=ytdMM/aopAnnual*100; aopPct=p.toFixed(1)+'%';
-      aopCol=p>=100?'var(--good)':'var(--bad)'; aopSub='of full-year AOP';
-    } else { aopPct='—'; aopSub='no AOP target'; }
+    const _mi = MONTH!=='All' ? MONTHS.indexOf(MONTH) : -1;   // month filter active? then month-scope
+    const _accs = scope==='__ALL__' ? Object.values(AOP.accounts) : (AOP.accounts[scope]?[AOP.accounts[scope]]:[]);
+    // AOP target: the filtered month's column when filtered, else the full-year annual
+    let aopTgt=0;
+    if(_mi>=0) for(const a of _accs) aopTgt+=((a.byMonth&&a.byMonth[_mi])||0);
+    else       for(const a of _accs) aopTgt+=(a.annual||0);
+    // actual delivered: that month when filtered, else YTD (all months)
+    const _ar = isCust?acctRows(ACCOUNT):DATA.rows;
+    const actMM=(_mi>=0?_ar.filter(r=>r.month===MONTH):_ar).reduce((s,r)=>s+r.qty,0)/1e6;
+    if(aopTgt>0){
+      const p=actMM/aopTgt*100; aopPct=p.toFixed(1)+'%';
+      aopCol=p>=100?'var(--good)':'var(--bad)'; aopSub=_mi>=0?('of '+MONTH+' AOP'):'of full-year AOP';
+    } else { aopPct='—'; aopSub=_mi>=0?'no AOP this month':'no AOP target'; }
   }
   // % vs Demand Target (month-scoped)
   let tgtPct='—', tgtSub='upload target file', tgtCol='';
@@ -2646,11 +2672,12 @@ function renderCustDataStatus(){
       stk={state:'ok',ts,note:stockKeys.length+' client'+(stockKeys.length>1?'s':'')};
     } else stk={state:'missing',note:'per client'};
     const aop=(AOP&&AOP.accounts&&Object.keys(AOP.accounts).length)?{state:'ok',ts:AOP.uploadedAt}:{state:'missing'};
+    const dem=(DEMAND&&DEMAND.accounts&&Object.keys(DEMAND.accounts).length)?{state:'ok',ts:DEMAND.uploadedAt}:{state:'missing'};
     files=[
-      {ic:'🎯', nm:'Targets',       input:'dsTargetInput', loader:'loadTargetFile', s:tgt, up:true },
-      {ic:'📅', nm:'AOP 2026',      input:'dsAOPInput',    loader:'loadAOPFile',    s:aop, up:true },
-      {ic:'💰', nm:'Overdues (AR)', input:'dsARInput',     loader:'loadARFile',     s:ar,  up:true },
-      {ic:'📦', nm:'Stock report',  input:'dsStockInput',  loader:'loadStockFile',  s:stk, up:false},
+      {ic:'📈', nm:'Demand',        input:'dsAOPInput', loader:'loadAOPFile', s:dem, up:true },
+      {ic:'📅', nm:'AOP',           input:'dsAOPInput', loader:'loadAOPFile', s:aop, up:true },
+      {ic:'💰', nm:'Overdues (AR)', input:'dsARInput',  loader:'loadARFile',  s:ar,  up:true },
+      {ic:'📦', nm:'Stock report',  input:'dsStockInput', loader:'loadStockFile', s:stk, up:false},
     ];
     label='All Clients';
   } else {
@@ -2679,11 +2706,14 @@ function renderCustDataStatus(){
     let aop;
     if(!AOP||!AOP.accounts||!Object.keys(AOP.accounts).length){ aop={state:'missing'}; }
     else { aop={state:(AOP.accounts[ACCOUNT]?'ok':'nodata'),ts:AOP.uploadedAt}; }
+    let dem;
+    if(!DEMAND||!DEMAND.accounts||!Object.keys(DEMAND.accounts).length){ dem={state:'missing'}; }
+    else { dem={state:(DEMAND.accounts[ACCOUNT]?'ok':'nodata'),ts:DEMAND.uploadedAt}; }
     files=[
-      {ic:'🎯', nm:'Targets',        input:'dsTargetInput', loader:'loadTargetFile', s:tgt, up:true},
-      {ic:'📅', nm:'AOP 2026',       input:'dsAOPInput',    loader:'loadAOPFile',    s:aop, up:true},
-      {ic:'💰', nm:'Overdues (AR)',  input:'dsARInput',     loader:'loadARFile',     s:ar , up:true},
-      {ic:'📦', nm:'Stock report',   input:'dsStockInput',  loader:'loadStockFile',  s:stk, up:true},
+      {ic:'📈', nm:'Demand',         input:'dsAOPInput', loader:'loadAOPFile', s:dem, up:true},
+      {ic:'📅', nm:'AOP',            input:'dsAOPInput', loader:'loadAOPFile', s:aop, up:true},
+      {ic:'💰', nm:'Overdues (AR)',  input:'dsARInput',  loader:'loadARFile',  s:ar , up:true},
+      {ic:'📦', nm:'Stock report',   input:'dsStockInput', loader:'loadStockFile', s:stk, up:true},
     ];
     label=ACCOUNT;
   }
@@ -2848,6 +2878,13 @@ function latestSalesMonth(){
   return present.length?present[present.length-1]:null;
 }
 function targetMonthFilter(){
+  // An explicit month filter chip drives every monthly comparison: deliveries AND the demand
+  // target both scope to the chosen month (e.g. filter \u201cFeb\u201d \u2192 Feb delivered vs Feb demand).
+  if(MONTH!=='All') return MONTH;
+  // No month filter: when a rolling-forecast Demand snapshot is loaded (e.g. 5+7), default to the
+  // snapshot's first forecast month (Jun), pinned regardless of how far the sales data has
+  // progressed — so delivered is always scoped to the month the demand target is for.
+  if(DEMAND&&DEMAND.month) return DEMAND.month;
   // Prefer the latest month in the sales data (keeps saved targets current).
   const sm=latestSalesMonth();
   if(sm) return sm;
@@ -2934,7 +2971,8 @@ function renderTarget(){
   const oPct=totalTgt>0?totalDel/totalTgt:0;
   const tmLabel=targetMonthFilter();
   const upL=uploadedLabel(TARGET&&TARGET.uploadedAt);
-  hintEl.textContent=(month?month+' targets · ':'')+'delivered '+(tmLabel?'for '+tmLabel:'YTD')+' · '+(oPct*100).toFixed(1)+'% overall achieved'+(upL?' · '+upL:'');
+  const _isDem=TARGET&&TARGET.source==='demand';
+  hintEl.textContent=(_isDem?('Demand '+(TARGET.snapshot?TARGET.snapshot+' · ':'')+(month||'')+' · '):(month?month+' targets · ':''))+'delivered '+(tmLabel?'for '+tmLabel:'YTD')+' · '+(oPct*100).toFixed(1)+'% overall achieved'+(upL?' · '+upL:'');
   const _rAll=totalTgt-totalDel, _onAll=_rAll<=0, _pcAll=_onAll?'var(--good)':'var(--bad)';
   let h='<div class="aop-pace" style="border-left:3px solid '+_pcAll+';margin-bottom:14px"><span class="aop-pill" style="background:'+_pcAll+'">'+(oPct*100).toFixed(0)+'% of target</span><span>Through '+esc(tmLabel||'the latest month')+', target was <b class="num">'+totalTgt.toFixed(2)+' MM</b> \u2014 delivered <b class="num">'+totalDel.toFixed(2)+' MM</b>, '+(_onAll?'ahead':'behind')+' by <b class="num">'+Math.abs(_rAll).toFixed(2)+' MM</b>.</span></div>';
 h+='<div class="scrollx"><table class="momt" style="margin-bottom:16px"><thead><tr>'
@@ -2954,9 +2992,15 @@ h+='<div class="scrollx"><table class="momt" style="margin-bottom:16px"><thead><
     +'<td class="r num '+(oPct>=1?'up':'down')+'"><b>'+(oPct*100).toFixed(1)+'%</b></td>'
     +'<td class="r num '+(rTot<=0?'up':'down')+'"><b>'+(rTot<=0?'✓ ':'')+Math.abs(rTot).toFixed(2)+'</b></td>'
     +'</tr></tbody></table>';
-  h+='<div style="margin-top:8px</div>;display:flex;gap:8px;flex-wrap:wrap"><label for="targetFileInput" class="btn" style="font-size:11px;cursor:pointer">↻ Replace file</label><button class="btn" id="clearTargetBtn" style="font-size:11px">✕ Remove</button></div>';
-  tblEl.innerHTML=h;tblEl.classList.remove('hide');
-  document.getElementById('clearTargetBtn').onclick=()=>{TARGET=null;saveTarget();renderTarget();renderCustTarget();renderCustDataStatus();};
+  if(TARGET&&TARGET.source==='demand'){
+    h+='<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><label for="dsAOPInput" class="btn" style="font-size:11px;cursor:pointer">↻ Replace AOP + Demand file</label><button class="btn" id="clearTargetBtn" style="font-size:11px">✕ Remove</button></div>';
+    tblEl.innerHTML=h;tblEl.classList.remove('hide');
+    document.getElementById('clearTargetBtn').onclick=()=>{ removeAOPFile(); };
+  } else {
+    h+='<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><label for="dsTargetInput" class="btn" style="font-size:11px;cursor:pointer">↻ Replace file</label><button class="btn" id="clearTargetBtn" style="font-size:11px">✕ Remove</button></div>';
+    tblEl.innerHTML=h;tblEl.classList.remove('hide');
+    document.getElementById('clearTargetBtn').onclick=()=>{TARGET=null;saveTarget();renderTarget();renderCustTarget();renderCustDataStatus();};
+  }
 }
 
 // Replace / Remove / Upload controls shown on the customer Target & Overdue cards.
@@ -2975,10 +3019,13 @@ function renderCustTarget(){
   if(!TARGET||!TARGET.customers||!TARGET.customers.length){
     panel.innerHTML='<div class="head"><span class="eyebrow">🎯 Demand Target VS Delivered</span>'
       +'<span class="hint">no targets loaded</span></div>'
-      +'<div style="padding:10px 0;font-size:12px;color:var(--text4)">Upload your monthly targets file to see this customer\u2019s targets here.</div>'
-      +fileCtrls('dsTargetInput','removeTargetFile',false);
+      +'<div style="padding:10px 0;font-size:12px;color:var(--text4)">Upload the monthly <b>AOP + Demand</b> workbook (the file with the 0+12 … 5+7 sheets) to see this client\u2019s demand target here.</div>'
+      +fileCtrls('dsAOPInput','removeAOPFile',false);
     return;
   }
+  const _isDem=TARGET&&TARGET.source==='demand';
+  const _tin=_isDem?'dsAOPInput':'dsTargetInput';
+  const _trm=_isDem?'removeAOPFile':'removeTargetFile';
   const custLow=ACCOUNT.toLowerCase();
   // Match by normalized account first (sales accounts use companyOf names),
   // then fall back to the friendly name, then fuzzy contains.
@@ -2993,7 +3040,7 @@ function renderCustTarget(){
     panel.innerHTML='<div class="head"><span class="eyebrow">🎯 Demand Target VS Delivered'+(month?' <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--accent2);color:#fff;letter-spacing:.02em;text-transform:none">'+esc(month)+'</span>':'')+'</span>'
       +'<span class="hint">'+(uploadedLabel(TARGET&&TARGET.uploadedAt)||'')+'</span></div>'
       +'<div style="padding:10px 0;font-size:12px;color:var(--text4)">No target data found for <b>'+esc(ACCOUNT)+'</b> in the loaded file.</div>'
-      +fileCtrls('dsTargetInput','removeTargetFile',true);
+      +fileCtrls(_tin,_trm,true);
     return;
   }
   // All delivered data from DATA.rows — match by the current account (ACCOUNT)
@@ -3045,7 +3092,7 @@ h+='<div class="scrollx"><table class="momt"><thead><tr>'
     });
     h+='</tbody></table>';
   }
-  h+=fileCtrls('dsTargetInput','removeTargetFile',true);
+  h+=fileCtrls(_tin,_trm,true);
   panel.innerHTML=h;
 }
 
@@ -3059,7 +3106,14 @@ function loadAOPFile(file){
   reader.onload=e=>{ try{ const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellFormula:false,cellHTML:false,cellStyles:false}); parseAOPWorkbook(wb,file.name); }catch(ex){ showToast('⚠️ Could not read AOP file — '+ex.message); } };
   reader.readAsArrayBuffer(file);
 }
-function removeAOPFile(){ AOP=null; saveAOP(); renderAOPAll(); renderCustAOP(); renderCustDataStatus(); }
+function removeAOPFile(){
+  AOP=null; saveAOP();
+  // The monthly Demand target came from the same workbook — clear it and fall back to a
+  // legacy tracker target if one was ever saved separately.
+  DEMAND=null; saveDemand();
+  TARGET=null; try{ const t=localStorage.getItem(LS_TARGET); if(t) TARGET=JSON.parse(t); }catch(e){}
+  renderAOPAll(); renderCustAOP(); renderTarget(); renderCustTarget(); renderCustDataStatus();
+}
 
 function parseAOPWorkbook(wb,fname){
   const sheetName=wb.SheetNames.find(n=>/aop/i.test(n));
@@ -3096,6 +3150,103 @@ function parseAOPWorkbook(wb,fname){
   AOP={uploadedAt:Date.now(), sheet:sheetName, accounts};
   saveAOP(); renderAOPAll(); renderCustAOP(); renderCustDataStatus();
   showToast('📅 AOP 2026 saved · '+Object.keys(accounts).length+' customers · remembered for the year');
+  // The same workbook also carries the rolling-forecast snapshots (0+12 … 5+7). Read the
+  // latest one to drive the monthly Demand target — no more daily sales-tracker upload.
+  parseDemandSnapshot(wb);
+}
+
+/* ════════ DEMAND — monthly target from the rolling-forecast snapshot ════════
+   The AOP workbook contains snapshot sheets named "N+M": N months of locked actuals +
+   M months of forecast (N+M = 12). The first forecast month (index N, e.g. 5+7 → Jun) is
+   the month we are currently targeting, and its per-customer / per-size figures ARE the
+   monthly Demand target. Uploaded monthly (Jul → 6+6, etc.); replaces the daily tracker. */
+
+// Choose the latest snapshot sheet — the one with the most locked actuals (largest N).
+function pickSnapshotSheet(wb){
+  const cands=[];
+  wb.SheetNames.forEach(n=>{ const m=/^\s*(\d{1,2})\s*\+\s*(\d{1,2})\s*$/.exec(n);
+    if(m){ const a=+m[1], b=+m[2]; cands.push({name:n,n:a,sum:a+b}); } });
+  if(!cands.length) return null;
+  const full=cands.filter(c=>c.sum===12);          // proper N+M = 12 snapshots
+  const pool=full.length?full:cands;
+  pool.sort((x,y)=>y.n-x.n);                        // largest N = latest snapshot
+  return pool[0];
+}
+
+// Build the DEMAND object by assembling each month from its OWN snapshot. Each N+M snapshot
+// sheet's FIRST FORECAST column (column N) is the committed demand for month N, captured just
+// before that month began. So month i is read from sheet i+(12-i): Jan from 0+12, Feb from
+// 1+11, Mar from 2+10, … Jun from 5+7 (NOT all twelve months out of the latest sheet).
+function parseDemandSnapshot(wb){
+  const MN=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  // Every proper N+M snapshot (sum===12), sorted by N ascending.
+  const snaps=[];
+  wb.SheetNames.forEach(n=>{ const m=/^\s*(\d{1,2})\s*\+\s*(\d{1,2})\s*$/.exec(n);
+    if(m){ const a=+m[1], b=+m[2]; if(a+b===12) snaps.push({name:n, idx:a}); } });
+  if(!snaps.length){ return; }                       // workbook has no N+M snapshot — leave DEMAND as-is
+  snaps.sort((x,y)=>x.idx-y.idx);
+  const accounts={}; let latestIdx=-1, readCount=0;
+  snaps.forEach(sn=>{
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn.name],{header:1,defval:''});
+    let hdr=-1, nameCol=-1, monthCols=[];
+    for(let r=0;r<rows.length;r++){
+      const cells=rows[r].map(c=>String(c==null?'':c).trim().toLowerCase());
+      const nc=cells.findIndex(c=>c.startsWith('customer'));
+      if(nc<0) continue;
+      const mc=[]; cells.forEach((c,i)=>{ const m=MN.indexOf(c.replace(/\.$/,'').slice(0,3)); if(m>=0&&mc[m]==null) mc[m]=i; });
+      if(mc.filter(x=>x!=null).length>=6){ hdr=r; nameCol=nc; monthCols=mc; break; }
+    }
+    if(hdr<0) return;                                 // unreadable sheet — skip it
+    const col=monthCols[sn.idx];                      // this snapshot's own first-forecast month column
+    if(col==null) return;
+    const sizeCol=nameCol+1; let cur=null, got=false;
+    for(let r=hdr+1;r<rows.length;r++){
+      const row=rows[r];
+      const nm=String(row[nameCol]==null?'':row[nameCol]).trim(), low=nm.toLowerCase();
+      if(low.startsWith('grand total')||low==='g. total') break;   // stop before the size-code grand-total block
+      if(nm && !/total/.test(low)) cur=companyOf(nm);              // start of a new customer block
+      const sc=String(row[sizeCol]==null?'':row[sizeCol]).trim();
+      const codeM=/^(\d{2,4})/.exec(sc);
+      if(!cur||!codeM) continue;
+      const label=SIZE_LABEL[codeM[1]]; if(!label) continue;
+      if(!accounts[cur]) accounts[cur]={sizes:{},byMonth:Array(12).fill(0),annual:0};
+      const a=accounts[cur]; if(!a.sizes[label]) a.sizes[label]=Array(12).fill(0);
+      const v=parseFloat(row[col]); const n=isFinite(v)?v:0;
+      a.sizes[label][sn.idx]+=n; a.byMonth[sn.idx]+=n; a.annual+=n; got=true;
+    }
+    if(got){ latestIdx=Math.max(latestIdx,sn.idx); readCount++; }
+  });
+  if(!Object.keys(accounts).length){ showToast('\u26a0\ufe0f Found snapshot sheets but couldn\u2019t read any customer rows.'); return; }
+  const idx=Math.min(Math.max(latestIdx,0),11);       // default month = the latest snapshot's first-forecast month
+  const names=snaps.map(s=>s.name).join(', ');
+  DEMAND={uploadedAt:Date.now(), snapshot:snaps[snaps.length-1].name, snapshots:snaps.map(s=>s.name),
+          firstForecastIdx:idx, month:MONTHS[idx], accounts};
+  saveDemand();
+  const t=targetFromDemand(); if(t){ TARGET=t; }      // demand snapshots drive the monthly target
+  renderTarget(); renderCustTarget(); renderCustDataStatus();
+  showToast('\ud83d\udcc8 Demand plan loaded \u00b7 '+readCount+' snapshot'+(readCount>1?'s':'')+' ('+names+') \u00b7 Jan\u2013'+MONTHS[idx]+' \u00b7 '+Object.keys(accounts).length+' customers');
+}
+
+// Build a TARGET-shaped object from the snapshot's first forecast month so the whole
+// Target-vs-Delivered module (screen + PDF) consumes it unchanged. Sizes sum to the total
+// by construction, so sizeTgtsValid is always true (no reconciliation warnings).
+function targetFromDemand(monthIdx){
+  if(!DEMAND||!DEMAND.accounts) return null;
+  // Default to the snapshot's first forecast month; a month filter passes its own index so the
+  // whole Demand-vs-Delivered module reflects that month.
+  let idx=(monthIdx==null||monthIdx<0)?DEMAND.firstForecastIdx:monthIdx;
+  if(idx==null||idx<0||idx>11) idx=DEMAND.firstForecastIdx;
+  const SIZES=['150ml','185ml','250ml','330ml SLK','355ml SLK'];
+  const customers=[];
+  Object.keys(DEMAND.accounts).forEach(acct=>{
+    const o=DEMAND.accounts[acct];
+    const tgt=(o.byMonth&&o.byMonth[idx])||0;
+    if(tgt<=0.0000001) return;                       // skip clients with no demand this month
+    const sizeTgts={};
+    SIZES.forEach(s=>{ const arr=o.sizes&&o.sizes[s]; sizeTgts[s]=arr?(arr[idx]||0):0; });
+    customers.push({name:acct, account:acct, tgt, sizeTgts, sizeTgtsValid:true});
+  });
+  return {month:MONTHS[idx], customers, uploadedAt:DEMAND.uploadedAt, source:'demand', snapshot:DEMAND.snapshot};
 }
 
 // Latest month index present in the sales data (0=Jan … 11=Dec); -1 if none. Drives the
@@ -3114,11 +3265,14 @@ function aopSectionHTML(scope, part){
   const SC={'150ml':'#7C3AED','185ml':'#2563EB','250ml':'#059669','330ml SLK':'#D97706','355ml SLK':'#DC2626','Other':'#6E7681'};
   const f2=v=>(Math.round(v*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' MM';
   const accs=isAll?Object.keys(AOP.accounts):[scope];
-  // target (MM): by month + by size
+  // Month filter: when a month chip is active the whole AOP card scopes to that month
+  // (that month's AOP target vs that month's deliveries); otherwise it's the annual/YTD view.
+  const mfIdx = (typeof MONTH!=='undefined' && MONTH!=='All') ? MONTHS.indexOf(MONTH) : -1;
+  // target (MM): by month + by size (by-size scopes to the filtered month when one is active)
   const tgtMonth=Array(12).fill(0), tgtSize={}; SIZES.forEach(s=>tgtSize[s]=0);
   accs.forEach(a=>{ const o=AOP.accounts[a]; if(!o) return;
     for(let i=0;i<12;i++) tgtMonth[i]+=(o.byMonth[i]||0);
-    SIZES.forEach(s=>{ const arr=o.sizes&&o.sizes[s]; if(arr) tgtSize[s]+=arr.reduce((x,y)=>x+(y||0),0); });
+    SIZES.forEach(s=>{ const arr=o.sizes&&o.sizes[s]; if(arr) tgtSize[s]+= mfIdx>=0 ? (arr[mfIdx]||0) : arr.reduce((x,y)=>x+(y||0),0); });
   });
   const annual=tgtMonth.reduce((a,b)=>a+b,0);
   // actuals (cans→MM): by month + by size — recomputed live from DATA
@@ -3129,25 +3283,46 @@ function aopSectionHTML(scope, part){
     if(!isAll && r.account!==scope) continue;
     const i=MONTHS.indexOf(r.month); if(i<0) continue;
     if(i<=mi) actMonth[i]=(actMonth[i]||0)+r.qty;
-    const lab=SIZE_LABEL[r.size]||'Other'; actSize[lab]=(actSize[lab]||0)+r.qty;
+    if(mfIdx<0 || i===mfIdx){ const lab=SIZE_LABEL[r.size]||'Other'; actSize[lab]=(actSize[lab]||0)+r.qty; }
   }
   const ytd=(mi>=0?actMonth.slice(0,mi+1).reduce((a,b)=>a+(b||0),0):0)/1e6;
   let planTD=0; for(let i=0;i<=mi;i++) planTD+=(tgtMonth[i]||0);
   const hasTgt=annual>0.0001, hasAct=ytd>0.0001;
   const pctAnnual=hasTgt?ytd/annual*100:null, ahead=ytd-planTD, on=ahead>=0;
-  const mlbl=mi>=0?MONTHS[mi]:'—';
-  // ── overview: tiles + progress + pace ──
-  let _over='<div class="aop-tiles">'
-    +'<div class="aop-tile"><div class="lab">Delivered YTD</div><div class="val num" style="color:var(--accent)">'+f2(ytd)+'</div><div class="sub num">'+(hasTgt?pctAnnual.toFixed(1)+'% of AOP':'no AOP target')+'</div></div>'
-    +'<div class="aop-tile"><div class="lab">AOP</div><div class="val num">'+f2(annual)+'</div><div class="sub">full-year 2026 AOP</div></div>'
-    +'<div class="aop-tile"><div class="lab">Plan to date \u00b7 Jan\u2013'+mlbl+'</div><div class="val num">'+f2(planTD)+'</div><div class="sub num"'+(hasTgt?' style="color:'+(on?'var(--good)':'var(--bad)')+'"':'')+'>'+(hasTgt?(on?'ahead ':'behind ')+f2(Math.abs(ahead)):'\u2014')+'</div></div>'
-    +'</div>';
-  if(hasTgt){ _over+='<div style="font-size:12px;color:var(--text3);font-weight:700;margin-bottom:4px">Progress toward annual target</div>'
-      +'<div class="track" style="height:9px"><div class="fill" style="width:'+Math.min(pctAnnual,100)+'%;background:var(--accent)"></div></div>'; }
-  if(!hasTgt){ _over+='<div class="aop-pace" style="border-left:3px solid var(--text4)"><span class="aop-pill" style="background:var(--text4)">No AOP target</span><span>Contract closed after the AOP was set \u2014 actuals (<b class="num">'+f2(ytd)+'</b>) shown for reference.</span></div>'; }
-  else if(!hasAct){ _over+='<div class="aop-pace" style="border-left:3px solid var(--bad)"><span class="aop-pill" style="background:var(--bad)">No deliveries yet</span><span>AOP target of <b class="num">'+f2(annual)+'</b> set, but no deliveries recorded yet \u2014 full plan-to-date (<b class="num">'+f2(planTD)+'</b>) outstanding.</span></div>'; }
-  else { const pace=planTD>0?ytd/planTD*100:0, pc=on?'var(--good)':'var(--bad)';
-    _over+='<div class="aop-pace" style="border-left:3px solid '+pc+'"><span class="aop-pill" style="background:'+pc+'">'+pace.toFixed(0)+'% of plan-to-date</span><span>Through '+mlbl+', plan called for <b class="num">'+f2(planTD)+'</b> \u2014 actual is <b class="num">'+f2(ytd)+'</b>, '+(on?'ahead':'behind')+' by <b class="num">'+f2(Math.abs(ahead))+'</b>.</span></div>'; }
+  const mlbl=mi>=0?MONTHS[mi]:'\u2014';
+  // Totals fed to the by-size table footer (month-scoped when a month filter is active).
+  const totAct = mfIdx>=0 ? ((actMonth[mfIdx]==null?0:actMonth[mfIdx])/1e6) : ytd;
+  const totTgt = mfIdx>=0 ? (tgtMonth[mfIdx]||0) : annual;
+  // \u2500\u2500 overview: tiles + progress + pace \u2500\u2500
+  let _over='';
+  if(mfIdx>=0){
+    // Month-filtered view: this month's AOP target vs this month's deliveries.
+    const ml=MONTHS[mfIdx], tM=tgtMonth[mfIdx]||0, aM=(actMonth[mfIdx]==null?0:actMonth[mfIdx])/1e6;
+    const hasT=tM>0.0001, hasA=aM>0.0001, varc=aM-tM, onM=varc>=0, pcM=onM?'var(--good)':'var(--bad)';
+    _over='<div class="aop-tiles">'
+      +'<div class="aop-tile"><div class="lab">Delivered \u00b7 '+ml+'</div><div class="val num" style="color:var(--accent)">'+f2(aM)+'</div><div class="sub num">'+(hasT?(aM/tM*100).toFixed(1)+'% of AOP':'no AOP target')+'</div></div>'
+      +'<div class="aop-tile"><div class="lab">AOP \u00b7 '+ml+'</div><div class="val num">'+f2(tM)+'</div><div class="sub">plan for '+ml+'</div></div>'
+      +'<div class="aop-tile"><div class="lab">Variance</div><div class="val num"'+(hasT?' style="color:'+pcM+'"':'')+'>'+(hasT?(onM?'+':'\u2212')+f2(Math.abs(varc)):'\u2014')+'</div><div class="sub num"'+(hasT?' style="color:'+pcM+'"':'')+'>'+(hasT?(onM?'ahead':'behind'):'no AOP target')+'</div></div>'
+      +'</div>';
+    if(hasT){ _over+='<div style="font-size:12px;color:var(--text3);font-weight:700;margin-bottom:4px">'+ml+' \u2014 delivered vs AOP target</div>'
+        +'<div class="track" style="height:9px"><div class="fill" style="width:'+Math.min(aM/tM*100,100)+'%;background:'+pcM+'"></div></div>'; }
+    if(!hasT){ _over+='<div class="aop-pace" style="border-left:3px solid var(--text4)"><span class="aop-pill" style="background:var(--text4)">No AOP target</span><span>No AOP planned for '+ml+' \u2014 delivered <b class="num">'+f2(aM)+'</b> shown for reference.</span></div>'; }
+    else if(!hasA){ _over+='<div class="aop-pace" style="border-left:3px solid var(--bad)"><span class="aop-pill" style="background:var(--bad)">No deliveries</span><span>'+ml+' AOP target of <b class="num">'+f2(tM)+'</b> set, but no deliveries recorded for '+ml+' yet.</span></div>'; }
+    else { _over+='<div class="aop-pace" style="border-left:3px solid '+pcM+'"><span class="aop-pill" style="background:'+pcM+'">'+(aM/tM*100).toFixed(0)+'% of '+ml+' AOP</span><span>For '+ml+', AOP called for <b class="num">'+f2(tM)+'</b> \u2014 delivered <b class="num">'+f2(aM)+'</b>, '+(onM?'ahead':'behind')+' by <b class="num">'+f2(Math.abs(varc))+'</b>.</span></div>'; }
+  } else {
+    // Annual / YTD view (no month filter).
+    _over='<div class="aop-tiles">'
+      +'<div class="aop-tile"><div class="lab">Delivered YTD</div><div class="val num" style="color:var(--accent)">'+f2(ytd)+'</div><div class="sub num">'+(hasTgt?pctAnnual.toFixed(1)+'% of AOP':'no AOP target')+'</div></div>'
+      +'<div class="aop-tile"><div class="lab">AOP</div><div class="val num">'+f2(annual)+'</div><div class="sub">full-year 2026 AOP</div></div>'
+      +'<div class="aop-tile"><div class="lab">Plan to date \u00b7 Jan\u2013'+mlbl+'</div><div class="val num">'+f2(planTD)+'</div><div class="sub num"'+(hasTgt?' style="color:'+(on?'var(--good)':'var(--bad)')+'"':'')+'>'+(hasTgt?(on?'ahead ':'behind ')+f2(Math.abs(ahead)):'\u2014')+'</div></div>'
+      +'</div>';
+    if(hasTgt){ _over+='<div style="font-size:12px;color:var(--text3);font-weight:700;margin-bottom:4px">Progress toward annual target</div>'
+        +'<div class="track" style="height:9px"><div class="fill" style="width:'+Math.min(pctAnnual,100)+'%;background:var(--accent)"></div></div>'; }
+    if(!hasTgt){ _over+='<div class="aop-pace" style="border-left:3px solid var(--text4)"><span class="aop-pill" style="background:var(--text4)">No AOP target</span><span>Contract closed after the AOP was set \u2014 actuals (<b class="num">'+f2(ytd)+'</b>) shown for reference.</span></div>'; }
+    else if(!hasAct){ _over+='<div class="aop-pace" style="border-left:3px solid var(--bad)"><span class="aop-pill" style="background:var(--bad)">No deliveries yet</span><span>AOP target of <b class="num">'+f2(annual)+'</b> set, but no deliveries recorded yet \u2014 full plan-to-date (<b class="num">'+f2(planTD)+'</b>) outstanding.</span></div>'; }
+    else { const pace=planTD>0?ytd/planTD*100:0, pc=on?'var(--good)':'var(--bad)';
+      _over+='<div class="aop-pace" style="border-left:3px solid '+pc+'"><span class="aop-pill" style="background:'+pc+'">'+pace.toFixed(0)+'% of plan-to-date</span><span>Through '+mlbl+', plan called for <b class="num">'+f2(planTD)+'</b> \u2014 actual is <b class="num">'+f2(ytd)+'</b>, '+(on?'ahead':'behind')+' by <b class="num">'+f2(Math.abs(ahead))+'</b>.</span></div>'; }
+  }
   // ── by month (inner content; the card supplies its own title) ──
   let _month='<div class="aop-mrow">';
   let mx=0.001; for(let i=0;i<12;i++){ mx=Math.max(mx,tgtMonth[i]||0,(actMonth[i]||0)/1e6); }
@@ -3175,9 +3350,9 @@ let _size='<div class="scrollx"><table class="momt"><thead><tr><th class="l">Siz
       +'<span class="aop-bar2"><i style="width:'+(hp?Math.min(p,100):0)+'%;background:var(--accent)"></i></span></td>'
       +'<td class="r num '+(hp?_rc:'')+'">'+(hp?(_rem<=0?'\u2713 ':'')+f2(Math.abs(_rem)):'\u2014')+'</td></tr>';
   });
-  const fp=annual>0.0001;
-  const _remT=annual-ytd, _rcT=_remT<=0?'up':'down';
-  _size+='<tr class="tfoot"><td class="l"><b>Total</b></td><td class="r num cv"><b>'+f2(ytd)+'</b></td><td class="r num"><b>'+f2(annual)+'</b></td><td class="r num"><b>'+(fp?(ytd/annual*100).toFixed(0)+'%':'\u2014')+'</b></td><td class="r num '+(fp?_rcT:'')+'"><b>'+(fp?(_remT<=0?'\u2713 ':'')+f2(Math.abs(_remT)):'\u2014')+'</b></td></tr>';
+  const fp=totTgt>0.0001;
+  const _remT=totTgt-totAct, _rcT=_remT<=0?'up':'down';
+  _size+='<tr class="tfoot"><td class="l"><b>Total</b></td><td class="r num cv"><b>'+f2(totAct)+'</b></td><td class="r num"><b>'+f2(totTgt)+'</b></td><td class="r num"><b>'+(fp?(totAct/totTgt*100).toFixed(0)+'%':'\u2014')+'</b></td><td class="r num '+(fp?_rcT:'')+'"><b>'+(fp?(_remT<=0?'\u2713 ':'')+f2(Math.abs(_remT)):'\u2014')+'</b></td></tr>';
   _size+='</tbody></table></div>';
   // ── assemble ──
   if(part==='overview') return _over;
@@ -3189,10 +3364,12 @@ let _size='<div class="scrollx"><table class="momt"><thead><tr><th class="l">Siz
 
 // Section header (eyebrow + dynamic YTD month badge + uploaded-on hint).
 function aopHeadHTML(hintOverride){
+  const filt=(typeof MONTH!=='undefined'&&MONTH!=='All');
   const mi=aopLatestMonthIdx(), ml=mi>=0?MONTHS[mi]:'';
+  const badge=filt?MONTH:(ml?'YTD · '+ml:'');   // filtered month, else YTD-through-latest
   const hint=hintOverride!=null?hintOverride:(uploadedLabel(AOP&&AOP.uploadedAt)||'');
   return '<div class="head"><span class="eyebrow">🎯 AOP VS Delivered'
-    +(ml?' <span class="aop-mb">YTD · '+esc(ml)+'</span>':'')+'</span>'
+    +(badge?' <span class="aop-mb">'+esc(badge)+'</span>':'')+'</span>'
     +'<span class="hint">'+esc(hint)+'</span></div>';
 }
 // header for a split-out AOP sub-card (title only — the data card supplies its own controls)
@@ -3228,12 +3405,21 @@ function renderAOPAll(){
 // Per-customer summary (all clients). Annual + plan-to-date from AOP, YTD live from DATA.
 function aopCustomerTableHTML(){
   const mi=aopLatestMonthIdx();
+  // When a month chip is active, this table scopes to that month (month AOP target vs month
+  // delivered per customer); otherwise it's the annual / YTD view.
+  const mfIdx=(typeof MONTH!=='undefined'&&MONTH!=='All')?MONTHS.indexOf(MONTH):-1;
   const set=new Set(Object.keys(AOP.accounts));
   if(DATA) for(const r of DATA.rows) set.add(r.account);
   const list=[...set].map(a=>{
-    const o=AOP.accounts[a]; let annual=0, planTD=0;
-    if(o){ for(let i=0;i<12;i++){ annual+=o.byMonth[i]||0; if(i<=mi) planTD+=o.byMonth[i]||0; } }
-    let ytdC=0; if(DATA) for(const r of DATA.rows){ if(r.account===a){ const i=MONTHS.indexOf(r.month); if(i>=0&&i<=mi) ytdC+=r.qty; } }
+    const o=AOP.accounts[a]; let annual=0, planTD=0, ytdC=0;
+    if(mfIdx>=0){
+      annual = o?(o.byMonth[mfIdx]||0):0;   // 'annual' column reused as the month's AOP target
+      planTD = annual;                       // pace denominator = the month target
+      if(DATA) for(const r of DATA.rows){ if(r.account===a && MONTHS.indexOf(r.month)===mfIdx) ytdC+=r.qty; }
+    } else {
+      if(o){ for(let i=0;i<12;i++){ annual+=o.byMonth[i]||0; if(i<=mi) planTD+=o.byMonth[i]||0; } }
+      if(DATA) for(const r of DATA.rows){ if(r.account===a){ const i=MONTHS.indexOf(r.month); if(i>=0&&i<=mi) ytdC+=r.qty; } }
+    }
     return {a, annual, ytd:ytdC/1e6, planTD};
   }).sort((x,y)=> y.annual-x.annual || y.ytd-x.ytd || x.a.localeCompare(y.a));
 let h='<div class="scrollx"><table class="momt"><thead><tr><th class="l">Customer</th><th class="r">Delivered</th><th class="r">AOP</th><th class="r">Achieved</th><th class="r">Remaining</th><th class="r">Pace</th></tr></thead><tbody>';
@@ -3535,9 +3721,13 @@ function loadFile(file){
     document.getElementById('app').classList.remove('hide');
     render();
     setupSectionObserver();
+    maybeWarnDemandStale();
   };
   reader.readAsArrayBuffer(file);
 }
+// One-time prompt when an old-format demand plan was found in storage and discarded.
+function maybeWarnDemandStale(){ if(__demandStale){ __demandStale=false;
+  try{ showToast('\ud83d\udcc8 Please re-upload your AOP + Demand workbook \u2014 demand targets now read each month from its own snapshot (0+12\u2192Jan, 1+11\u2192Feb, \u2026). Your old saved copy was cleared.'); }catch(e){} } }
 fileInput.onchange=e=>loadFile(e.target.files[0]);
 dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag');};
 dz.ondragleave=()=>dz.classList.remove('drag');
@@ -3557,6 +3747,7 @@ document.getElementById('newBtn').onclick=()=>{DATA=null;MONTH='All';ACCOUNT='Al
       document.getElementById('app').classList.remove('hide');
       render();
       setupSectionObserver();
+      maybeWarnDemandStale();
     }
   }catch(e){ console.warn('Auto-boot failed:',e); }
 })();
