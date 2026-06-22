@@ -309,7 +309,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:none}
 /* ── half / full section grid ── */
 .secgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
-@media(max-width:760px){.secgrid{grid-template-columns:1fr}}
+/* keep two columns on phones too, so half/full still works there (default all-full = looks single-column) */
 .secgrid>.panel{margin-bottom:0}                 /* grid gap handles spacing */
 .secgrid>.panel.sec-full{grid-column:1 / -1}     /* full = span both columns */
 .secgrid>#labelDrill{grid-column:1 / -1}         /* drill-down is always full width */
@@ -334,7 +334,12 @@ body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:no
 .panel.sec-collapsed>.sec-ctrls{display:none!important}
 /* invisible cell that holds a deliberate gap so nothing flows up to fill it (desktop only) */
 .sec-spacer{min-height:0;height:0;padding:0;margin:0;border:0;background:none;pointer-events:none}
-@media(max-width:760px){ .sec-wtag{display:none} .sec-spacer{display:none} .panel.sec>.head{padding-right:150px} }
+@media(max-width:760px){
+  .panel.sec>.head{padding-right:138px}
+  .sec-ctrls{right:66px;gap:4px}                       /* clears the Hide button; compact spacing */
+  .sec-toggle{padding:0 7px}
+  .sec-wtag .sec-wseg,.sec-remove{padding:0 7px}
+}
 .sec-removed{display:none!important}
 /* ── "+" insert bars between rows ── */
 .sec-add{grid-column:1 / -1;position:relative;display:flex;justify-content:flex-end;align-items:center;height:18px;margin:-4px 0}
@@ -636,7 +641,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 22 Jun 2026 · 21:35</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 22 Jun 2026 · 22:05</div>
 </div>
 
 <div id="report"></div>
