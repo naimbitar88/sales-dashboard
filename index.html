@@ -743,7 +743,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 23:10</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 24 Jun 2026 · 00:30</div>
 </div>
 
 <div id="report"></div>
@@ -1295,16 +1295,31 @@ function _onSecDragMove(e){ if(!_drag) return; _dragPt.x=e.clientX; _dragPt.y=e.
   if(!_dragRAF) _dragRAF=requestAnimationFrame(_dragReflow);   // heavier reflow throttled to a frame
 }
 function _dragReflow(){ _dragRAF=0; if(!_drag) return; const x=_dragPt.x,y=_dragPt.y;
-  let full=true; const _choice=!FULL_ONLY.has(_drag.id) && !_secNarrow();
+  const _choice=!FULL_ONLY.has(_drag.id) && !_secNarrow();
+  // Zones across the page: left 25% = HALF (left) · middle 50% = FULL · right 25% = HALF (right, pairs).
+  let full=true, alignRight=false;
   if(_choice){
     const gr=_drag.container.getBoundingClientRect(); const rel=(x-gr.left)/Math.max(1,gr.width);
-    full=(rel>=0.30);         // only the left 30% -> HALF; middle & right -> FULL
+    if(rel<0.25){ full=false; }
+    else if(rel>0.75){ full=false; alignRight=true; }
   }
-  _drag.slot.classList.toggle('sec-full', full); _drag.slot.innerHTML=_slotLabel(full,_choice);
+  _drag.slot.classList.toggle('sec-full', full);
   const sibs=reorderItems(_drag.container,_drag.el,_drag.slot); let ref=null;
   for(const sIt of sibs){ if(_secIsAfter(x,y,sIt.getBoundingClientRect())){ ref=sIt; break; } }
   if(ref) _drag.container.insertBefore(_drag.slot, ref);
   else { const last=sibs[sibs.length-1]; if(last && last.after) last.after(_drag.slot); else _drag.container.appendChild(_drag.slot); }
+  // A right-aligned half pairs with the card on its left: a full neighbour is shrunk to half so the two
+  // sit side by side. No convertible neighbour -> fall back to full. (Full-only cards never pair.)
+  let neighbour=null;
+  if(!full && alignRight){
+    let p=_drag.slot.previousElementSibling;
+    while(p && (p===_drag.el || !(p.classList&&p.classList.contains('panel')) || p.classList.contains('sec-removed') || p.classList.contains('hide'))) p=p.previousElementSibling;
+    if(p && p.id && !FULL_ONLY.has(p.id)) neighbour=p; else full=true;
+  }
+  if(_drag.shrunk && _drag.shrunk!==neighbour){ _drag.shrunk.classList.add('sec-full'); _drag.shrunk=null; }
+  if(neighbour && neighbour.classList.contains('sec-full')){ neighbour.classList.remove('sec-full'); _drag.shrunk=neighbour; }
+  _drag.slot.classList.toggle('sec-full', full);
+  _drag.slot.innerHTML=_slotLabel(full,_choice);
   const edge=72,sp=14; clearInterval(_dragAuto);
   if(y<edge) _dragAuto=setInterval(()=>window.scrollBy(0,-sp),16);
   else if(y>window.innerHeight-edge) _dragAuto=setInterval(()=>window.scrollBy(0,sp),16);
@@ -1315,6 +1330,7 @@ function _onSecDragEnd(){
   if(!_drag) return;
   const {el,slot,container}=_drag;
   const full = slot.classList.contains('sec-full') || FULL_ONLY.has(el.id);
+  if(full && _drag.shrunk){ _drag.shrunk.classList.add('sec-full'); _drag.shrunk=null; }   // dropped full -> undo any pairing shrink
   el.classList.remove('sec-dragging');
   el.style.position='';el.style.width='';el.style.left='';el.style.top='';el.style.transform='';el.style.zIndex='';el.style.pointerEvents='';el.style.margin='';el.style.willChange='';
   el.classList.toggle('sec-full', full);
