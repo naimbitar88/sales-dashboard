@@ -294,6 +294,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .panel.sec-collapsed>.sec-toggle:hover{color:var(--accent)}
 .sec-toggle .sec-x{font-weight:600;font-size:11px;color:var(--text4);letter-spacing:.03em}
 .sec-toggle:hover .sec-x{color:var(--accent)}
+/* ── drag-to-reorder: move handle (bottom-right), floating card, snap slot ── */
+.move-handle{position:absolute;bottom:10px;right:11px;z-index:19;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;background:var(--card2);color:var(--text3);border:1px solid var(--border2);border-radius:50%;padding:0;cursor:grab;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none}
+.move-handle:hover{color:var(--accent);border-color:var(--accent)}
+.move-handle:active{cursor:grabbing}
+.move-handle svg{width:15px;height:15px;display:block}
+[data-theme="light"] .move-handle{border-color:#93C5FD}
+.panel.sec-collapsed>.move-handle{display:none!important}
+.panel.sec-dragging{box-shadow:0 18px 48px rgba(0,0,0,.5);opacity:.97;border-color:var(--accent);transform:rotate(.3deg)}
+[data-theme="light"] .panel.sec-dragging{box-shadow:0 18px 48px rgba(15,23,42,.22)}
+.sec-slot{border:2px dashed var(--accent);background:var(--card2);border-radius:14px;margin-bottom:14px;min-height:48px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.sec-slot.sec-full{grid-column:1 / -1}
+body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:none}
+/* ── half / full section grid ── */
+.secgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+@media(max-width:760px){.secgrid{grid-template-columns:1fr}}
+.secgrid>.panel{margin-bottom:0}                 /* grid gap handles spacing */
+.secgrid>.panel.sec-full{grid-column:1 / -1}     /* full = span both columns */
+.secgrid>#labelDrill{grid-column:1 / -1}         /* drill-down is always full width */
+.secgrid>.sec-slot{align-self:stretch}
 </style>
 </head>
 <body>
@@ -409,6 +428,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 
   <div class="kpis" id="kpis"></div>
 
+  <div id="allGrid" class="secgrid">
   <!-- all-accounts report toolbar (mirrors the per-customer one) -->
   <div class="panel" id="allToolbar">
     <div class="head"><span class="eyebrow">🧰 Reports</span><span class="hint">generate a report across all accounts</span></div>
@@ -465,37 +485,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <div class="months" id="months"></div>
   </div>
 
-  <div class="grid2" id="gridSizeMovers">
-    <div class="panel" id="sizePanel" style="margin-bottom:0">
+  <div class="panel" id="sizePanel">
       <div class="head"><span class="eyebrow">Size analysis</span><span class="hint">green = standard · grey = recovered</span></div>
       <div id="sizes"></div>
       <div class="footnote" id="sizeNote"></div>
     </div>
-    <div class="panel" id="moversPanel" style="margin-bottom:0">
+  <div class="panel" id="moversPanel">
       <div class="head"><span class="eyebrow">Month-over-month movers</span><span class="hint" id="moverHint"></span></div>
       <div class="mv-grid">
         <div><div class="eyebrow" style="color:var(--good);margin-bottom:6px">▲ Top growth</div><div id="moversUp"></div></div>
         <div><div class="eyebrow" style="color:var(--bad);margin-bottom:6px">▼ Top decline</div><div id="moversDown"></div></div>
       </div>
-    </div>
   </div>
 
-  <div class="grid2" id="gridAcctLabel">
-    <div class="panel" id="acctPanel" style="margin-bottom:0">
+  <div class="panel" id="acctPanel">
       <div class="head"><span class="eyebrow" id="acctPanelTitle">Portfolio — accounts</span><span class="hint" id="acctHint"></span></div>
       <div class="searchwrap" id="acctSearchWrap"><input id="acctSearch" placeholder="Search accounts…"/></div>
       <div id="accts"></div>
     </div>
-    <div class="panel" id="labelPanel" style="margin-bottom:0">
+  <div class="panel" id="labelPanel">
       <div class="head"><span class="eyebrow" id="labelTitle">Portfolio by label</span><span class="hint" id="labelHint"></span></div>
       <div id="labels"></div>
-    </div>
   </div>
 
   <div class="panel" id="concentration"></div>
+  </div><!-- /allGrid -->
 
   <!-- customer view: trend, % breakdown + MoM variance -->
-  <div id="custView" class="hide">
+  <div id="custView" class="hide secgrid">
     <!-- per-customer report toolbar -->
     <div class="panel" id="custToolbar">
       <div class="head"><span class="eyebrow">🧰 Customer reports</span><span class="hint">generate a focused PDF for this customer</span></div>
@@ -580,7 +597,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 22 Jun 2026 · 14:10</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 22 Jun 2026 · 17:30</div>
 </div>
 
 <div id="report"></div>
@@ -855,27 +872,70 @@ function barRows(entries,total,color,clickable){
 }
 
 /* ════════════════════════ RENDER APP ════════════════════════ */
-/* ════════════════════════ SECTION HIDE / SHOW (persisted) ════════════════════════ */
-// Each content panel gets a small "Hide" button; collapsed panels show a slim "Show" bar.
-// State is keyed by the panel's id and saved in localStorage, so it survives reloads.
+/* ════════════════════════ SECTION HIDE / SHOW + REORDER (persisted) ════════════════════════ */
+// Each content panel gets a "Hide" button (top-right) and a "Move" drag handle (bottom-right).
+// Hide state and section order are keyed by panel id, per view, and saved in localStorage.
 const LS_SECTIONS='salesdash_sections_v1';
+const LS_ORDER='salesdash_order_v1';
 let SECTION_STATE={};
 try{ const _ss=localStorage.getItem(LS_SECTIONS); if(_ss) SECTION_STATE=JSON.parse(_ss)||{}; }catch(e){}
+// per-view list of {id, w:'half'|'full'} (older saves stored plain id strings -> treated as full)
+function _normOrder(a){ return (Array.isArray(a)?a:[]).map(x=> (typeof x==='string')?{id:x,w:'full'}:{id:(x&&x.id)||'',w:((x&&x.w)==='half')?'half':'full'} ).filter(o=>o.id); }
+let SECTION_ORDER={all:[],cust:[]};
+try{ const _so=localStorage.getItem(LS_ORDER); if(_so){ const o=JSON.parse(_so); if(o&&typeof o==='object'){ SECTION_ORDER.all=_normOrder(o.all); SECTION_ORDER.cust=_normOrder(o.cust); } } }catch(e){}
 function saveSections(){ try{ localStorage.setItem(LS_SECTIONS,JSON.stringify(SECTION_STATE)); }catch(e){} }
-const SECTION_EXCLUDE=new Set(['labelDrill']); // panels with their own close UX
+function saveOrder(){ try{ localStorage.setItem(LS_ORDER,JSON.stringify(SECTION_ORDER)); }catch(e){} }
+const SECTION_EXCLUDE=new Set(['labelDrill']);                 // no Hide button (own close UX)
+const ORDER_EXCLUDE=new Set(['labelDrill','custDataStatus']);  // not draggable (contextual / pinned status bar)
+const FULL_ONLY=new Set(['targetPanelAll','arPanelAll']);      // big tables — never half-width
+function _panelWidth(id,w){ return FULL_ONLY.has(id) ? 'full' : ((w==='half')?'half':'full'); }
 function sectionTitle(panel){ const eb=panel.querySelector('.eyebrow'); return ((eb?eb.textContent:'')||'').trim()||'Section'; }
 function toggleSection(id){ if(!id) return; SECTION_STATE[id]=!SECTION_STATE[id]; saveSections(); applySectionToggles(); }
-// One direct child of `panel` carrying class `sec-toggle`. Returns all of them so we can de-dupe.
-function secToggleChildren(panel){
-  const out=[]; const kids=panel.children||[];
-  for(let i=0;i<kids.length;i++){ const c=kids[i]; if(c.classList && c.classList.contains('sec-toggle')) out.push(c); }
+function _isCustView(){ return (typeof ACCOUNT!=='undefined') && ACCOUNT!=='All'; }
+function _orderContainer(){ return document.getElementById(_isCustView()?'custView':'allGrid'); }
+// direct-child .panel elements that participate in reordering for the active view
+function reorderItems(container, ex1, ex2){
+  const out=[]; const kids=(container && container.children) ? container.children : [];
+  for(let i=0;i<kids.length;i++){ const c=kids[i];
+    if(c===ex1||c===ex2) continue;
+    if(c.classList && c.classList.contains('panel') && c.id && !ORDER_EXCLUDE.has(c.id) && !c.classList.contains('hide')) out.push(c);
+  }
   return out;
+}
+// direct children of `panel` with a given class (so we can guarantee exactly one)
+function childrenByClass(panel, cls){
+  const out=[]; const kids=panel.children||[];
+  for(let i=0;i<kids.length;i++){ const c=kids[i]; if(c.classList && c.classList.contains(cls)) out.push(c); }
+  return out;
+}
+// Reorder + resize (half/full) the active view's panels to match the saved layout. A marker per
+// slot keeps any non-reorderable interior nodes in place. Widths applied every call (idempotent).
+function applySectionOrder(){
+  const container=_orderContainer(); if(!container) return;
+  const key=_isCustView()?'cust':'all';
+  const items=reorderItems(container,null,null);
+  if(items.length<1) return;
+  const byId=new Map(items.map(c=>[c.id,c]));
+  const saved=SECTION_ORDER[key]||[]; const desired=[];
+  saved.forEach(o=>{ if(byId.has(o.id) && !desired.some(d=>d.id===o.id)) desired.push({id:o.id,w:o.w}); });
+  items.forEach(c=>{ if(!desired.some(d=>d.id===c.id)) desired.push({id:c.id,w:'full'}); });   // unsaved -> full
+  // apply widths (also enforces the FULL_ONLY tables)
+  desired.forEach(o=>{ const el=byId.get(o.id); if(el) el.classList.toggle('sec-full', _panelWidth(o.id,o.w)==='full'); });
+  // reorder only when the sequence actually differs
+  if(items.length<2) return;
+  let same=true; for(let i=0;i<items.length;i++){ if(items[i].id!==desired[i].id){ same=false; break; } }
+  if(same) return;
+  const markers=items.map(it=>{ const m=document.createComment('o'); container.insertBefore(m,it); return m; });
+  items.forEach(it=>container.removeChild(it));
+  desired.forEach((o,i)=>{ const el=byId.get(o.id); if(el) container.insertBefore(el, markers[i]); });
+  markers.forEach(m=>container.removeChild(m));
 }
 let _secObs=null;
 function applySectionToggles(){
   const app=document.getElementById('app'); if(!app) return;
   if(_secObs) _secObs.disconnect();              // pause so our own edits don't retrigger us
   try{
+    applySectionOrder();                          // arrange first, then ensure controls
     app.querySelectorAll('.panel').forEach(panel=>{
       const id=panel.id;
       if(!id || SECTION_EXCLUDE.has(id)) return;
@@ -883,46 +943,114 @@ function applySectionToggles(){
       panel.classList.add('sec');
       const collapsed=!!SECTION_STATE[id];
       panel.classList.toggle('sec-collapsed', collapsed);
-      // ensure EXACTLY ONE toggle button (full-panel re-renders can wipe/duplicate it)
-      const existing=secToggleChildren(panel);
-      let btn=existing[0]||null;
-      for(let i=1;i<existing.length;i++){ try{ panel.removeChild(existing[i]); }catch(e){} }
-      if(!btn){
-        btn=document.createElement('button');
-        btn.type='button'; btn.className='sec-toggle';
-        panel.appendChild(btn);                      // NO per-button handler — clicks handled by delegation
-      }
+      // ── Hide button (exactly one) ──
+      const hb=childrenByClass(panel,'sec-toggle'); let btn=hb[0]||null;
+      for(let i=1;i<hb.length;i++){ try{ panel.removeChild(hb[i]); }catch(e){} }
+      if(!btn){ btn=document.createElement('button'); btn.type='button'; btn.className='sec-toggle'; panel.appendChild(btn); }
       btn.setAttribute('data-sec', id);
-      const want = collapsed ? ('c:'+sectionTitle(panel)) : 'e';
-      if(btn.getAttribute('data-st')!==want){        // only rewrite when state/title actually changes
+      const want=collapsed?('c:'+sectionTitle(panel)):'e';
+      if(btn.getAttribute('data-st')!==want){
         btn.setAttribute('data-st', want);
-        btn.innerHTML = collapsed
-          ? ('<span>▸ '+esc(sectionTitle(panel))+'</span><span class="sec-x">Show ▾</span>')
-          : '⊟ Hide';
+        btn.innerHTML = collapsed ? ('<span>▸ '+esc(sectionTitle(panel))+'</span><span class="sec-x">Show ▾</span>') : '⊟ Hide';
         btn.setAttribute('aria-label',(collapsed?'Show ':'Hide ')+sectionTitle(panel)+' section');
         btn.title=(collapsed?'Show ':'Hide ')+sectionTitle(panel);
+      }
+      // ── Move handle (exactly one) on draggable panels ──
+      const mh=childrenByClass(panel,'move-handle');
+      if(ORDER_EXCLUDE.has(id)){ mh.forEach(m=>{ try{ panel.removeChild(m); }catch(e){} }); }
+      else {
+        let mv=mh[0]||null; for(let i=1;i<mh.length;i++){ try{ panel.removeChild(mh[i]); }catch(e){} }
+        if(!mv){ mv=document.createElement('button'); mv.type='button'; mv.className='move-handle';
+          mv.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M12 3 9.5 5.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></svg>';
+          mv.setAttribute('aria-label','Move section'); mv.title='Drag to move or resize this section'; panel.appendChild(mv); }
       }
     });
   } finally { if(_secObs) _secObs.observe(app,{childList:true,subtree:true}); }
 }
-let _secClickWired=false;
+
+/* ---- pointer drag reorder (mouse + touch); snaps into discrete slots, reflows others ---- */
+let _drag=null,_dragRef=null,_dragAuto=null;
+const _secNarrow=()=>!!(window.matchMedia && window.matchMedia('(max-width:760px)').matches);
+function _secMoveTo(x,y){ _drag.el.style.left=(x-_drag.gx)+'px'; _drag.el.style.top=(y-_drag.gy)+'px'; }
+// reading-order test: is the item (rect r) positioned AFTER the pointer?
+function _secIsAfter(px,py,r){ if(py<r.top) return true; if(py>r.bottom) return false; return px < r.left+r.width/2; }
+function _onSecDragMove(e){
+  if(!_drag) return;
+  _secMoveTo(e.clientX,e.clientY);
+  // width: full unless the section is half-eligible, the screen is wide, and the pointer is toward a side
+  let full=true;
+  if(!FULL_ONLY.has(_drag.id) && !_secNarrow()){
+    const gr=_drag.container.getBoundingClientRect();
+    const rel=(e.clientX-gr.left)/Math.max(1,gr.width);
+    full=(rel>=0.34 && rel<=0.66);                 // centre band = full, sides = half
+  }
+  _drag.slot.classList.toggle('sec-full', full);
+  _drag.slot.textContent = full ? 'FULL' : 'HALF';
+  // insertion point in reading order; CSS grid reflows the rest (zero overlap)
+  const sibs=reorderItems(_drag.container,_drag.el,_drag.slot);
+  let ref=null;
+  for(const sIt of sibs){ if(_secIsAfter(e.clientX,e.clientY,sIt.getBoundingClientRect())){ ref=sIt; break; } }
+  if(ref) _drag.container.insertBefore(_drag.slot, ref);
+  else { const last=sibs[sibs.length-1]; if(last && last.after) last.after(_drag.slot); else _drag.container.appendChild(_drag.slot); }
+  const edge=72,sp=14; clearInterval(_dragAuto);
+  if(e.clientY<edge) _dragAuto=setInterval(()=>window.scrollBy(0,-sp),16);
+  else if(e.clientY>window.innerHeight-edge) _dragAuto=setInterval(()=>window.scrollBy(0,sp),16);
+}
+function _onSecDragEnd(){
+  clearInterval(_dragAuto);
+  document.removeEventListener('pointermove',_onSecDragMove);
+  if(!_drag) return;
+  const {el,slot,container}=_drag;
+  const full = slot.classList.contains('sec-full') || FULL_ONLY.has(el.id);
+  el.classList.remove('sec-dragging');
+  el.style.position='';el.style.width='';el.style.left='';el.style.top='';el.style.zIndex='';el.style.pointerEvents='';el.style.margin='';
+  el.classList.toggle('sec-full', full);
+  container.insertBefore(el, slot); try{ container.removeChild(slot); }catch(e){}
+  document.body.classList.remove('sec-dragging-active');
+  const key=(container.id==='custView')?'cust':'all';
+  SECTION_ORDER[key]=reorderItems(container,null,null).map(c=>({id:c.id, w:c.classList.contains('sec-full')?'full':'half'}));
+  saveOrder();
+  _drag=null; _dragRef=null;
+  applySectionToggles();   // re-ensure controls + reconnect observer
+}
+function _onSecDragStart(e){
+  const handle = e.target && e.target.closest ? e.target.closest('.move-handle') : null;
+  if(!handle) return;
+  const el=handle.closest('.panel'); const container=el?el.parentNode:null; if(!el||!container) return;
+  e.preventDefault();
+  if(_secObs) _secObs.disconnect();   // freeze the observer for the duration of the drag
+  const r=el.getBoundingClientRect();
+  _drag={ el, container, id:el.id, gx:e.clientX-r.left, gy:e.clientY-r.top };
+  const slot=document.createElement('div');
+  slot.className='sec-slot'+(el.classList.contains('sec-full')?' sec-full':'');
+  slot.style.minHeight=r.height+'px'; slot.textContent=el.classList.contains('sec-full')?'FULL':'HALF';
+  if(el.after) el.after(slot); else container.appendChild(slot);
+  _drag.slot=slot; _dragRef=null;
+  el.classList.add('sec-dragging');
+  el.style.position='fixed'; el.style.width=r.width+'px'; el.style.left=r.left+'px'; el.style.top=r.top+'px';
+  el.style.zIndex='9998'; el.style.pointerEvents='none'; el.style.margin='0';
+  document.body.classList.add('sec-dragging-active');
+  _secMoveTo(e.clientX,e.clientY);
+  document.addEventListener('pointermove',_onSecDragMove);
+  document.addEventListener('pointerup',_onSecDragEnd,{once:true});
+  if(handle.setPointerCapture){ try{ handle.setPointerCapture(e.pointerId); }catch(_){} }
+}
+
+let _secWired=false;
 function setupSectionObserver(){
   const app=document.getElementById('app'); if(!app) return;
-  if(!_secClickWired){
-    // Single delegated, capture-phase listener: works no matter how often buttons are
-    // re-created by renders, and resolves clicks that land on the inner <span>s via closest().
+  if(!_secWired){
+    // single delegated, capture-phase click for Hide (resolves clicks on inner <span>s via closest)
     app.addEventListener('click', function(ev){
       const t = ev.target && ev.target.closest ? ev.target.closest('.sec-toggle') : null;
       if(!t || !app.contains(t)) return;
       ev.stopPropagation(); ev.preventDefault();
       toggleSection(t.getAttribute('data-sec'));
     }, true);
-    _secClickWired=true;
+    app.addEventListener('pointerdown', _onSecDragStart);   // drag handles
+    _secWired=true;
   }
-  if(!_secObs){
-    _secObs=new MutationObserver(()=>applySectionToggles());
-    _secObs.observe(app,{childList:true,subtree:true});
-  }
+  if(!_secObs){ _secObs=new MutationObserver(()=>applySectionToggles()); _secObs.observe(app,{childList:true,subtree:true}); }
   applySectionToggles();
 }
 
@@ -981,17 +1109,11 @@ function render(){
     return '<div class="mcol"><div class="mv num">'+MM(val)+'</div><div class="bar" style="height:'+h+'%;background:'+(isLatest?'var(--accent)':'var(--border2)')+'"></div><div class="ml">'+m+'</div></div>';
   }).join('');
 
-  // ── toggle which panels are visible for this scope ──
-  document.getElementById('gridAcctLabel').classList.toggle('hide', isCust);
-  document.getElementById('gridSizeMovers').classList.toggle('hide', isCust);
-  document.getElementById('concentration').classList.toggle('hide', isCust);
-  document.getElementById('latestPanelAll').classList.toggle('hide', isCust);
-  document.getElementById('targetPanelAll').classList.toggle('hide', isCust);
-  document.getElementById('aopPanelAll').classList.toggle('hide', isCust);
-  document.getElementById('arPanelAll').classList.toggle('hide', isCust);
+  // ── toggle which view's grid is visible for this scope ──
+  document.getElementById('allGrid').classList.toggle('hide', isCust);
   document.getElementById('custView').classList.toggle('hide', !isCust);
   document.getElementById('custDataStatus').classList.remove('hide'); // shown in both all-clients & customer views
-  document.getElementById('allToolbar').classList.toggle('hide', isCust);
+  document.getElementById('allToolbar').classList.remove('hide');     // lives inside #allGrid; never individually hidden
   renderCustDataStatus();
 
   // Keep the upload panels before "Monthly volume" in BOTH views.
