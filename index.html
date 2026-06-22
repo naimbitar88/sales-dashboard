@@ -26,7 +26,9 @@
   --shadow:0 1px 2px rgba(15,23,42,.06);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+/* ── iOS orientation-change fix: never let the page be wider than the viewport ── */
+html{overflow-x:hidden;max-width:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden;max-width:100%}
 .num{font-variant-numeric:tabular-nums}
 .eyebrow{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--text4);font-weight:700}
 .hide{display:none!important}
@@ -420,9 +422,8 @@ body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:no
 
 /* ── ENSURE TABLES SCROLL ON ALL MOBILE (≤760px) ── */
 @media(max-width:760px){
-  /* tables inside .scrollx already scroll; this catches any bare .momt */
-  .momt{min-width:420px}
-  .panel>.momt,.aop-section>.momt{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* scrollx containers handle overflow — no min-width needed on the table itself */
+  .scrollx{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
   /* filter chips already handled above; keep grid collapsing */
   .grid2{grid-template-columns:1fr}
   /* sec-bar already has gap:7px, keep the 30px touch targets */
@@ -732,7 +733,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 06:10</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 07:05</div>
 </div>
 
 <div id="report"></div>
@@ -1347,6 +1348,16 @@ function setupSectionObserver(){
       if(_addOpenGap!==null){ const inMenu=ev.target.closest && (ev.target.closest('#secAddMenu')||ev.target.closest('.sec-add-btn')); if(!inMenu) closeAddMenu(); }
     });
     window.addEventListener('resize', closeAddMenu);
+    // iOS Safari orientation fix: after rotating back to portrait, force the
+    // browser to recalculate the viewport width so nothing stays "landscape-wide".
+    window.addEventListener('orientationchange', function(){
+      setTimeout(function(){
+        // Reading scrollWidth triggers a reflow and Safari snaps back to the correct width.
+        document.documentElement.style.maxWidth='100%';
+        void document.documentElement.scrollWidth;
+        document.documentElement.style.maxWidth='';
+      }, 300);
+    });
     _secWired=true;
   }
   if(!_secObs){ _secObs=new MutationObserver(()=>applySectionToggles()); _secObs.observe(app,{childList:true,subtree:true}); }
