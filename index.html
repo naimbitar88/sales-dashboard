@@ -283,64 +283,51 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .aop-mlab{font-size:10px;color:var(--text3);font-weight:700}
 .aop-mb{font-size:10px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--accent2);color:#fff;letter-spacing:.02em;text-transform:none}
 .aop-bar2{width:84px;height:8px;background:var(--track);border-radius:5px;overflow:hidden;display:inline-block;vertical-align:middle}.aop-bar2>i{display:block;height:100%;border-radius:5px}
-/* ── collapsible sections: hide / show per section, state persisted ── */
-.panel.sec{position:relative}
-.panel.sec>.head{padding-right:210px}
-.sec-toggle{position:absolute;top:11px;right:12px;z-index:20;display:inline-flex;align-items:center;gap:5px;height:26px;box-sizing:border-box;background:var(--card2);color:var(--text3);border:1px solid var(--border2);border-radius:8px;font-family:inherit;font-size:10px;font-weight:700;line-height:1;padding:0 9px;cursor:pointer;transition:.12s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+/* ── collapsible / resizable sections: a flowing control bar that never overlaps the title ── */
+.panel.sec{position:relative;transition:box-shadow .15s ease,border-color .15s ease}
+/* the bar sits at the top of the card, right-aligned, and WRAPS instead of overlapping the title */
+.sec-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;margin:0 0 10px}
+.sec-bar-title{display:none}
+.panel.sec-collapsed .sec-bar-title{display:block;flex:1 1 auto;min-width:0;font-size:13px;font-weight:700;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:auto}
+/* every control is a round icon button — same diameter */
+.sec-toggle,.sec-remove,.sec-wseg,.move-handle{width:27px;height:27px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1px solid var(--border2);border-radius:50%;background:var(--card2);color:var(--text3);cursor:pointer;transition:.12s;-webkit-tap-highlight-color:transparent}
+.sec-bar svg{width:14px;height:14px;display:block;pointer-events:none}
 .sec-toggle:hover{color:var(--accent);border-color:var(--accent)}
-[data-theme="light"] .sec-toggle{border-color:#93C5FD}
-.panel.sec-collapsed{padding:0;overflow:hidden}
-.panel.sec-collapsed>*{display:none!important}
-.panel.sec-collapsed>.sec-toggle{display:flex!important;position:static;width:100%;height:auto;justify-content:space-between;align-items:center;padding:13px 16px;border:none;border-radius:14px;background:var(--card);color:var(--text2);font-size:13px;font-weight:700}
-.panel.sec-collapsed>.sec-toggle:hover{color:var(--accent)}
-.sec-toggle .sec-x{font-weight:600;font-size:11px;color:var(--text4);letter-spacing:.03em}
-.sec-toggle:hover .sec-x{color:var(--accent)}
-/* ── drag-to-reorder: move handle (bottom-right), floating card, snap slot ── */
-.move-handle{position:absolute;bottom:10px;right:11px;z-index:19;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;background:var(--card2);color:var(--text3);border:1px solid var(--border2);border-radius:50%;padding:0;cursor:grab;touch-action:none;-webkit-tap-highlight-color:transparent;user-select:none}
+.sec-remove{color:var(--text4)}
+.sec-remove:hover{color:var(--bad);border-color:var(--bad)}
+[data-theme="light"] .sec-toggle,[data-theme="light"] .sec-remove,[data-theme="light"] .sec-wseg,[data-theme="light"] .move-handle{border-color:#93C5FD}
+/* width control = two round buttons: half | full (active one filled) */
+.sec-wtag{display:inline-flex;align-items:center;gap:5px}
+.sec-wseg:hover{color:var(--accent);border-color:var(--accent)}
+.sec-wtag.locked .sec-wseg{cursor:default;color:var(--text4);pointer-events:none;position:relative;overflow:visible}
+/* small ✕ marking a section that can't switch from full to half */
+.sec-wtag.locked .sec-wseg::after{content:'\2715';position:absolute;top:-3px;right:-3px;width:12px;height:12px;display:flex;align-items:center;justify-content:center;font:900 8px/1 -apple-system,BlinkMacSystemFont,sans-serif;color:var(--text3);background:var(--card);border:1px solid var(--border2);border-radius:50%}
+[data-theme="light"] .sec-wtag.locked .sec-wseg::after{border-color:#93C5FD}
+/* move handle (drag to reorder) */
+.move-handle{color:var(--text4);cursor:grab;touch-action:none;user-select:none}
 .move-handle:hover{color:var(--accent);border-color:var(--accent)}
 .move-handle:active{cursor:grabbing}
-.move-handle svg{width:15px;height:15px;display:block}
 [data-theme="light"] .move-handle{border-color:#93C5FD}
-.panel.sec-collapsed>.move-handle{display:none!important}
-.panel.sec-dragging{box-shadow:0 18px 48px rgba(0,0,0,.5);opacity:.97;border-color:var(--accent);transform:rotate(.3deg)}
+/* collapsed = show only the bar (title + Remove + Show); no overlap, no absolute tricks */
+.panel.sec-collapsed{padding-top:12px;padding-bottom:12px;overflow:hidden}
+.panel.sec-collapsed>*:not(.sec-bar){display:none!important}
+.panel.sec-collapsed .sec-bar{margin-bottom:0}
+/* drag visuals */
+.panel.sec-dragging{box-shadow:0 18px 48px rgba(0,0,0,.5);opacity:.97;border-color:var(--accent);will-change:transform}
 [data-theme="light"] .panel.sec-dragging{box-shadow:0 18px 48px rgba(15,23,42,.22)}
 .sec-slot{border:2px dashed var(--accent);background:var(--card2);border-radius:14px;margin-bottom:14px;min-height:48px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
 .sec-slot.sec-full{grid-column:1 / -1}
 body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:none}
 /* ── half / full section grid ── */
 .secgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
-/* keep two columns on phones too, so half/full still works there (default all-full = looks single-column) */
-.secgrid>.panel{margin-bottom:0}                 /* grid gap handles spacing */
-.secgrid>.panel.sec-full{grid-column:1 / -1}     /* full = span both columns */
-.secgrid>#labelDrill{grid-column:1 / -1}         /* drill-down is always full width */
+.secgrid>.panel{margin-bottom:0}
+.secgrid>.panel.sec-full{grid-column:1 / -1}
+.secgrid>#labelDrill{grid-column:1 / -1}
 .secgrid>.sec-slot{align-self:stretch}
-/* ── Remove button (left of Hide) + removed (hidden) state ── */
-/* top-right control cluster: [width tag][Remove], sitting just left of Hide */
-.sec-ctrls{position:absolute;top:11px;right:72px;z-index:20;display:inline-flex;align-items:center;gap:6px}
-/* width tag: a segmented Half|Full toggle — same height + font as Remove/Hide */
-.sec-wtag{display:inline-flex;align-items:stretch;height:26px;box-sizing:border-box;border:1px solid var(--border2);border-radius:8px;background:var(--card2);overflow:hidden;font:700 10px/1 inherit;white-space:nowrap;-webkit-tap-highlight-color:transparent}
-.sec-wtag .sec-wseg{display:inline-flex;align-items:center;padding:0 9px;color:var(--text3);cursor:pointer;border-right:1px solid var(--border2);transition:.12s}
-.sec-wtag .sec-wseg:last-child{border-right:0}
-.sec-wtag .sec-wseg.on{background:var(--accent);color:#fff}
-.sec-wtag .sec-wseg:not(.on):hover{color:var(--accent)}
-.sec-wtag.locked{cursor:default}
-.sec-wtag.locked .sec-wseg{cursor:default}
-.sec-wtag.locked .sec-wseg.on{background:var(--text4);color:#fff}
-.sec-wtag.locked .sec-wseg.off{opacity:.5;text-decoration:line-through}
-[data-theme="light"] .sec-wtag,[data-theme="light"] .sec-wtag .sec-wseg{border-color:#93C5FD}
-.sec-remove{display:inline-flex;align-items:center;gap:4px;height:26px;box-sizing:border-box;padding:0 9px;background:var(--card2);color:var(--text3);border:1px solid var(--border2);border-radius:8px;font:700 10px/1 inherit;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
-.sec-remove:hover{color:var(--bad);border-color:var(--bad)}
-[data-theme="light"] .sec-remove{border-color:#93C5FD}
-.panel.sec-collapsed>.sec-ctrls{display:none!important}
-/* invisible cell that holds a deliberate gap so nothing flows up to fill it (desktop only) */
-.sec-spacer{min-height:0;height:0;padding:0;margin:0;border:0;background:none;pointer-events:none}
-@media(max-width:760px){
-  .panel.sec>.head{padding-right:138px}
-  .sec-ctrls{right:66px;gap:4px}                       /* clears the Hide button; compact spacing */
-  .sec-toggle{padding:0 7px}
-  .sec-wtag .sec-wseg,.sec-remove{padding:0 7px}
-}
 .sec-removed{display:none!important}
+/* invisible cell that holds a deliberate gap so nothing flows up to fill it */
+.sec-spacer{min-height:0;height:0;padding:0;margin:0;border:0;background:none;pointer-events:none}
+@media(max-width:760px){ .sec-bar{gap:7px} .sec-toggle,.sec-remove,.sec-wseg,.move-handle{width:30px;height:30px} .sec-bar svg{width:15px;height:15px} }
 /* ── "+" insert bars between rows ── */
 .sec-add{grid-column:1 / -1;position:relative;display:flex;justify-content:flex-end;align-items:center;height:18px;margin:-4px 0}
 .sec-add::before{content:'';position:absolute;left:2px;right:40px;top:50%;height:1px;background:var(--border2);opacity:0;transition:opacity .15s}
@@ -641,7 +628,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 22 Jun 2026 · 22:05</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 01:05</div>
 </div>
 
 <div id="report"></div>
@@ -980,7 +967,7 @@ function setSecWidth(id, w){ if(FULL_ONLY.has(id)||ORDER_EXCLUDE.has(id)) return
   } else {
     vis[idx].w='half'; vis.splice(idx+1,0,{spacer:true}); vis.splice(idx,0,{spacer:true});   // guard+hole; normalize trims
   }
-  vis=normalizeVis(vis); SECTION_ORDER[key]=vis.concat(removed); saveOrder(); applySectionToggles();
+  vis=normalizeVis(vis); SECTION_ORDER[key]=vis.concat(removed); saveOrder(); _withFlip(applySectionToggles);
 }
 function removeSection(id){ if(ORDER_EXCLUDE.has(id)) return;
   const key=_viewKey(); const L=effLayout(key); let vis=L.filter(e=>!e.removed); const removed=L.filter(e=>e.removed);
@@ -988,17 +975,17 @@ function removeSection(id){ if(ORDER_EXCLUDE.has(id)) return;
   if(idx<0) return; const w=vis[idx].w;
   vis.splice(idx,1); if(idx<vis.length&&_isSpacer(vis[idx])) vis.splice(idx,1);   // drop its hole too
   vis=normalizeVis(vis); removed.push({id,w,removed:true});
-  SECTION_ORDER[key]=vis.concat(removed); saveOrder(); applySectionToggles();
+  SECTION_ORDER[key]=vis.concat(removed); saveOrder(); _withFlip(applySectionToggles);
 }
 function addSection(id, visGap){
   const key=_viewKey(); const L=effLayout(key); let vis=L.filter(e=>!e.removed); const removed=L.filter(e=>e.removed);
   const ridx=removed.findIndex(o=>o.id===id); if(ridx<0) return; const w=removed[ridx].w; removed.splice(ridx,1);
   let seen=0, at=vis.length; for(let i=0;i<vis.length;i++){ if(_isSpacer(vis[i])) continue; if(seen===visGap){ at=i; break; } seen++; }
   vis.splice(at,0,{id,w,removed:false}); vis=normalizeVis(vis);
-  SECTION_ORDER[key]=vis.concat(removed); saveOrder(); applySectionToggles();
+  SECTION_ORDER[key]=vis.concat(removed); saveOrder(); _withFlip(applySectionToggles);
 }
 function sectionTitle(panel){ const eb=panel.querySelector('.eyebrow'); return ((eb?eb.textContent:'')||'').trim()||'Section'; }
-function toggleSection(id){ if(!id) return; SECTION_STATE[id]=!SECTION_STATE[id]; saveSections(); applySectionToggles(); }
+function toggleSection(id){ if(!id) return; SECTION_STATE[id]=!SECTION_STATE[id]; saveSections(); _withFlip(applySectionToggles); }
 function _isCustView(){ return (typeof ACCOUNT!=='undefined') && ACCOUNT!=='All'; }
 function _orderContainer(){ return document.getElementById(_isCustView()?'custView':'allGrid'); }
 // direct-child .panel elements that participate in reordering for the active view
@@ -1090,6 +1077,34 @@ function renderAddBars(){
   }
 }
 let _secObs=null;
+// round icon set for the section control bar (stroke icons, inherit currentColor)
+const _SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
+const SEC_IC={
+  eye:    _SVG+'<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+  eyeOff: _SVG+'<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.4 10.4 0 0 1 12 5c7 0 10 7 10 7a13.2 13.2 0 0 1-1.67 2.68"/><path d="M6.6 6.6A13.5 13.5 0 0 0 2 12s3 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M2 2l20 20"/></svg>',
+  x:      _SVG+'<path d="M18 6 6 18M6 6l12 12"/></svg>',
+  half:   _SVG+'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg>',
+  full:   _SVG+'<rect x="3" y="7" width="18" height="10" rx="2"/></svg>',
+  grip:   _SVG+'<path d="M12 3v18M3 12h18M12 3 9.5 5.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></svg>'
+};
+// Smoothly animate a layout change: record card positions, run the change, then glide each card
+// from its old spot to its new one (translate only — no scaling, so content never distorts).
+function _withFlip(fn){
+  const c=_orderContainer();
+  if(!c || typeof requestAnimationFrame==='undefined'){ fn(); return; }
+  let first=null;
+  try{ first=new Map(); catalogPanels(c).forEach(el=>{ if(el.getBoundingClientRect && !el.classList.contains('sec-removed')) first.set(el, el.getBoundingClientRect()); }); }catch(e){ first=null; }
+  fn();
+  if(!first) return;
+  try{ catalogPanels(c).forEach(el=>{ if(el.classList.contains('sec-removed')||!el.getBoundingClientRect) return;
+    const f=first.get(el); if(!f) return; const l=el.getBoundingClientRect();
+    const dx=f.left-l.left, dy=f.top-l.top; if(Math.abs(dx)<1 && Math.abs(dy)<1) return;
+    el.style.transition='none'; el.style.transform='translate('+dx+'px,'+dy+'px)'; el.getBoundingClientRect();
+    requestAnimationFrame(()=>{ el.style.transition='transform .2s cubic-bezier(.2,.7,.3,1)'; el.style.transform='';
+      const done=()=>{ el.style.transition=''; if(el.removeEventListener) el.removeEventListener('transitionend',done); };
+      if(el.addEventListener) el.addEventListener('transitionend',done); else setTimeout(done,240); });
+  }); }catch(e){}
+}
 function applySectionToggles(){
   const app=document.getElementById('app'); if(!app) return;
   if(_secObs) _secObs.disconnect();              // pause so our own edits don't retrigger us
@@ -1102,46 +1117,35 @@ function applySectionToggles(){
       panel.classList.add('sec');
       const collapsed=!!SECTION_STATE[id];
       panel.classList.toggle('sec-collapsed', collapsed);
-      // ── Hide button (exactly one) ──
-      const hb=childrenByClass(panel,'sec-toggle'); let btn=hb[0]||null;
-      for(let i=1;i<hb.length;i++){ try{ panel.removeChild(hb[i]); }catch(e){} }
-      if(!btn){ btn=document.createElement('button'); btn.type='button'; btn.className='sec-toggle'; panel.appendChild(btn); }
-      btn.setAttribute('data-sec', id);
-      const want=collapsed?('c:'+sectionTitle(panel)):'e';
-      if(btn.getAttribute('data-st')!==want){
-        btn.setAttribute('data-st', want);
-        btn.innerHTML = collapsed ? ('<span>▸ '+esc(sectionTitle(panel))+'</span><span class="sec-x">Show ▾</span>') : '⊟ Hide';
-        btn.setAttribute('aria-label',(collapsed?'Show ':'Hide ')+sectionTitle(panel)+' section');
-        btn.title=(collapsed?'Show ':'Hide ')+sectionTitle(panel);
-      }
-      // ── Move handle + control cluster (width tag + Remove) on draggable panels ──
-      const mh=childrenByClass(panel,'move-handle');
-      const ccs=childrenByClass(panel,'sec-ctrls');
-      childrenByClass(panel,'sec-remove').forEach(m=>{ try{ panel.removeChild(m); }catch(e){} });   // clear any legacy direct-child Remove
-      if(ORDER_EXCLUDE.has(id)){
-        mh.forEach(m=>{ try{ panel.removeChild(m); }catch(e){} });
-        ccs.forEach(m=>{ try{ panel.removeChild(m); }catch(e){} });
-      } else {
-        let mv=mh[0]||null; for(let i=1;i<mh.length;i++){ try{ panel.removeChild(mh[i]); }catch(e){} }
-        if(!mv){ mv=document.createElement('button'); mv.type='button'; mv.className='move-handle';
-          mv.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M12 3 9.5 5.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></svg>';
-          mv.setAttribute('aria-label','Move section'); mv.title='Drag to move or resize this section'; panel.appendChild(mv); }
-        let cl=ccs[0]||null; for(let i=1;i<ccs.length;i++){ try{ panel.removeChild(ccs[i]); }catch(e){} }
-        if(!cl){ cl=document.createElement('div'); cl.className='sec-ctrls'; panel.appendChild(cl); }
-        // width tag — segmented Half | Full (click to resize); locked "Full only" for full-width-only sections
-        let tg=childrenByClass(cl,'sec-wtag')[0]||null;
-        if(!tg){ tg=document.createElement('span'); tg.className='sec-wtag'; cl.appendChild(tg); }
-        const fullOnly=FULL_ONLY.has(id), isFull=panel.classList.contains('sec-full');
-        const twant=fullOnly?'f':(isFull?'wf':'wh');
-        if(tg.getAttribute('data-wt')!==twant){ tg.setAttribute('data-wt',twant);
-          tg.classList.toggle('locked',fullOnly);
-          if(fullOnly){ tg.innerHTML='<span class="sec-wseg off">Half</span><span class="sec-wseg on">Full only</span>'; tg.title='This section is always full width'; }
-          else { tg.innerHTML='<span class="sec-wseg'+(!isFull?' on':'')+'" data-w="half" data-wid="'+id+'">Half</span><span class="sec-wseg'+(isFull?' on':'')+'" data-w="full" data-wid="'+id+'">Full</span>'; tg.title='Set this card to half or full width'; }
+      const exclude=ORDER_EXCLUDE.has(id);
+      const fullOnly=FULL_ONLY.has(id), isFull=panel.classList.contains('sec-full');
+      const title=sectionTitle(panel);
+      // ── one flow control bar at the top of the card (wraps, never overlaps the title) ──
+      ['sec-toggle','sec-remove','sec-ctrls','move-handle'].forEach(cls=>{ childrenByClass(panel,cls).forEach(m=>{ try{ panel.removeChild(m); }catch(e){} }); });  // sweep legacy absolute controls
+      let bars=childrenByClass(panel,'sec-bar'); let cbar=bars[0]||null;
+      for(let i=1;i<bars.length;i++){ try{ panel.removeChild(bars[i]); }catch(e){} }
+      if(!cbar){ cbar=document.createElement('div'); cbar.className='sec-bar'; }
+      if(panel.firstChild!==cbar){ try{ panel.insertBefore(cbar, panel.firstChild||null); }catch(e){ panel.appendChild(cbar); } }
+      const grip=SEC_IC.grip;
+      const sig = collapsed ? ('c|'+title+'|'+(exclude?'x':'o')) : ('e|'+(exclude?'x':(fullOnly?'F':(isFull?'wf':'wh'))));
+      if(cbar.getAttribute('data-bs')!==sig){
+        cbar.setAttribute('data-bs', sig);
+        let h='';
+        if(collapsed){
+          h += '<span class="sec-bar-title">\u25B8 '+esc(title)+'</span>';
+          if(!exclude) h += '<button type="button" class="sec-remove" data-rm="'+id+'" aria-label="Remove '+esc(title)+'" title="Remove this section">'+SEC_IC.x+'</button>';
+          h += '<button type="button" class="sec-toggle" data-sec="'+id+'" aria-label="Show '+esc(title)+'" title="Show">'+SEC_IC.eyeOff+'</button>';
+        } else {
+          if(!exclude){
+            h += fullOnly
+              ? '<span class="sec-wtag locked" title="This section is always full width"><button type="button" class="sec-wseg" disabled aria-label="Always full width">'+SEC_IC.full+'</button></span>'
+              : '<span class="sec-wtag"><button type="button" class="sec-wseg" data-w="'+(isFull?'half':'full')+'" data-wid="'+id+'" aria-label="'+(isFull?'Switch to half width':'Switch to full width')+'" title="'+(isFull?'Full width \u2014 tap for half':'Half width \u2014 tap for full')+'">'+(isFull?SEC_IC.full:SEC_IC.half)+'</button></span>';
+            h += '<button type="button" class="sec-remove" data-rm="'+id+'" aria-label="Remove '+esc(title)+'" title="Remove this section">'+SEC_IC.x+'</button>';
+          }
+          h += '<button type="button" class="sec-toggle" data-sec="'+id+'" aria-label="Hide '+esc(title)+'" title="Hide">'+SEC_IC.eye+'</button>';
+          if(!exclude) h += '<button type="button" class="move-handle" aria-label="Move section" title="Drag to move">'+grip+'</button>';
         }
-        // Remove button
-        let rb=childrenByClass(cl,'sec-remove')[0]||null;
-        if(!rb){ rb=document.createElement('button'); rb.type='button'; rb.className='sec-remove'; rb.innerHTML='\u2715 Remove'; cl.appendChild(rb); }
-        rb.setAttribute('data-rm', id); rb.setAttribute('aria-label','Remove '+sectionTitle(panel)+' section'); rb.title='Remove this section';
+        cbar.innerHTML=h;
       }
     });
     renderAddBars();
@@ -1149,41 +1153,38 @@ function applySectionToggles(){
 }
 
 /* ---- pointer drag reorder (mouse + touch); snaps into discrete slots, reflows others ---- */
-let _drag=null,_dragRef=null,_dragAuto=null;
+let _drag=null,_dragRef=null,_dragAuto=null,_dragRAF=0;const _dragPt={x:0,y:0};
 const _secNarrow=()=>!!(window.matchMedia && window.matchMedia('(max-width:760px)').matches);
-function _secMoveTo(x,y){ _drag.el.style.left=(x-_drag.gx)+'px'; _drag.el.style.top=(y-_drag.gy)+'px'; }
+function _secMoveTo(x,y){ _drag.el.style.transform='translate('+(x-_drag.gx)+'px,'+(y-_drag.gy)+'px)'; }
 // reading-order test: is the item (rect r) positioned AFTER the pointer?
 function _secIsAfter(px,py,r){ if(py<r.top) return true; if(py>r.bottom) return false; return px < r.left+r.width/2; }
-function _onSecDragMove(e){
-  if(!_drag) return;
-  _secMoveTo(e.clientX,e.clientY);
-  // width: full unless the section is half-eligible, the screen is wide, and the pointer is toward a side
+function _onSecDragMove(e){ if(!_drag) return; _dragPt.x=e.clientX; _dragPt.y=e.clientY;
+  _secMoveTo(e.clientX,e.clientY);                       // cheap transform every move (smooth)
+  if(!_dragRAF) _dragRAF=requestAnimationFrame(_dragReflow);   // heavier reflow throttled to a frame
+}
+function _dragReflow(){ _dragRAF=0; if(!_drag) return; const x=_dragPt.x,y=_dragPt.y;
   let full=true;
   if(!FULL_ONLY.has(_drag.id) && !_secNarrow()){
-    const gr=_drag.container.getBoundingClientRect();
-    const rel=(e.clientX-gr.left)/Math.max(1,gr.width);
-    full=(rel>=0.34 && rel<=0.66);                 // centre band = full, sides = half
+    const gr=_drag.container.getBoundingClientRect(); const rel=(x-gr.left)/Math.max(1,gr.width);
+    full=(rel>=0.34 && rel<=0.66);
   }
-  _drag.slot.classList.toggle('sec-full', full);
-  _drag.slot.textContent = full ? 'FULL' : 'HALF';
-  // insertion point in reading order; CSS grid reflows the rest (zero overlap)
-  const sibs=reorderItems(_drag.container,_drag.el,_drag.slot);
-  let ref=null;
-  for(const sIt of sibs){ if(_secIsAfter(e.clientX,e.clientY,sIt.getBoundingClientRect())){ ref=sIt; break; } }
+  _drag.slot.classList.toggle('sec-full', full); _drag.slot.textContent = full ? 'FULL' : 'HALF';
+  const sibs=reorderItems(_drag.container,_drag.el,_drag.slot); let ref=null;
+  for(const sIt of sibs){ if(_secIsAfter(x,y,sIt.getBoundingClientRect())){ ref=sIt; break; } }
   if(ref) _drag.container.insertBefore(_drag.slot, ref);
   else { const last=sibs[sibs.length-1]; if(last && last.after) last.after(_drag.slot); else _drag.container.appendChild(_drag.slot); }
   const edge=72,sp=14; clearInterval(_dragAuto);
-  if(e.clientY<edge) _dragAuto=setInterval(()=>window.scrollBy(0,-sp),16);
-  else if(e.clientY>window.innerHeight-edge) _dragAuto=setInterval(()=>window.scrollBy(0,sp),16);
+  if(y<edge) _dragAuto=setInterval(()=>window.scrollBy(0,-sp),16);
+  else if(y>window.innerHeight-edge) _dragAuto=setInterval(()=>window.scrollBy(0,sp),16);
 }
 function _onSecDragEnd(){
-  clearInterval(_dragAuto);
+  clearInterval(_dragAuto); if(_dragRAF){ try{ cancelAnimationFrame(_dragRAF); }catch(e){} _dragRAF=0; }
   document.removeEventListener('pointermove',_onSecDragMove);
   if(!_drag) return;
   const {el,slot,container}=_drag;
   const full = slot.classList.contains('sec-full') || FULL_ONLY.has(el.id);
   el.classList.remove('sec-dragging');
-  el.style.position='';el.style.width='';el.style.left='';el.style.top='';el.style.zIndex='';el.style.pointerEvents='';el.style.margin='';
+  el.style.position='';el.style.width='';el.style.left='';el.style.top='';el.style.transform='';el.style.zIndex='';el.style.pointerEvents='';el.style.margin='';el.style.willChange='';
   el.classList.toggle('sec-full', full);
   container.insertBefore(el, slot); try{ container.removeChild(slot); }catch(e){}
   document.body.classList.remove('sec-dragging-active');
@@ -1209,7 +1210,7 @@ function _onSecDragStart(e){
   if(el.after) el.after(slot); else container.appendChild(slot);
   _drag.slot=slot; _dragRef=null;
   el.classList.add('sec-dragging');
-  el.style.position='fixed'; el.style.width=r.width+'px'; el.style.left=r.left+'px'; el.style.top=r.top+'px';
+  el.style.position='fixed'; el.style.width=r.width+'px'; el.style.left='0'; el.style.top='0'; el.style.willChange='transform';
   el.style.zIndex='9998'; el.style.pointerEvents='none'; el.style.margin='0';
   document.body.classList.add('sec-dragging-active');
   _secMoveTo(e.clientX,e.clientY);
