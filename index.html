@@ -299,7 +299,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 /* ── collapsible / resizable sections: a flowing control bar that never overlaps the title ── */
 .panel.sec{position:relative;transition:box-shadow .15s ease,border-color .15s ease}
 /* the bar sits at the top of the card, right-aligned, and WRAPS instead of overlapping the title */
-.sec-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;margin:0 0 10px}
+.sec-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;margin:0 0 10px;position:relative;cursor:grab}
+.sec-bar:active{cursor:grabbing}
 .sec-bar-title{display:none}
 .panel.sec-collapsed .sec-bar-title{display:block;flex:1 1 auto;min-width:0;font-size:13px;font-weight:700;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:auto}
 /* every control is a round icon button — same diameter */
@@ -817,7 +818,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 24 Jun 2026 · 19:35</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 25 Jun 2026 · 00:05</div>
 </div>
 
 <div id="report"></div>
@@ -1329,16 +1330,16 @@ function applySectionToggles(){
         let h='';
         if(collapsed){
           h += '<span class="sec-bar-title">\u25B8 '+esc(title)+'</span>';
-          if(!exclude) h += '<button type="button" class="sec-remove" data-rm="'+id+'" aria-label="Remove '+esc(title)+'" title="Remove this section">'+SEC_IC.x+'</button>';
           h += '<button type="button" class="sec-toggle" data-sec="'+id+'" aria-label="Show '+esc(title)+'" title="Show">'+SEC_IC.eyeOff+'</button>';
+          if(!exclude) h += '<button type="button" class="sec-remove" data-rm="'+id+'" aria-label="Remove '+esc(title)+'" title="Remove this section">'+SEC_IC.x+'</button>';
         } else {
           if(!exclude){
             h += fullOnly
               ? '<span class="sec-wtag locked" title="This section is always full width"><button type="button" class="sec-wseg" disabled aria-label="Always full width">'+SEC_IC.full+'</button></span>'
               : '<span class="sec-wtag"><button type="button" class="sec-wseg" data-w="'+(isFull?'half':'full')+'" data-wid="'+id+'" aria-label="'+(isFull?'Switch to half width':'Switch to full width')+'" title="'+(isFull?'Full width \u2014 tap for half':'Half width \u2014 tap for full')+'">'+(isFull?SEC_IC.full:SEC_IC.half)+'</button></span>';
-            h += '<button type="button" class="sec-remove" data-rm="'+id+'" aria-label="Remove '+esc(title)+'" title="Remove this section">'+SEC_IC.x+'</button>';
           }
           h += '<button type="button" class="sec-toggle" data-sec="'+id+'" aria-label="Hide '+esc(title)+'" title="Hide">'+SEC_IC.eye+'</button>';
+          if(!exclude) h += '<button type="button" class="sec-remove" data-rm="'+id+'" aria-label="Remove '+esc(title)+'" title="Remove this section">'+SEC_IC.x+'</button>';
         }
         cbar.innerHTML=h;
       }
@@ -1349,7 +1350,7 @@ function applySectionToggles(){
 
 /* ---- pointer drag reorder (mouse + touch); snaps into discrete slots, reflows others ---- */
 let _drag=null,_dragRef=null,_dragAuto=null,_dragRAF=0;const _dragPt={x:0,y:0};
-const _secNarrow=()=>!!(window.matchMedia && window.matchMedia('(max-width:760px)').matches);
+const _secNarrow=()=>!!(window.matchMedia && window.matchMedia('(max-width:560px)').matches);
 // Drag placeholder label: when a width choice is available, show BOTH options (HALF | FULL) with
 // the one that will be applied highlighted; otherwise just FULL (full-only cards / narrow screens).
 function _slotLabel(full, choice){ return choice ? ('<span class="so'+(full?'':' on')+'">HALF</span><span class="so'+(full?' on':'')+'">FULL</span>') : 'FULL'; }
@@ -1362,13 +1363,13 @@ function _onSecDragMove(e){ if(!_drag) return; if(e.cancelable) e.preventDefault
 }
 function _dragReflow(){ _dragRAF=0; if(!_drag) return; const x=_dragPt.x,y=_dragPt.y;
   const _choice=!FULL_ONLY.has(_drag.id) && !_secNarrow();
-  // Three independent zones across the page: left 25% = HALF-left · middle 50% = FULL · right 25% = HALF-right.
+  // Three independent zones across the page: left 30% = HALF-left · middle 40% = FULL · right 30% = HALF-right.
   // Each is a free choice; the card claims that column on its own. Pairing happens only when you drop a half
   // beside an existing half (the grid simply fills the empty cell) -- it is never forced on a neighbour.
   let mode='full';   // 'full' | 'hl' (half-left) | 'hr' (half-right)
   if(_choice){
     const gr=_drag.container.getBoundingClientRect(); const rel=(x-gr.left)/Math.max(1,gr.width);
-    if(rel<0.25) mode='hl'; else if(rel>0.75) mode='hr';
+    if(rel<0.30) mode='hl'; else if(rel>0.70) mode='hr';
   }
   _drag.slot.classList.toggle('sec-full', mode==='full');
   _drag.slot.classList.toggle('sec-hl', mode==='hl');
@@ -1386,6 +1387,7 @@ function _dragReflow(){ _dragRAF=0; if(!_drag) return; const x=_dragPt.x,y=_drag
 function _onSecDragEnd(){
   clearInterval(_dragAuto); if(_dragRAF){ try{ cancelAnimationFrame(_dragRAF); }catch(e){} _dragRAF=0; }
   document.removeEventListener('pointermove',_onSecDragMove);
+  document.removeEventListener('touchmove',_preventTouchScroll,{passive:false});
   if(!_drag) return;
   const {el,slot,container}=_drag;
   const fo=FULL_ONLY.has(el.id);
@@ -1406,6 +1408,7 @@ function _onSecDragEnd(){
   _drag=null; _dragRef=null;
   applySectionToggles();   // re-ensure controls + reconnect observer
 }
+function _preventTouchScroll(e){ if(_drag){ try{ e.preventDefault(); }catch(_e){} } }
 // Begin a section drag for panel `el` with the pointer at (px,py).
 function _beginSecDrag(el, px, py){
   const container=el?el.parentNode:null; if(!el||!container) return;
@@ -1424,6 +1427,10 @@ function _beginSecDrag(el, px, py){
   _secMoveTo(px,py);
   document.addEventListener('pointermove',_onSecDragMove);
   document.addEventListener('pointerup',_onSecDragEnd,{once:true});
+  document.addEventListener('pointercancel',_onSecDragEnd,{once:true});
+  document.addEventListener('touchend',_onSecDragEnd,{once:true});
+  document.addEventListener('touchcancel',_onSecDragEnd,{once:true});
+  document.addEventListener('touchmove',_preventTouchScroll,{passive:false});
 }
 // A card is grabbed from any spot that is NOT an interactive control and (mouse only) NOT on text.
 function _hasOwnText(el){ if(!el||el.nodeType!==1||!el.childNodes) return false;
@@ -1438,15 +1445,19 @@ function _clearPress(){ if(_pressTimer){ clearTimeout(_pressTimer); _pressTimer=
 function _pressMove(e){ if(!_pressInfo) return; if(Math.abs(e.clientX-_pressInfo.x)>8||Math.abs(e.clientY-_pressInfo.y)>8) _clearPress(); }
 // Pointer-down: mouse picks up immediately from a blank (non-text) spot; touch needs a tap-and-hold.
 function _onSecPointerDown(e){
-  if(e.pointerType==='mouse' && e.button!==0) return;
-  const t=e.target; const panel=(t&&t.closest)?t.closest('.panel'):null;
+  const t=e.target;
+  const panel=(t&&t.closest)?t.closest('.panel'):null;
   if(!panel||!panel.id||ORDER_EXCLUDE.has(panel.id)) return;
   const container=panel.parentNode; if(!container||(container.id!=='allGrid'&&container.id!=='custView')) return;
-  if(_ctrlAt(t)) return;                                   // never hijack a control / tappable row
   if(e.pointerType==='mouse'){
-    if(_isOnText(t,panel)) return;                         // leave text selectable with the mouse
+    if(e.button!==0) return;
+    const bar=t.closest('.sec-bar'); if(!bar) return;     // mouse: grab from the control-bar row
+    if(t.closest('button,a,input,select,textarea,[role=\'button\'],.sec-wtag')) return;  // let the controls receive clicks
     e.preventDefault(); _beginSecDrag(panel, e.clientX, e.clientY);
-  } else {                                                 // touch / pen: tap-and-hold to pick up
+  } else {
+    // touch / pen: press-and-hold ANYWHERE on the card to pick it up.
+    // A quick swipe moves the finger before the timer fires -> we abort and the page scrolls normally.
+    if(_ctrlAt(t)) return;                                 // leave buttons / chips / drilldown rows tappable
     _clearPress(); _pressInfo={x:e.clientX,y:e.clientY,panel};
     document.addEventListener('pointermove',_pressMove);
     document.addEventListener('pointerup',_clearPress,{once:true});
