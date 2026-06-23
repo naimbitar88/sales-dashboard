@@ -37,7 +37,7 @@
 html{overflow-x:hidden;max-width:100%}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden;max-width:100%}
 .num{font-variant-numeric:tabular-nums}
-.eyebrow{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--text4);font-weight:700}
+.eyebrow{font-size:14px;letter-spacing:.10em;text-transform:uppercase;color:var(--text3);font-weight:800}
 .hide{display:none!important}
 
 /* ───────────────────────── UPLOAD ───────────────────────── */
@@ -495,13 +495,17 @@ body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:no
   .secgrid>.panel.sec-hl,.secgrid>.panel.sec-hr{grid-column:1 / -1}
 }
 /* ── "+" insert bars between rows ── */
-.sec-add{grid-column:1 / -1;position:relative;display:flex;justify-content:flex-end;align-items:center;height:18px;margin:-4px 0}
+.sec-add{grid-column:1 / -1;position:relative;display:flex;justify-content:flex-end;align-items:center;gap:8px;height:18px;margin:-4px 0}
 .sec-add::before{content:'';position:absolute;left:2px;right:40px;top:50%;height:1px;background:var(--border2);opacity:0;transition:opacity .15s}
 .sec-add:hover::before,.sec-add.open::before{opacity:.5}
 .sec-add-btn{width:25px;height:25px;border-radius:50%;border:1px dashed var(--border2);background:var(--card2);color:var(--text3);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:17px;line-height:1;padding:0;opacity:.4;transition:opacity .15s,border-color .15s,color .15s;-webkit-tap-highlight-color:transparent}
 .sec-add:hover .sec-add-btn,.sec-add-btn.open{opacity:1;border-style:solid;border-color:var(--accent);color:var(--accent)}
 [data-theme="light"] .sec-add-btn{border-color:#93C5FD}
 body.sec-dragging-active .sec-add{display:none}
+.sec-clear-btn{display:inline-flex;align-items:center;gap:5px;height:25px;padding:0 10px;background:var(--card2);border:1px dashed var(--border2);color:var(--text3);border-radius:13px;font-size:11px;font-weight:600;cursor:pointer;opacity:.4;-webkit-tap-highlight-color:transparent;transition:opacity .15s,border-color .15s,color .15s}
+.sec-add:hover .sec-clear-btn{opacity:1}
+.sec-clear-btn:hover{opacity:1;border-style:solid;border-color:var(--bad);color:var(--bad)}
+[data-theme="light"] .sec-clear-btn{border-color:#93C5FD}
 /* ── the section picker dropdown ── */
 #secAddMenu{position:absolute;z-index:9999;background:var(--card);border:1px solid var(--border2);border-radius:11px;box-shadow:0 12px 34px rgba(0,0,0,.45);min-width:230px;max-height:60vh;overflow:auto;padding:6px;display:none}
 #secAddMenu.open{display:block}
@@ -666,6 +670,7 @@ if('serviceWorker' in navigator){
       <div id="custDataStatusRows" style="display:flex;flex-wrap:wrap;gap:8px;min-width:0"></div>
     </div>
     <div class="frow" id="reportsRow"><span class="flabel">Reports</span><div class="fchips" id="reportButtons" style="display:flex;flex-wrap:wrap;gap:8px;min-width:0"></div></div>
+    <div class="frow" id="layoutRow"><span class="flabel">Layout</span><div class="fchips" style="display:flex;flex-wrap:wrap;gap:8px;min-width:0"><button type="button" class="btn" id="addToAllBtn" title="Give every customer page the same cards and layout as this page" onclick="addLayoutToAllCustomers(this)">🧩 Add to All</button></div></div>
     <!-- file inputs: must never be in a display:none element or iOS tap breaks -->
     <input type="file" id="dsTargetInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
     <input type="file" id="dsARInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
@@ -846,7 +851,7 @@ if('serviceWorker' in navigator){
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 25 Jun 2026 · 03:30</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 25 Jun 2026 · 10:20</div>
 </div>
 
 <div id="report"></div>
@@ -1223,6 +1228,49 @@ function addSection(id, visGap){
   const at=Math.max(0,Math.min(visGap|0,vis.length)); vis.splice(at,0,item);
   SECTION_ORDER[key]=vis.concat(removed); saveOrder(); _withFlip(applySectionToggles);
 }
+// Hide every removable card BELOW a "+" position (gap = visible card index); cards above stay.
+function clearBelowSections(gap){
+  const key=_viewKey(); const L=effLayout(key); const vis=L.filter(function(e){return !e.removed;});
+  let any=false;
+  for(let i=gap;i<vis.length;i++){ const e=vis[i]; if(e&&e.id&&!ORDER_EXCLUDE.has(e.id)&&!e.removed){ e.removed=true; any=true; } }
+  if(!any) return;
+  SECTION_ORDER[key]=L; saveOrder(); _withFlip(applySectionToggles);
+  showToast('\ud83e\uddf9 Cleared cards below \u2014 tap + to add any back');
+}
+// "Add to All": give every OTHER customer page the same cards/order/width/collapse as the current page.
+// From a customer page -> copies that customer's layout to all other customers (All-clients untouched).
+// From the All-clients page -> maps the All cards to their customer equivalents and pushes that to every customer.
+const ALL2CUST={kpisPanel:'kpisPanelCust',latestPanelAll:'custLatestPanel',rangePanel:'custRangePanel',
+  targetPanelAll:'custTargetPanel',aopPanelAll:'custAOPPanel',aopMonthPanel:'custAOPMonthPanel',
+  aopSizePanel:'custAOPSizePanel',arPanelAll:'custARPanel',monthlyPanel:'monthlyPanel',
+  sizePanel:'sizeMoMPanel',labelPanel:'lblSharePanel'};   // All-only cards (by-customer AOP, portfolio, movers, concentration) have no customer twin -> skipped
+function addLayoutToAllCustomers(btn){
+  if(!DATA||!DATA.rows){ showToast('Load a sales file first.'); return; }
+  const srcKey=_viewKey(); const fromAll=(srcKey==='all');
+  const accounts=Array.from(new Set(DATA.rows.map(function(r){return r.account;})));
+  const targets=accounts.filter(function(a){ return ('cust:'+a)!==srcKey; });
+  if(!targets.length){ showToast('No other customer pages to update.'); return; }
+  const srcLabel=fromAll?'the All-clients':(ACCOUNT+'\u2019s');
+  try{ if(!confirm('Apply '+srcLabel+' card layout to all '+targets.length+' customer page'+(targets.length===1?'':'s')+'?\nThis overwrites their current layouts (cards can still be re-added).')) return; }catch(e){}
+  const custCat=catalogPanels(document.getElementById('custView')).map(function(c){return c.id;});
+  let tmpl=[]; const collapse={};
+  if(fromAll){
+    const srcL=effLayout('all', document.getElementById('allGrid')); const seen={};
+    srcL.forEach(function(e){ const cid=ALL2CUST[e.id]; if(!cid||seen[cid])return; seen[cid]=1;
+      tmpl.push({id:cid,w:e.w,side:e.side,removed:!!e.removed}); collapse[cid]=!!SECTION_STATE['all|'+e.id]; });
+    custCat.forEach(function(cid){ if(!seen[cid]){ tmpl.push({id:cid,w:'full',side:'L',removed:false}); } });   // keep customer-only cards available
+  } else {
+    const srcL=effLayout(srcKey, document.getElementById('custView'));
+    tmpl=srcL.map(function(e){return {id:e.id,w:e.w,side:e.side,removed:!!e.removed};});
+    srcL.forEach(function(e){ collapse[e.id]=!!SECTION_STATE[srcKey+'|'+e.id]; });
+  }
+  targets.forEach(function(acct){ const key='cust:'+acct;
+    SECTION_ORDER[key]=tmpl.map(function(e){return {id:e.id,w:e.w,side:e.side,removed:e.removed};});
+    Object.keys(collapse).forEach(function(cid){ SECTION_STATE[key+'|'+cid]=collapse[cid]; });
+  });
+  saveOrder(); saveSections();
+  showToast('\u2705 Applied to '+targets.length+' customer page'+(targets.length===1?'':'s'));
+}
 function sectionTitle(panel){ const eb=panel.querySelector('.eyebrow'); return ((eb?eb.textContent:'')||'').trim()||'Section'; }
 function toggleSection(id){ if(!id) return; const k=_viewKey()+'|'+id; SECTION_STATE[k]=!SECTION_STATE[k]; saveSections(); _withFlip(applySectionToggles); }
 function _isCustView(){ return (typeof ACCOUNT!=='undefined') && ACCOUNT!=='All'; }
@@ -1298,8 +1346,11 @@ function renderAddBars(){
     if(c.classList.contains('panel')){ if(c.id&&!ORDER_EXCLUDE.has(c.id)&&!c.classList.contains('hide')&&!c.classList.contains('sec-removed')) kids.push({el:c,card:true}); }
     else if(c.classList.contains('sec-spacer')) kids.push({el:c,card:false});
   }
+  const _nCards=kids.filter(function(k){return k.card;}).length;
   function bar(g){ const b=document.createElement('div'); b.className='sec-add';
-    b.innerHTML='<button type="button" class="sec-add-btn" data-visgap="'+g+'" aria-label="Add a section here" title="Add a section here">+</button>'; return b; }
+    let h='<button type="button" class="sec-add-btn" data-visgap="'+g+'" aria-label="Add a section here" title="Add a section here">+</button>';
+    if(g<_nCards) h+='<button type="button" class="sec-clear-btn" data-clearbelow="'+g+'" aria-label="Clear cards below" title="Hide all cards below this point">\ud83e\uddf9 Clear below</button>';
+    b.innerHTML=h; return b; }
   if(kids.length===0){ container.appendChild(bar(0)); return; }
   const tops=kids.map(k=>(typeof k.el.offsetTop==='number')?k.el.offsetTop:0);
   container.insertBefore(bar(0), kids[0].el);
@@ -1514,6 +1565,8 @@ function setupSectionObserver(){
     // single delegated, capture-phase click for the per-card controls
     app.addEventListener('click', function(ev){
       const closest = sel => ev.target && ev.target.closest ? ev.target.closest(sel) : null;
+      const clr=closest('.sec-clear-btn');
+      if(clr && app.contains(clr)){ ev.stopPropagation(); ev.preventDefault(); closeAddMenu(); clearBelowSections(+clr.getAttribute('data-clearbelow')); return; }
       const seg=closest('.sec-wtag:not(.locked) .sec-wseg');
       if(seg && app.contains(seg)){ ev.stopPropagation(); ev.preventDefault(); closeAddMenu(); setSecWidth(seg.getAttribute('data-wid'), seg.getAttribute('data-w')); return; }
       const pdfb=closest('.sec-pdf');
@@ -1626,10 +1679,10 @@ function render(){
     if(isCust){
       const cl=ACCOUNT.toLowerCase();
       const c=AR.customers.find(x=>(x.account||'').toLowerCase()===cl)||AR.customers.find(x=>x.name.toLowerCase()===cl);
-      ovdVal=c&&c.overdue>0?fSAR(c.overdue):'None'; ovdSub='total overdue';
+      ovdVal=c&&c.overdue>0?fSAR(c.overdue):'None'; ovdSub=(AR.date?('Based on '+AR.date):'total overdue');
     } else {
       const t=AR.customers.reduce((s,c)=>s+(c.overdue||0),0);
-      ovdVal=t>0?fSAR(t):'None'; ovdSub='total overdue';
+      ovdVal=t>0?fSAR(t):'None'; ovdSub=(AR.date?('Based on '+AR.date):'total overdue');
     }
   }
   // Total Stock (cans)
@@ -1645,14 +1698,40 @@ function render(){
     }
   }
 
+  // ── Year-over-year vs last year (2025 actuals from the demand workbook) ──
+  let ytdYoY='—', ytdYoYsub='upload demand file', ytdYoYcol='';
+  let momYoY='—', momYoYsub='upload demand file', momYoYcol='';
+  {
+    const LY=DEMAND&&DEMAND.lastYear;
+    if(!LY){ if(DEMAND){ ytdYoYsub='re-upload demand for YoY'; momYoYsub='re-upload demand for YoY'; } }
+    else {
+      const anchor=(MONTH!=='All')?MONTHS.indexOf(MONTH):aopLatestMonthIdx();
+      if(anchor<0){ ytdYoYsub='no sales month'; momYoYsub='no sales month'; }
+      else {
+        const lyArr=(isCust?((LY.accounts&&LY.accounts[ACCOUNT])?LY.accounts[ACCOUNT].byMonth:Array(12).fill(0)):(LY.totalByMonth||Array(12).fill(0)));
+        const tyByMonth=Array(12).fill(0); for(const r of monthBase){ const mi=MONTHS.indexOf(r.month); if(mi>=0) tyByMonth[mi]+=r.qty; }
+        let tyYTD=0, lyYTD=0; for(let m=0;m<=anchor;m++){ tyYTD+=tyByMonth[m]; lyYTD+=(lyArr[m]||0); }
+        const tyYTDmm=tyYTD/1e6;
+        if(lyYTD>0.0000001){ const d=(tyYTDmm-lyYTD)/lyYTD*100; ytdYoY=(d>=0?'+':'')+d.toFixed(1)+'%'; ytdYoYcol=d>=0?'var(--good)':'var(--bad)'; ytdYoYsub=tyYTDmm.toFixed(1)+' vs '+lyYTD.toFixed(1)+' MM LY'; }
+        else if(tyYTDmm>0){ ytdYoY='New'; ytdYoYcol='var(--accent)'; ytdYoYsub=tyYTDmm.toFixed(1)+' MM · no 2025'; }
+        else { ytdYoY='—'; ytdYoYsub='no data'; }
+        const tyM=tyByMonth[anchor]/1e6, lyM=(lyArr[anchor]||0), monName=MONTHS[anchor];
+        if(lyM>0.0000001){ const d=(tyM-lyM)/lyM*100; momYoY=(d>=0?'+':'')+d.toFixed(1)+'%'; momYoYcol=d>=0?'var(--good)':'var(--bad)'; momYoYsub=monName+': '+tyM.toFixed(1)+' vs '+lyM.toFixed(1)+' MM LY'; }
+        else if(tyM>0){ momYoY='New'; momYoYcol='var(--accent)'; momYoYsub=monName+': '+tyM.toFixed(1)+' MM · no 2025'; }
+        else { momYoY='—'; momYoYsub=monName+': no data'; }
+      }
+    }
+  }
   // KPI tiles — same 6 for both scopes
   const kpiData=[
-    ['Total Volume',         MM(total),  fmt(total)+' cans', ''],
-    ['% vs AOP',             aopPct,     aopSub,              aopCol],
-    ['% vs Demand Target',   tgtPct,     tgtSub,              tgtCol],
-    ['Total Overdues',       ovdVal,     ovdSub,              ''],
-    ['Total Stocks',         stkVal,     stkSub,              ''],
-    ['Peak Month',           peak?peak[0]:'—', peak?MM(peak[1]):'', ''],
+    ['YTD Volume',          MM(total),        fmt(total)+' cans',  ''],
+    ['YTD vs Last Year',    ytdYoY,           ytdYoYsub,           ytdYoYcol],
+    ['Month vs Last Year',  momYoY,           momYoYsub,           momYoYcol],
+    ['% vs AOP',            aopPct,           aopSub,              aopCol],
+    ['% Vs Demand',         tgtPct,           tgtSub,              tgtCol],
+    ['Overdues',            ovdVal,           ovdSub,              ''],
+    ['Total Stocks',        stkVal,           stkSub,              ''],
+    ['Peak Month',          peak?peak[0]:'—', peak?MM(peak[1]):'', ''],
   ];
   document.getElementById(isCust?'kpisCust':'kpis').innerHTML=kpiData.map(k=>'<div class="kpi"><div class="lab"><span class="dot"></span><span class="eyebrow">'+k[0]+'</span></div>'
      +'<div class="val num"'+(k[3]?' style="color:'+k[3]+'"':'')+'>'+(k[1])+'</div><div class="sub num">'+k[2]+'</div></div>').join('');
@@ -3468,6 +3547,43 @@ function pickSnapshotSheet(wb){
 // sheet's FIRST FORECAST column (column N) is the committed demand for month N, captured just
 // before that month began. So month i is read from sheet i+(12-i): Jan from 0+12, Feb from
 // 1+11, Mar from 2+10, … Jun from 5+7 (NOT all twelve months out of the latest sheet).
+// Last-year (2025) actuals from the demand workbook's "2025" sheet. Same layout as the snapshots
+// (Customer col, size code in the next col, then Jan..Dec). Values are in MM. Per-customer "Total"
+// rows are skipped; parsing stops at the "Grand Total" size-breakdown block. Returns aggregate +
+// per-account monthly totals so the YoY Key Metrics work for All clients and each customer page.
+function parseLastYear(wb){
+  const sheet=(wb.SheetNames||[]).find(n=>/^\s*2025\s*$/.test(n)) || (wb.SheetNames||[]).find(n=>/(^|\D)2025(\D|$)/.test(n));
+  if(!sheet||!wb.Sheets[sheet]) return null;
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[sheet],{header:1,defval:''});
+  const MN=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  let hdr=-1, nameCol=-1, mcol=[];
+  for(let r=0;r<rows.length;r++){
+    const cells=rows[r].map(c=>String(c==null?'':c).trim().toLowerCase());
+    const nc=cells.findIndex(c=>c==='customer'||c.startsWith('customer name'));
+    if(nc<0) continue;
+    const mc=[]; cells.forEach((c,i)=>{ const m=MN.indexOf(c.replace(/\./g,'').trim().slice(0,3)); if(m>=0&&mc[m]==null) mc[m]=i; });
+    if(mc.filter(x=>x!=null).length>=6){ hdr=r; nameCol=nc; mcol=mc; break; }
+  }
+  if(hdr<0) return null;
+  const sizeCol=nameCol+1;
+  const accounts={}; const totalByMonth=Array(12).fill(0);
+  let cur=null;
+  for(let r=hdr+1;r<rows.length;r++){
+    const row=rows[r];
+    const nm=String(row[nameCol]==null?'':row[nameCol]).trim(), low=nm.toLowerCase();
+    if(/grand\s*total|^g\.?\s*total$/.test(low)) break;          // stop before the size-code grand-total block
+    if(/^total$/.test(low)) continue;                            // skip per-customer subtotal rows
+    if(nm && !/total/.test(low)) cur=companyOf(nm);              // new customer block (also single-row customers)
+    if(!cur) continue;
+    const sc=String(row[sizeCol]==null?'':row[sizeCol]).trim();
+    if(!/^\d{2,4}/.test(sc)) continue;                           // real size rows only
+    const a=accounts[cur]||(accounts[cur]={byMonth:Array(12).fill(0),annual:0});
+    for(let m=0;m<12;m++){ const j=mcol[m]; let v=(j!=null?parseFloat(row[j]):0); if(!isFinite(v)) v=0; a.byMonth[m]+=v; a.annual+=v; totalByMonth[m]+=v; }
+  }
+  if(!Object.keys(accounts).length) return null;
+  const total=totalByMonth.reduce((s,x)=>s+x,0);
+  return {accounts, totalByMonth, total};
+}
 function parseDemandSnapshot(wb){
   const MN=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
   // Every proper N+M snapshot (sum===12), sorted by N ascending.
@@ -3511,7 +3627,7 @@ function parseDemandSnapshot(wb){
   const idx=Math.min(Math.max(latestIdx,0),11);       // default month = the latest snapshot's first-forecast month
   const names=snaps.map(s=>s.name).join(', ');
   DEMAND={uploadedAt:Date.now(), snapshot:snaps[snaps.length-1].name, snapshots:snaps.map(s=>s.name),
-          firstForecastIdx:idx, month:MONTHS[idx], accounts};
+          firstForecastIdx:idx, month:MONTHS[idx], accounts, lastYear:parseLastYear(wb)};
   saveDemand();
   const t=targetFromDemand(); if(t){ TARGET=t; }      // demand snapshots drive the monthly target
   renderTarget(); renderCustTarget(); renderCustDataStatus();
@@ -3829,8 +3945,17 @@ function parseARWorkbook(wb,fname){
 
   // Date label from filename if present (e.g. AR_21_June)
   let dateLabel='';
-  const dM=fname.match(/(\d{1,2})[_\s-]*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i);
-  if(dM) dateLabel=dM[1]+' '+dM[2].charAt(0).toUpperCase()+dM[2].slice(1).toLowerCase();
+  {
+    const MFULL={jan:'January',feb:'February',mar:'March',apr:'April',may:'May',jun:'June',jul:'July',aug:'August',sep:'September',oct:'October',nov:'November',dec:'December'};
+    const norm=fname.replace(/[._\-]+/g,' ');
+    const mM=norm.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i);
+    if(mM){
+      const MonFull=MFULL[mM[1].toLowerCase()];
+      const dM=norm.replace(/\b\d{4}\b/g,' ').match(/\b(\d{1,2})\b/);   // day token, ignoring 4-digit years
+      const day=dM?parseInt(dM[1],10):0;
+      dateLabel=(day>=1&&day<=31)?(day+' '+MonFull):MonFull;
+    }
+  }
 
   AR={date:dateLabel,customers,uploadedAt:Date.now()};
   saveAR();
@@ -4133,6 +4258,74 @@ function triggerPDF(scope, btn, only){
     }
   }, 40);
 }
+// Tailored report: the whole page as laid out — every in-use card, same order, same half/full position.
+function exportTailoredPDF(scope, btn){
+  const isAll=(scope==='__ALL__'||ACCOUNT==='All');
+  const container=document.getElementById(isAll?'allGrid':'custView');
+  if(!container){ showToast('\u26a0\ufe0f Nothing to export on this page yet.'); return; }
+  const pw=(function(){ try{ return window.open('','_blank'); }catch(e){ return null; } })();
+  const orig=btn?btn.textContent:null; if(btn){ btn.textContent='\u23f3 Generating\u2026'; btn.disabled=true; }
+  setTimeout(function(){
+    try{
+      const grid=container.cloneNode(true);
+      grid.classList.remove('hide');
+      grid.querySelectorAll('.sec-add').forEach(function(e){ try{ e.remove(); }catch(_e){} });   // drop the + add bars
+      // keep only in-use cards (drop removed / hidden / pinned status bar / drill, and any non-panel nodes)
+      Array.prototype.slice.call(grid.children).forEach(function(c){
+        const isPanel=c.classList&&c.classList.contains('panel');
+        const drop=!isPanel||c.classList.contains('sec-removed')||c.classList.contains('hide')||(c.id&&(ORDER_EXCLUDE.has(c.id)||SECTION_EXCLUDE.has(c.id)||/labelDrill/i.test(c.id)));
+        if(drop){ try{ c.remove(); }catch(_e){} }
+      });
+      grid.querySelectorAll('.panel.sec-collapsed').forEach(function(pp){ pp.classList.remove('sec-collapsed'); });   // expand collapsed -> show full content
+      // keep the chosen date-range visible as plain text before stripping its picker
+      grid.querySelectorAll('.range-field').forEach(function(b){ var d=document.createElement('div'); d.style.cssText='font-weight:700;font-size:14px;margin:2px 0 8px'; d.textContent=(b.textContent||'').replace(/[\u25be\u25b4\ud83d\udcc5]/g,'').trim(); if(b.parentNode) b.parentNode.replaceChild(d,b); });
+      // strip EVERY interactive control so no buttons / upload boxes / toggles appear
+      grid.querySelectorAll('.sec-bar, .cal, .range-presets, .stock-search, button, input, select, textarea, label[for], .stockdz').forEach(function(e){ try{ e.remove(); }catch(_e){} });
+      // each card head keeps only its title (eyebrow)
+      grid.querySelectorAll('.head').forEach(function(hd){ Array.prototype.slice.call(hd.children).forEach(function(c){ if(!(c.classList&&c.classList.contains('eyebrow'))){ try{ c.remove(); }catch(_e){} } }); });
+      if(!grid.querySelector('.panel')){ if(pw&&!pw.closed) pw.close(); showToast('\u26a0\ufe0f No cards in use to include.'); if(btn){ btn.textContent=orig; btn.disabled=false; } return; }
+      const acct=(isAll?'All Clients':ACCOUNT);
+      const yr=new Date().getFullYear();
+      const styles=[].map.call(document.querySelectorAll('style'),function(s){return s.textContent;}).join('\n');
+      const head='<div style="background:#fff;border:1px solid #E5E7EB;border-top:3px solid #1D4ED8;border-radius:14px;box-shadow:0 1px 2px rgba(15,23,42,.05);padding:13px 18px;margin-bottom:11px">'
+        +'<table style="width:100%;border-collapse:collapse"><tr>'
+        +'<td style="vertical-align:top">'
+        +'<div style="font-size:7pt;font-weight:700;color:#64748B;letter-spacing:.16em;text-transform:uppercase;margin-bottom:4px">Tailored Report</div>'
+        +'<div style="font-size:21pt;font-weight:900;line-height:1.05;color:#102A56">'+esc(acct)+'</div>'
+        +'</td><td style="vertical-align:top;text-align:right">'
+        +'<div style="font-size:6.5pt;color:#9CA3AF;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px">Report date</div>'
+        +'<div style="font-size:13pt;font-weight:900;color:#1D4ED8;font-variant-numeric:tabular-nums">'+REPORT_DATE+'</div>'
+        +'</td></tr></table></div>';
+      const footer='<div style="margin-top:10px;padding-top:8px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:6.5pt;color:#9CA3AF">'
+        +'<span>Confidential \u00b7 prepared exclusively for '+esc(acct)+' \u00b7 empty can supply.</span>'
+        +'<span>\u00a9 '+yr+' \u00b7 Tailored Report issued '+REPORT_DATE+'</span></div>';
+      const html='<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8">'
+        +'<meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(acct)+' \u2014 Tailored Report</title>'
+        +'<style>'+styles
+        +'\n@page{size:A4 portrait;margin:1.1cm}'
+        +'\nhtml{background:#F4F6FA}'
+        +'\nbody{background:#F4F6FA!important;color:#0F172A;font-family:\'Helvetica Neue\',Arial,sans-serif;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+        +'\n.no-print{position:fixed;top:0;left:0;right:0;padding:10px 16px;background:#EFF6FF;border-bottom:1px solid #BFDBFE;display:flex;justify-content:space-between;align-items:center;gap:12px;z-index:99}'
+        +'\n.no-print span{font-size:12px;color:#1E40AF}.no-print button{background:#1D4ED8;color:#fff;border:none;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer}'
+        +'\n@media print{.no-print{display:none!important}}'
+        +'\n.page{max-width:900px;margin:0 auto;padding:56px 14px 14px}@media print{.page{padding:0}}'
+        +'\n#cardapp{max-width:none;margin:0;padding:0}'
+        +'\n#cardapp .secgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}'
+        +'\n#cardapp .secgrid>.panel.sec-full{grid-column:1 / -1}'
+        +'\n#cardapp .secgrid>.panel.sec-hl{grid-column:1 / 2}'
+        +'\n#cardapp .secgrid>.panel.sec-hr{grid-column:2 / 3}'
+        +'\n.panel{box-shadow:none!important;break-inside:avoid;margin:0!important;border-color:#E5E7EB!important}'
+        +'</style></head><body>'
+        +'<div class="no-print"><span>\ud83d\udcc4 <b>'+esc(acct)+'</b> \u2014 Tailored Report \u00b7 Ready to save as PDF</span><button onclick="window.print()">\ud83d\udda8\ufe0f Save as PDF</button></div>'
+        +'<div class="page">'+head+'<div id="cardapp">'+grid.outerHTML+'</div>'+footer+'</div>'
+        +'<scr'+'ipt>window.addEventListener("load",function(){setTimeout(function(){window.print();},600);});</scr'+'ipt>'
+        +'</body></html>';
+      if(pw&&!pw.closed){ pw.document.open('text/html','replace'); pw.document.write(html); pw.document.close(); }
+      else { const blob=new Blob([html],{type:'text/html;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.download=(acct+'_Tailored_Report').replace(/[^A-Za-z0-9]+/g,'_')+'.html'; a.href=url; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} },30000); showToast('\ud83d\udcc4 Report downloaded \u2014 open it, then tap \u201cSave as PDF\u201d.'); }
+    }catch(e){ if(pw&&!pw.closed) pw.close(); console.error('tailored PDF error',e); showToast('\u26a0\ufe0f Could not build the tailored report \u2014 '+e.message); }
+    finally{ if(btn){ btn.textContent=orig; btn.disabled=false; } }
+  },40);
+}
 // Report buttons live in the filters section (after Files). Rebuilt each render, scoped to the active view.
 function renderReportButtons(){
   const box=document.getElementById('reportButtons'); if(!box) return;
@@ -4141,9 +4334,10 @@ function renderReportButtons(){
     '<button type="button" class="btn primary" data-rep="weekly">\ud83d\udcc5 Weekly</button>'+
     '<button type="button" class="btn" data-rep="stock">\ud83d\udce6 Stock</button>'+
     '<button type="button" class="btn" data-rep="overdue">\ud83d\udcb0 Overdue</button>'+
-    '<button type="button" class="btn" data-rep="target">\ud83c\udfaf Target vs Delivery</button>';
+    '<button type="button" class="btn" data-rep="target">\ud83c\udfaf Target vs Delivery</button>'+
+    '<button type="button" class="btn" data-rep="tailored">\ud83e\udde9 Tailored</button>';
   const bs=box.querySelectorAll('button');
-  for(let i=0;i<bs.length;i++){ bs[i].onclick=function(){ const k=this.getAttribute('data-rep'); triggerPDF(scope, this, k==='weekly'?undefined:k); }; }
+  for(let i=0;i<bs.length;i++){ bs[i].onclick=function(){ const k=this.getAttribute('data-rep'); if(k==='tailored'){ exportTailoredPDF(scope, this); } else { triggerPDF(scope, this, k==='weekly'?undefined:k); } }; }
 }
 // Per-card export: snapshot the card's own rendered content into a self-contained, light-themed
 // printable HTML doc (reuses the page stylesheet so it looks exactly like on screen), then print.
@@ -4153,33 +4347,52 @@ function exportCardPDF(id, btn){
   setTimeout(function(){
     try{
       const clone=panel.cloneNode(true);
-      childrenByClass(clone,'sec-bar').forEach(b=>{ try{ clone.removeChild(b); }catch(e){} });   // drop the control bar
       clone.classList.remove('sec-collapsed','sec-hl','sec-hr','sec-removed'); clone.classList.add('sec-full');
-      const title=sectionTitle(panel)||'Card';
+      // keep the chosen date-range visible as plain text before stripping its button/calendar
+      clone.querySelectorAll('.range-field').forEach(function(b){ var d=document.createElement('div'); d.style.cssText='font-weight:700;font-size:14px;margin:2px 0 8px'; d.textContent=(b.textContent||'').replace(/[\u25be\u25b4\ud83d\udcc5]/g,'').trim(); if(b.parentNode) b.parentNode.replaceChild(d,b); });
+      // strip EVERY interactive control so no buttons / upload boxes / toggles appear in the PDF
+      clone.querySelectorAll('.sec-bar, .cal, .range-presets, .stock-search, button, input, select, textarea, label[for], .stockdz').forEach(function(e){ try{ e.remove(); }catch(_e){} });
+      // in each card head keep only the title (eyebrow) — drop hidden hints / leftover control wrappers
+      clone.querySelectorAll('.head').forEach(function(hd){ Array.prototype.slice.call(hd.children).forEach(function(c){ if(!(c.classList&&c.classList.contains('eyebrow'))) { try{ c.remove(); }catch(_e){} } }); });
+      const rawTitle=sectionTitle(panel)||'Card';
+      const cardName=rawTitle.replace(/^[^A-Za-z0-9]+/,'').trim()||rawTitle;   // drop the leading emoji for the eyebrow
       const acct=(ACCOUNT==='All'?'All Clients':ACCOUNT);
-      const styles=[].map.call(document.querySelectorAll('style'),s=>s.textContent).join('\n');
-      const html='<!DOCTYPE html><html data-theme="light"><head><meta charset="UTF-8">'
-        +'<meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(title)+' \u2014 '+esc(acct)+'</title>'
+      const yr=new Date().getFullYear();
+      const styles=[].map.call(document.querySelectorAll('style'),function(s){return s.textContent;}).join('\n');
+      // ── header in the same style/format as the Al Jabr weekly PDF ──
+      const head='<div style="background:#fff;border:1px solid #E5E7EB;border-top:3px solid #1D4ED8;border-radius:14px;box-shadow:0 1px 2px rgba(15,23,42,.05);padding:13px 18px;margin-bottom:11px">'
+        +'<table style="width:100%;border-collapse:collapse"><tr>'
+        +'<td style="vertical-align:top">'
+        +'<div style="font-size:7pt;font-weight:700;color:#64748B;letter-spacing:.16em;text-transform:uppercase;margin-bottom:4px">'+esc(cardName)+'</div>'
+        +'<div style="font-size:21pt;font-weight:900;line-height:1.05;color:#102A56">'+esc(acct)+'</div>'
+        +'</td><td style="vertical-align:top;text-align:right">'
+        +'<div style="font-size:6.5pt;color:#9CA3AF;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px">Report date</div>'
+        +'<div style="font-size:13pt;font-weight:900;color:#1D4ED8;font-variant-numeric:tabular-nums">'+REPORT_DATE+'</div>'
+        +'</td></tr></table></div>';
+      const footer='<div style="margin-top:10px;padding-top:8px;border-top:1px solid #E5E7EB;display:flex;justify-content:space-between;font-size:6.5pt;color:#9CA3AF">'
+        +'<span>Confidential \u00b7 prepared exclusively for '+esc(acct)+' \u00b7 empty can supply.</span>'
+        +'<span>\u00a9 '+yr+' \u00b7 '+esc(cardName)+' issued '+REPORT_DATE+'</span></div>';
+      const html='<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8">'
+        +'<meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(acct)+' \u2014 '+esc(cardName)+'</title>'
         +'<style>'+styles
-        +'\n@page{size:A4 portrait;margin:1.0cm}'
-        +'\nhtml,body{background:#fff!important;margin:0}'
-        +'\n.no-print{position:fixed;top:0;left:0;right:0;padding:8px 14px;background:#EFF6FF;border-bottom:1px solid #BFDBFE;display:flex;justify-content:space-between;align-items:center;gap:10px;z-index:99}'
-        +'\n.no-print b{font-size:13px;color:#1E40AF}.no-print button{background:#1D4ED8;color:#fff;border:none;border-radius:7px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer}'
+        +'\n@page{size:A4 portrait;margin:1.1cm}'
+        +'\nhtml{background:#F4F6FA}'
+        +'\nbody{background:#F4F6FA!important;color:#0F172A;font-family:\'Helvetica Neue\',Arial,sans-serif;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+        +'\n.no-print{position:fixed;top:0;left:0;right:0;padding:10px 16px;background:#EFF6FF;border-bottom:1px solid #BFDBFE;display:flex;justify-content:space-between;align-items:center;gap:12px;z-index:99}'
+        +'\n.no-print span{font-size:12px;color:#1E40AF}.no-print button{background:#1D4ED8;color:#fff;border:none;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;cursor:pointer}'
         +'\n@media print{.no-print{display:none!important}}'
-        +'\n.wrap{max-width:1100px;margin:0 auto;padding:54px 18px 18px}@media print{.wrap{padding:0}}'
-        +'\n.rpt-h{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #1D4ED8;padding-bottom:8px;margin-bottom:12px}'
-        +'\n.rpt-h .t{font-size:15pt;font-weight:900;color:#102A56}.rpt-h .s{font-size:9pt;color:#6B7280}'
-        +'\n.panel{box-shadow:none!important;break-inside:avoid;margin:0!important}'
+        +'\n.page{max-width:900px;margin:0 auto;padding:56px 14px 14px}@media print{.page{padding:0}}'
+        +'\n#cardapp{max-width:none;margin:0;padding:0}'
+        +'\n.panel{box-shadow:none!important;break-inside:auto;margin:0!important;border-color:#E5E7EB!important}'
         +'</style></head><body>'
-        +'<div class="no-print"><b>\ud83d\udcc4 '+esc(title)+' \u00b7 '+esc(acct)+'</b><button onclick="window.print()">\ud83d\udda8\ufe0f Save as PDF</button></div>'
-        +'<div class="wrap"><div class="rpt-h"><div class="t">'+esc(title)+'</div><div class="s">'+esc(acct)+' \u00b7 '+REPORT_DATE+'</div></div>'
-        +'<div id="app" style="padding:0">'+clone.outerHTML+'</div></div>'
-        +'<scr'+'ipt>window.addEventListener("load",function(){setTimeout(function(){window.print();},500);});</scr'+'ipt>'
+        +'<div class="no-print"><span>\ud83d\udcc4 <b>'+esc(acct)+'</b> \u2014 '+esc(cardName)+' \u00b7 Ready to save as PDF</span><button onclick="window.print()">\ud83d\udda8\ufe0f Save as PDF</button></div>'
+        +'<div class="page">'+head+'<div id="cardapp">'+clone.outerHTML+'</div>'+footer+'</div>'
+        +'<scr'+'ipt>window.addEventListener("load",function(){setTimeout(function(){window.print();},600);});</scr'+'ipt>'
         +'</body></html>';
       const blob=new Blob([html],{type:'text/html'}); const url=URL.createObjectURL(blob);
       const w=window.open(url,'_blank');
-      if(!w){ const a=document.createElement('a'); a.href=url; a.download=(acct+'_'+title).replace(/[^A-Za-z0-9]+/g,'_')+'.html'; document.body.appendChild(a); a.click(); a.remove(); showToast('\ud83d\udcc4 PDF ready \u2014 opened as a download (allow pop-ups to print directly).'); }
-      setTimeout(()=>{ try{ URL.revokeObjectURL(url); }catch(e){} }, 30000);
+      if(!w){ const a=document.createElement('a'); a.href=url; a.download=(acct+'_'+cardName).replace(/[^A-Za-z0-9]+/g,'_')+'.html'; document.body.appendChild(a); a.click(); a.remove(); showToast('\ud83d\udcc4 PDF ready \u2014 opened as a download (allow pop-ups to print directly).'); }
+      setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} }, 30000);
     }catch(e){ console.error('card PDF error',e); showToast('\u26a0\ufe0f Could not export this card \u2014 '+e.message); }
     finally{ if(btn) btn.disabled=false; }
   }, 30);
