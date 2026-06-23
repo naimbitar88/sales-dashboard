@@ -281,6 +281,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 [data-theme="light"] .aop-tile{border-color:#93C5FD}
 .aop-tile .lab{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text4);margin-bottom:5px}
 .aop-tile .val{font-size:20px;font-weight:800;line-height:1.1}.aop-tile .sub{font-size:11.5px;color:var(--text3);margin-top:3px}
+/* ── Delivered-by-date-range card + calendar dropdown ── */
+.range-field{display:flex;align-items:center;gap:9px;width:100%;background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;font-weight:600;cursor:pointer;text-align:left}
+[data-theme="light"] .range-field{border-color:#93C5FD}
+.range-field .rf-lbl{flex:1}.range-field .rf-caret{color:var(--text3);font-size:12px}
+.range-presets{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0 2px}
+.cal{margin:10px 0 4px;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px 10px 8px}
+[data-theme="light"] .cal{border-color:#93C5FD}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-title{font-weight:800;font-size:14px;color:var(--text)}
+.cal-nav{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--text2);font-size:17px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cal-nav:hover{color:var(--accent);border-color:var(--accent)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-wd{text-align:center;font-size:10px;font-weight:700;color:var(--text4);text-transform:uppercase;padding:2px 0}
+.cal-cell{min-height:36px;border:none;background:transparent;color:var(--text2);font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+.cal-cell.empty{visibility:hidden;pointer-events:none}
+.cal-cell:hover:not(.empty):not(.sel){background:var(--card)}
+.cal-cell.inrange{background:rgba(88,166,255,.20)}
+.cal-cell.sel{background:var(--accent);color:#fff}
+.range-out{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0 6px}
+.range-sizes{display:flex;flex-direction:column;gap:7px;margin-top:8px}
+.szrow{display:flex;align-items:center;gap:10px}
+.szrow .szlab{width:78px;font-size:12px;font-weight:700;color:var(--text2)}
+.szrow .track{flex:1}
+.szrow .szval{width:62px;text-align:right;font-size:12px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+@media(max-width:620px){.range-out{grid-template-columns:1fr 1fr}}
 .aop-pace{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:11px;font-size:13px;font-weight:600;margin-top:12px;flex-wrap:wrap}
 .aop-pill{font-weight:800;padding:3px 10px;border-radius:999px;font-size:12px;white-space:nowrap;color:#fff}
 .aop-legend{display:flex;gap:13px;font-size:11px;color:var(--text3);margin:2px 0 8px;font-weight:600;flex-wrap:wrap}
@@ -304,12 +329,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .sec-bar-title{display:none}
 .panel.sec-collapsed .sec-bar-title{display:block;flex:1 1 auto;min-width:0;font-size:13px;font-weight:700;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:auto}
 /* every control is a round icon button — same diameter */
-.sec-toggle,.sec-remove,.sec-wseg,.move-handle{width:27px;height:27px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1px solid var(--border2);border-radius:50%;background:var(--card2);color:var(--text3);cursor:pointer;transition:.12s;-webkit-tap-highlight-color:transparent}
+.sec-toggle,.sec-remove,.sec-wseg,.sec-pdf,.move-handle{width:27px;height:27px;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;padding:0;border:1px solid var(--border2);border-radius:50%;background:var(--card2);color:var(--text3);cursor:pointer;transition:.12s;-webkit-tap-highlight-color:transparent}
 .sec-bar svg{width:14px;height:14px;display:block;pointer-events:none}
 .sec-toggle:hover{color:var(--accent);border-color:var(--accent)}
 .sec-remove{color:var(--text4)}
 .sec-remove:hover{color:var(--bad);border-color:var(--bad)}
-[data-theme="light"] .sec-toggle,[data-theme="light"] .sec-remove,[data-theme="light"] .sec-wseg,[data-theme="light"] .move-handle{border-color:#93C5FD}
+.sec-pdf:hover{color:var(--accent);border-color:var(--accent)}
+[data-theme="light"] .sec-toggle,[data-theme="light"] .sec-remove,[data-theme="light"] .sec-wseg,[data-theme="light"] .sec-pdf,[data-theme="light"] .move-handle{border-color:#93C5FD}
 /* width control = two round buttons: half | full (active one filled) */
 .sec-wtag{display:inline-flex;align-items:center;gap:5px}
 .sec-wseg:hover{color:var(--accent);border-color:var(--accent)}
@@ -405,7 +431,7 @@ body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:no
 
   /* control bar */
   .sec-bar{gap:6px;margin-bottom:8px}
-  .sec-toggle,.sec-remove,.sec-wseg,.move-handle{width:28px;height:28px}
+  .sec-toggle,.sec-remove,.sec-wseg,.sec-pdf,.move-handle{width:28px;height:28px}
 
   /* pace callout */
   .aop-pace{font-size:12px;padding:9px 11px;gap:8px}
@@ -450,7 +476,7 @@ body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:no
   .chip.acct{display:inline-block;line-height:34px;padding-top:0;padding-bottom:0;overflow:hidden;text-overflow:ellipsis}
   .btn{min-height:34px!important;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
   .momtoggle button{min-height:32px!important;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
-  .sec-toggle,.sec-remove,.sec-wseg,.move-handle{width:32px!important;height:32px!important}
+  .sec-toggle,.sec-remove,.sec-wseg,.sec-pdf,.move-handle{width:32px!important;height:32px!important}
   .sec-add-btn{width:30px!important;height:30px!important}
   .mg-list button{min-height:46px!important}
   .mg-back{min-height:42px!important}
@@ -623,6 +649,7 @@ body.sec-dragging-active .sec-add{display:none}
       <span class="flabel">Files</span>
       <div id="custDataStatusRows" style="display:flex;flex-wrap:wrap;gap:8px;min-width:0"></div>
     </div>
+    <div class="frow" id="reportsRow"><span class="flabel">Reports</span><div class="fchips" id="reportButtons" style="display:flex;flex-wrap:wrap;gap:8px;min-width:0"></div></div>
     <!-- file inputs: must never be in a display:none element or iOS tap breaks -->
     <input type="file" id="dsTargetInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
     <input type="file" id="dsARInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
@@ -636,19 +663,11 @@ body.sec-dragging-active .sec-add{display:none}
     <div class="head"><span class="eyebrow">📊 Key Metrics</span></div>
     <div class="kpis" id="kpis"></div>
   </div>
-  <!-- all-accounts report toolbar (mirrors the per-customer one) -->
-  <div class="panel" id="allToolbar">
-    <div class="head"><span class="eyebrow">🧰 PDF Reports</span><span class="hint">generate a report across all accounts</span></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn primary" id="allWeeklyBtn">📅 Weekly</button>
-      <button class="btn" id="allStockBtn">📦 Stock</button>
-      <button class="btn" id="allOverdueBtn">💰 Overdue</button>
-      <button class="btn" id="allTargetBtn">🎯 Target vs Delivery</button>
-    </div>
-  </div>
-
   <!-- latest delivery: all accounts -->
   <div class="panel" id="latestPanelAll"></div>
+
+  <!-- delivered by date range: all accounts -->
+  <div class="panel" id="rangePanel"></div>
 
   <!-- target vs delivered: all accounts view -->
   <div class="panel" id="targetPanelAll">
@@ -728,18 +747,11 @@ body.sec-dragging-active .sec-add{display:none}
       <div class="head"><span class="eyebrow">📊 Key Metrics</span></div>
       <div class="kpis" id="kpisCust"></div>
     </div>
-    <!-- per-customer report toolbar -->
-    <div class="panel" id="custToolbar">
-      <div class="head"><span class="eyebrow">🧰 Customer reports</span><span class="hint">generate a focused PDF for this customer</span></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn primary" id="custPdfBtn">📅 Weekly</button>
-        <button class="btn" id="stockPdfBtn">📦 Stock</button>
-        <button class="btn" id="overduePdfBtn">💰 Overdue</button>
-        <button class="btn" id="targetPdfBtn">🎯 Target vs Delivery</button>
-      </div>
-    </div>
     <!-- latest delivery: customer -->
     <div class="panel" id="custLatestPanel"></div>
+
+    <!-- delivered by date range: customer -->
+    <div class="panel" id="custRangePanel"></div>
     <!-- customer target card: driven by global TARGET, sits right after monthly volume -->
     <div class="panel" id="custTargetPanel"></div>
     <!-- customer AOP VS Delivered (split into cards) -->
@@ -818,7 +830,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 25 Jun 2026 · 00:45</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 25 Jun 2026 · 02:05</div>
 </div>
 
 <div id="report"></div>
@@ -1290,7 +1302,8 @@ const SEC_IC={
   x:      _SVG+'<path d="M18 6 6 18M6 6l12 12"/></svg>',
   half:   _SVG+'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg>',
   full:   _SVG+'<rect x="3" y="7" width="18" height="10" rx="2"/></svg>',
-  grip:   _SVG+'<path d="M12 3v18M3 12h18M12 3 9.5 5.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></svg>'
+  grip:   _SVG+'<path d="M12 3v18M3 12h18M12 3 9.5 5.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></svg>',
+  pdf:    _SVG+'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>'
 };
 // Smoothly animate a layout change: record card positions, run the change, then glide each card
 // from its old spot to its new one (translate only — no scaling, so content never distorts).
@@ -1349,6 +1362,7 @@ function applySectionToggles(){
               ? '<span class="sec-wtag locked" title="This section is always full width"><button type="button" class="sec-wseg" disabled aria-label="Always full width">'+SEC_IC.full+'</button></span>'
               : '<span class="sec-wtag"><button type="button" class="sec-wseg" data-w="'+(isFull?'half':'full')+'" data-wid="'+id+'" aria-label="'+(isFull?'Switch to half width':'Switch to full width')+'" title="'+(isFull?'Full width \u2014 tap for half':'Half width \u2014 tap for full')+'">'+(isFull?SEC_IC.full:SEC_IC.half)+'</button></span>';
           }
+          h += '<button type="button" class="sec-pdf" data-pdfid="'+id+'" aria-label="Save '+esc(title)+' as PDF" title="Save this card as PDF">'+SEC_IC.pdf+'</button>';
           h += '<button type="button" class="sec-toggle" data-sec="'+id+'" aria-label="Hide '+esc(title)+'" title="Hide">'+SEC_IC.eye+'</button>';
           if(!exclude) h += '<button type="button" class="sec-remove" data-rm="'+id+'" aria-label="Remove '+esc(title)+'" title="Remove this section">'+SEC_IC.x+'</button>';
         }
@@ -1486,6 +1500,8 @@ function setupSectionObserver(){
       const closest = sel => ev.target && ev.target.closest ? ev.target.closest(sel) : null;
       const seg=closest('.sec-wtag:not(.locked) .sec-wseg');
       if(seg && app.contains(seg)){ ev.stopPropagation(); ev.preventDefault(); closeAddMenu(); setSecWidth(seg.getAttribute('data-wid'), seg.getAttribute('data-w')); return; }
+      const pdfb=closest('.sec-pdf');
+      if(pdfb && app.contains(pdfb)){ ev.stopPropagation(); ev.preventDefault(); closeAddMenu(); exportCardPDF(pdfb.getAttribute('data-pdfid'), pdfb); return; }
       const tog=closest('.sec-toggle');
       if(tog && app.contains(tog)){ ev.stopPropagation(); ev.preventDefault(); closeAddMenu(); toggleSection(tog.getAttribute('data-sec')); return; }
       const rm=closest('.sec-remove');
@@ -1639,7 +1655,8 @@ function render(){
   // ── toggle which view's grid is visible for this scope ──
   document.getElementById('allGrid').classList.toggle('hide', isCust);
   document.getElementById('custView').classList.toggle('hide', !isCust);
-  document.getElementById('allToolbar').classList.remove('hide');     // lives inside #allGrid; never individually hidden
+  renderReportButtons();     // report buttons live in the filters section (after Files), scoped to the active view
+  renderRange();             // delivered-by-date-range card (per-day)
   renderCustDataStatus();
 
   // Keep the upload panels before "YTD Delivered By Month" in BOTH views.
@@ -3017,6 +3034,92 @@ function latestDay(){ if(!DATA||!DATA.rows) return null; let mx=null; for(const 
 function deliveredOnDay(scope,day){ if(!DATA||day==null) return 0; return DATA.rows.filter(r=>r.day===day&&(scope==='__ALL__'||r.account===scope)).reduce((s,r)=>s+r.qty,0); }
 // delivery days remaining in the month AFTER the latest delivery day
 function daysLeftInMonth(){ const k=latestDay(); if(!k) return null; const y=Math.floor(k/10000), m=Math.floor(k/100)%100, d=k%100; const dim=new Date(y,m,0).getDate(); return Math.max(0,dim-d); }
+
+/* ════════════════ DELIVERED BY DATE RANGE (per-day, needs the Ac-GI date column) ════════════════ */
+let RANGE_START=null, RANGE_END=null, RANGE_OPEN=false, RANGE_VIEW=null;   // day keys (YYYYMMDD); RANGE_VIEW={y,m(0-based)} of the visible calendar month
+function _rangeKeyToDate(k){ const y=Math.floor(k/10000), m=Math.floor(k/100)%100, d=k%100; return new Date(Date.UTC(y,m-1,d)); }
+function _rangeAddDays(k,n){ const dt=_rangeKeyToDate(k); dt.setUTCDate(dt.getUTCDate()+n); return dt.getUTCFullYear()*10000+(dt.getUTCMonth()+1)*100+dt.getUTCDate(); }
+function _rangeDayCount(a,b){ const lo=Math.min(a,b),hi=Math.max(a,b); return Math.round((_rangeKeyToDate(hi)-_rangeKeyToDate(lo))/86400000)+1; }
+function _defaultRangeView(){ const last=latestDay(); if(last!=null) return {y:Math.floor(last/10000),m:(Math.floor(last/100)%100)-1}; const t=new Date(); return {y:t.getFullYear(),m:t.getMonth()}; }
+// total cans delivered in [a..b] inclusive, for a scope ('__ALL__' or an account)
+function deliveredInRange(scope,a,b){ if(!DATA||!DATA.rows||a==null||b==null) return 0; const lo=Math.min(a,b),hi=Math.max(a,b);
+  return DATA.rows.filter(r=>r.day!=null&&r.day>=lo&&r.day<=hi&&(scope==='__ALL__'||r.account===scope)).reduce((s,r)=>s+r.qty,0); }
+function rangeNav(delta){ if(!RANGE_VIEW) RANGE_VIEW=_defaultRangeView(); let m=RANGE_VIEW.m+delta, y=RANGE_VIEW.y; while(m<0){m+=12;y--;} while(m>11){m-=12;y++;} RANGE_VIEW={y,m}; renderRange(); }
+function rangePickDay(k){
+  if(RANGE_START==null || RANGE_END!=null){ RANGE_START=k; RANGE_END=null; }   // start a fresh range
+  else if(k<RANGE_START){ RANGE_END=RANGE_START; RANGE_START=k; }               // picked before start -> swap
+  else { RANGE_END=k; }                                                          // complete the range
+  renderRange();
+}
+function rangePreset(kind){ const last=latestDay(); if(last==null) return;
+  if(kind==='last7'){ RANGE_END=last; RANGE_START=_rangeAddDays(last,-6); }
+  else if(kind==='last30'){ RANGE_END=last; RANGE_START=_rangeAddDays(last,-29); }
+  else if(kind==='thismonth'){ const y=Math.floor(last/10000),m=Math.floor(last/100)%100; RANGE_START=y*10000+m*100+1; RANGE_END=last; }
+  else if(kind==='clear'){ RANGE_START=null; RANGE_END=null; }
+  if(RANGE_END!=null) RANGE_VIEW={y:Math.floor(RANGE_END/10000),m:(Math.floor(RANGE_END/100)%100)-1};
+  renderRange();
+}
+function _calGridHTML(){
+  if(!RANGE_VIEW) RANGE_VIEW=_defaultRangeView();
+  const y=RANGE_VIEW.y, m=RANGE_VIEW.m;
+  const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const first=new Date(Date.UTC(y,m,1)).getUTCDay();
+  const dim=new Date(Date.UTC(y,m+1,0)).getUTCDate();
+  const lo=(RANGE_START!=null&&RANGE_END!=null)?Math.min(RANGE_START,RANGE_END):RANGE_START;
+  const hi=(RANGE_START!=null&&RANGE_END!=null)?Math.max(RANGE_START,RANGE_END):RANGE_END;
+  let cells='';
+  for(let i=0;i<first;i++) cells+='<div class="cal-cell empty"></div>';
+  for(let d=1;d<=dim;d++){ const k=y*10000+(m+1)*100+d;
+    const ends=(k===RANGE_START||k===RANGE_END);
+    const within=(lo!=null&&hi!=null&&k>=lo&&k<=hi);
+    const cls='cal-cell'+(ends?' sel':(within?' inrange':''));
+    cells+='<button type="button" class="'+cls+'" data-k="'+k+'">'+d+'</button>';
+  }
+  const wd=['Su','Mo','Tu','We','Th','Fr','Sa'].map(w=>'<div class="cal-wd">'+w+'</div>').join('');
+  return '<div class="cal"><div class="cal-head">'
+    +'<button type="button" class="cal-nav" data-nav="-1" aria-label="Previous month">\u2039</button>'
+    +'<span class="cal-title">'+MN[m]+' '+y+'</span>'
+    +'<button type="button" class="cal-nav" data-nav="1" aria-label="Next month">\u203a</button></div>'
+    +'<div class="cal-grid">'+wd+cells+'</div></div>';
+}
+function renderRange(){
+  const id=(ACCOUNT==='All')?'rangePanel':'custRangePanel';
+  const otherEl=document.getElementById((ACCOUNT==='All')?'custRangePanel':'rangePanel'); if(otherEl) otherEl.innerHTML='';
+  const panel=document.getElementById(id); if(!panel) return;
+  const scope=(ACCOUNT==='All')?'__ALL__':ACCOUNT;
+  let h='<div class="head"><span class="eyebrow">\ud83d\uddd3\ufe0f Delivered by Date Range</span></div>';
+  if(latestDay()==null){
+    h+='<div style="padding:6px 0;font-size:12px;color:var(--text3)">This sales file has no delivery-date column, so a date-range total can\u2019t be computed (looked for an \u201cAc-GI date\u201d column). Re-upload a sales export that includes the GI date.</div>';
+    panel.innerHTML=h; return;
+  }
+  const lbl=(RANGE_START!=null&&RANGE_END!=null) ? (dayKeyLabel(Math.min(RANGE_START,RANGE_END))+'  \u2192  '+dayKeyLabel(Math.max(RANGE_START,RANGE_END)))
+          : (RANGE_START!=null) ? (dayKeyLabel(RANGE_START)+'  \u2192  pick the end date')
+          : 'Tap to pick a start and end date';
+  h+='<button type="button" class="range-field" data-rf="1"><span class="rf-cal">\ud83d\udcc5</span><span class="rf-lbl">'+esc(lbl)+'</span><span class="rf-caret">'+(RANGE_OPEN?'\u25b4':'\u25be')+'</span></button>';
+  h+='<div class="range-presets"><button type="button" class="chip" data-pr="last7">Last 7 days</button><button type="button" class="chip" data-pr="last30">Last 30 days</button><button type="button" class="chip" data-pr="thismonth">This month</button><button type="button" class="chip" data-pr="clear">Clear</button></div>';
+  if(RANGE_OPEN) h+=_calGridHTML();
+  if(RANGE_START!=null&&RANGE_END!=null){
+    const tot=deliveredInRange(scope,RANGE_START,RANGE_END), nd=_rangeDayCount(RANGE_START,RANGE_END), avg=nd>0?tot/nd:0;
+    h+='<div class="range-out">'
+      +'<div class="aop-tile"><div class="lab">Delivered</div><div class="val num" style="color:var(--accent)">'+MM(tot)+'</div><div class="sub num">'+fmt(tot)+' cans</div></div>'
+      +'<div class="aop-tile"><div class="lab">Period</div><div class="val num">'+nd+'</div><div class="sub">day'+(nd===1?'':'s')+'</div></div>'
+      +'<div class="aop-tile"><div class="lab">Daily average</div><div class="val num">'+MM(avg)+'</div><div class="sub num">'+fmt(Math.round(avg))+' cans/day</div></div></div>';
+    const bySize={}; REAL.forEach(s=>bySize[s]=0);
+    const lo=Math.min(RANGE_START,RANGE_END),hi=Math.max(RANGE_START,RANGE_END);
+    DATA.rows.forEach(r=>{ if(r.day!=null&&r.day>=lo&&r.day<=hi&&(scope==='__ALL__'||r.account===scope)) bySize[r.size]=(bySize[r.size]||0)+r.qty; });
+    const mx=Math.max(1,...REAL.map(s=>bySize[s]||0));
+    const sz=REAL.filter(s=>(bySize[s]||0)>0).map(s=>{ const v=bySize[s]||0, w=Math.min(100,v/mx*100);
+      return '<div class="szrow"><span class="szlab">'+SIZE_LABEL[s]+'</span><div class="track"><div class="fill" style="width:'+w+'%;background:'+SIZE_COLORS[s]+'"></div></div><span class="szval num">'+MM(v)+'</span></div>'; }).join('');
+    if(sz) h+='<div class="range-sizes">'+sz+'</div>';
+  } else {
+    h+='<div style="padding:8px 0;font-size:12px;color:var(--text3)">Choose a date range above to see how much was delivered in that period'+(scope==='__ALL__'?' across all clients.':' for '+esc(scope)+'.')+'</div>';
+  }
+  panel.innerHTML=h;
+  const fld=panel.querySelector('[data-rf]'); if(fld) fld.onclick=function(){ RANGE_OPEN=!RANGE_OPEN; renderRange(); };
+  panel.querySelectorAll('.range-presets [data-pr]').forEach(b=>{ b.onclick=function(){ rangePreset(b.getAttribute('data-pr')); }; });
+  panel.querySelectorAll('.cal-nav[data-nav]').forEach(b=>{ b.onclick=function(){ rangeNav(+b.getAttribute('data-nav')); }; });
+  panel.querySelectorAll('.cal-cell[data-k]').forEach(b=>{ b.onclick=function(){ rangePickDay(+b.getAttribute('data-k')); }; });
+}
 // total monthly target across all customers (MM)
 function totalTargetMM(){ return (TARGET&&TARGET.customers)?TARGET.customers.reduce((s,c)=>s+(c.tgt||0),0):0; }
 // total delivered this (target) month across all accounts (MM)
@@ -4014,16 +4117,57 @@ function triggerPDF(scope, btn, only){
     }
   }, 40);
 }
-document.getElementById('custPdfBtn').onclick=function(){
-  triggerPDF(ACCOUNT==='All'?'__ALL__':ACCOUNT, this);
-};
-document.getElementById('stockPdfBtn').onclick=function(){ if(ACCOUNT!=='All') triggerPDF(ACCOUNT, this, 'stock'); };
-document.getElementById('overduePdfBtn').onclick=function(){ if(ACCOUNT!=='All') triggerPDF(ACCOUNT, this, 'overdue'); };
-document.getElementById('targetPdfBtn').onclick=function(){ if(ACCOUNT!=='All') triggerPDF(ACCOUNT, this, 'target'); };
-document.getElementById('allWeeklyBtn').onclick=function(){ triggerPDF('__ALL__', this); };
-document.getElementById('allStockBtn').onclick=function(){ triggerPDF('__ALL__', this, 'stock'); };
-document.getElementById('allOverdueBtn').onclick=function(){ triggerPDF('__ALL__', this, 'overdue'); };
-document.getElementById('allTargetBtn').onclick=function(){ triggerPDF('__ALL__', this, 'target'); };
+// Report buttons live in the filters section (after Files). Rebuilt each render, scoped to the active view.
+function renderReportButtons(){
+  const box=document.getElementById('reportButtons'); if(!box) return;
+  const scope=(ACCOUNT==='All')?'__ALL__':ACCOUNT;
+  box.innerHTML=
+    '<button type="button" class="btn primary" data-rep="weekly">\ud83d\udcc5 Weekly</button>'+
+    '<button type="button" class="btn" data-rep="stock">\ud83d\udce6 Stock</button>'+
+    '<button type="button" class="btn" data-rep="overdue">\ud83d\udcb0 Overdue</button>'+
+    '<button type="button" class="btn" data-rep="target">\ud83c\udfaf Target vs Delivery</button>';
+  const bs=box.querySelectorAll('button');
+  for(let i=0;i<bs.length;i++){ bs[i].onclick=function(){ const k=this.getAttribute('data-rep'); triggerPDF(scope, this, k==='weekly'?undefined:k); }; }
+}
+// Per-card export: snapshot the card's own rendered content into a self-contained, light-themed
+// printable HTML doc (reuses the page stylesheet so it looks exactly like on screen), then print.
+function exportCardPDF(id, btn){
+  const panel=document.getElementById(id); if(!panel) return;
+  if(btn) btn.disabled=true;
+  setTimeout(function(){
+    try{
+      const clone=panel.cloneNode(true);
+      childrenByClass(clone,'sec-bar').forEach(b=>{ try{ clone.removeChild(b); }catch(e){} });   // drop the control bar
+      clone.classList.remove('sec-collapsed','sec-hl','sec-hr','sec-removed'); clone.classList.add('sec-full');
+      const title=sectionTitle(panel)||'Card';
+      const acct=(ACCOUNT==='All'?'All Clients':ACCOUNT);
+      const styles=[].map.call(document.querySelectorAll('style'),s=>s.textContent).join('\n');
+      const html='<!DOCTYPE html><html data-theme="light"><head><meta charset="UTF-8">'
+        +'<meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(title)+' \u2014 '+esc(acct)+'</title>'
+        +'<style>'+styles
+        +'\n@page{size:A4 portrait;margin:1.0cm}'
+        +'\nhtml,body{background:#fff!important;margin:0}'
+        +'\n.no-print{position:fixed;top:0;left:0;right:0;padding:8px 14px;background:#EFF6FF;border-bottom:1px solid #BFDBFE;display:flex;justify-content:space-between;align-items:center;gap:10px;z-index:99}'
+        +'\n.no-print b{font-size:13px;color:#1E40AF}.no-print button{background:#1D4ED8;color:#fff;border:none;border-radius:7px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer}'
+        +'\n@media print{.no-print{display:none!important}}'
+        +'\n.wrap{max-width:1100px;margin:0 auto;padding:54px 18px 18px}@media print{.wrap{padding:0}}'
+        +'\n.rpt-h{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #1D4ED8;padding-bottom:8px;margin-bottom:12px}'
+        +'\n.rpt-h .t{font-size:15pt;font-weight:900;color:#102A56}.rpt-h .s{font-size:9pt;color:#6B7280}'
+        +'\n.panel{box-shadow:none!important;break-inside:avoid;margin:0!important}'
+        +'</style></head><body>'
+        +'<div class="no-print"><b>\ud83d\udcc4 '+esc(title)+' \u00b7 '+esc(acct)+'</b><button onclick="window.print()">\ud83d\udda8\ufe0f Save as PDF</button></div>'
+        +'<div class="wrap"><div class="rpt-h"><div class="t">'+esc(title)+'</div><div class="s">'+esc(acct)+' \u00b7 '+REPORT_DATE+'</div></div>'
+        +'<div id="app" style="padding:0">'+clone.outerHTML+'</div></div>'
+        +'<scr'+'ipt>window.addEventListener("load",function(){setTimeout(function(){window.print();},500);});</scr'+'ipt>'
+        +'</body></html>';
+      const blob=new Blob([html],{type:'text/html'}); const url=URL.createObjectURL(blob);
+      const w=window.open(url,'_blank');
+      if(!w){ const a=document.createElement('a'); a.href=url; a.download=(acct+'_'+title).replace(/[^A-Za-z0-9]+/g,'_')+'.html'; document.body.appendChild(a); a.click(); a.remove(); showToast('\ud83d\udcc4 PDF ready \u2014 opened as a download (allow pop-ups to print directly).'); }
+      setTimeout(()=>{ try{ URL.revokeObjectURL(url); }catch(e){} }, 30000);
+    }catch(e){ console.error('card PDF error',e); showToast('\u26a0\ufe0f Could not export this card \u2014 '+e.message); }
+    finally{ if(btn) btn.disabled=false; }
+  }, 30);
+}
 // PDF icons on each account bar in the overview
 document.getElementById('accts').addEventListener('click',e=>{
   const btn=e.target.closest('[data-pdf]');
