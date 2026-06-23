@@ -4,6 +4,13 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Sales Dashboard</title>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Sales Dash"/>
+<meta name="theme-color" content="#0D1117"/>
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAACRElEQVR42u3dsWnDQBSAYdmkcGOCiuCskODG4Ek8RNoM4DoDpPUQmiSQJiQrGFwYdymzQDi/E0j4dN9fP1TofZxkEHi2bFeN9F9zt0BwCA7BITgEh+AQHIJDcAgOCQ7BITgEh+AQHIJDcAgOwSHBITgEh+DQmN25BTfb58N9emBzujg5yOg/A0eNMkbwAUfBMob2AYfgEByCQ3AIDsEhOASH4BAcEhyKV/v3HL9vu/TAYt85OcjoPwNHjTIq9zEngw84BIfgEByCQ3AIDsEhOASHBIfgEByCQ3AIDsEhODTVyvv6/HH3lR44dmt7rfHkuCojOKOp4YhvnY+6cOTumw8vpIJDfq2U3sfLOT2wPbRODjL6z8BRo4zifMAxqoyyfMAhOASH4BAcgkNwCA7BITgEhwSH4BAcgkNwCA7BodIb4+vz16fv9MD7z7NN1HhyXJURnNHUcMS3zkddOHL3zYcXUsEhOASH4JDgEByCQ3AIDsEhOASH4BAcEhyCQ3AIDsEhOASH4BAcgkNwSHAIDsEhOASH4BAcgkNwCA4JDsEhOASH4BAcgkNwCA7BIcEhOASH4BAcgkNV4sj9t9j0/LFbZ10tPb/Yd1lXS89vD23W1dLzm9Ml62q587dycsR9RCbjPiKTcR+RybiPyGR838PJGOOxEtl63FBk63FDka3HDUW2HjcU2fqgMpqmmS3blYervJAKDsEhOASH4BAcgkNwCA4JDsEhOASH4BAcgkNwCA7BIcEhOASH4BAcgkNwCA5Nqj/H8mrbd43qZgAAAABJRU5ErkJggg=="/>
+<link rel="manifest" href="manifest.webmanifest"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
 <style>
 /* ───────────────────────── THEME TOKENS ───────────────────────── */
@@ -577,6 +584,16 @@ body.sec-dragging-active .sec-add{display:none}
   });
   setTimeout(function(){ var el=document.getElementById('authUser'); if(el) el.focus(); },120);
 })();
+// Register the offline service worker so the dashboard works without internet (Add to Home Screen on iPad).
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      var first=!navigator.serviceWorker.controller;
+      if(reg && reg.addEventListener) reg.addEventListener('updatefound',function(){});
+      if(first){ navigator.serviceWorker.addEventListener('controllerchange',function(){}); }
+    }).catch(function(){});
+  });
+}
 </script>
 
 <!-- ======================= UPLOAD ======================= -->
@@ -830,7 +847,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 25 Jun 2026 · 02:05</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 25 Jun 2026 · 02:45</div>
 </div>
 
 <div id="report"></div>
