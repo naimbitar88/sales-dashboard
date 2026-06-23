@@ -818,7 +818,7 @@ body.sec-dragging-active .sec-add{display:none}
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 25 Jun 2026 · 00:05</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 25 Jun 2026 · 00:45</div>
 </div>
 
 <div id="report"></div>
@@ -1116,7 +1116,10 @@ function barRows(entries,total,color,clickable){
 const LS_SECTIONS='salesdash_sections_v1';
 const LS_ORDER='salesdash_order_v1';
 let SECTION_STATE={};
-try{ const _ss=localStorage.getItem(LS_SECTIONS); if(_ss) SECTION_STATE=JSON.parse(_ss)||{}; }catch(e){}
+let _LEGACY_SECSTATE={};          // legacy flat hide-state (pre per-page) — seeds customer pages once
+try{ const _ss=localStorage.getItem(LS_SECTIONS); if(_ss){ const o=JSON.parse(_ss)||{};
+  Object.keys(o).forEach(k=>{ if(k.indexOf('|')>=0){ SECTION_STATE[k]=o[k]; } else { SECTION_STATE['all|'+k]=o[k]; _LEGACY_SECSTATE[k]=o[k]; } });   // legacy flat keys belong to the All page
+} }catch(e){}
 // per-view list of {id, w:'half'|'full'} (older saves stored plain id strings -> treated as full)
 function _normOrder(a){ return (Array.isArray(a)?a:[]).map(x=>{
   if(x&&x.spacer) return null;                                   // spacers are no longer used (explicit columns now)
@@ -1124,8 +1127,11 @@ function _normOrder(a){ return (Array.isArray(a)?a:[]).map(x=>{
   const w=((x&&x.w)==='half')?'half':'full';
   return {id:(x&&x.id)||'', w, side:((x&&x.side)==='R'?'R':'L'), removed:!!(x&&x.removed)};
 }).filter(o=> o && o.id); }
-let SECTION_ORDER={all:[],cust:[]};
-try{ const _so=localStorage.getItem(LS_ORDER); if(_so){ const o=JSON.parse(_so); if(o&&typeof o==='object'){ SECTION_ORDER.all=_normOrder(o.all); SECTION_ORDER.cust=_normOrder(o.cust); } } }catch(e){}
+let SECTION_ORDER={};            // map: 'all' | 'cust:<account>' -> [layout entries]; each page independent
+let _CUST_SEED=[];               // legacy shared customer layout — seeds a customer page that has none of its own yet
+try{ const _so=localStorage.getItem(LS_ORDER); if(_so){ const o=JSON.parse(_so); if(o&&typeof o==='object'){
+  Object.keys(o).forEach(k=>{ if(k==='cust'){ _CUST_SEED=_normOrder(o[k]); } else { SECTION_ORDER[k]=_normOrder(o[k]); } });   // legacy flat 'cust' -> seed; 'all' & any 'cust:<acct>' kept
+} } }catch(e){}
 function saveSections(){ try{ localStorage.setItem(LS_SECTIONS,JSON.stringify(SECTION_STATE)); }catch(e){} }
 function saveOrder(){ try{ localStorage.setItem(LS_ORDER,JSON.stringify(SECTION_ORDER)); }catch(e){} }
 const SECTION_EXCLUDE=new Set(['labelDrill']);                 // no Hide button (own close UX)
@@ -1142,7 +1148,7 @@ function _applyCW(el, e){ const full=_panelWidth(e.id,e.w)==='full';
   el.classList.toggle('sec-full', full);
   el.classList.toggle('sec-hl', !full && e.side!=='R');
   el.classList.toggle('sec-hr', !full && e.side==='R'); }
-function _viewKey(){ return _isCustView()?'cust':'all'; }
+function _viewKey(){ return _isCustView()?('cust:'+ACCOUNT):'all'; }   // each customer page is its own independent layout
 // Every reorderable panel in a container, INCLUDING removed (hidden) ones — i.e. this page's full catalog.
 function catalogPanels(container){ const out=[]; const kids=(container&&container.children)?container.children:[];
   for(let i=0;i<kids.length;i++){ const c=kids[i]; if(c.classList&&c.classList.contains('panel')&&c.id&&!ORDER_EXCLUDE.has(c.id)) out.push(c); } return out; }
@@ -1161,7 +1167,9 @@ function normalizeVis(vis){ const out=[]; let col=0;
 function effLayout(key, container){
   container=container||_orderContainer();
   const cat=catalogPanels(container).map(c=>c.id); const catSet=new Set(cat);
-  const raw=Array.isArray(SECTION_ORDER[key])?SECTION_ORDER[key]:[];
+  let raw=Array.isArray(SECTION_ORDER[key])?SECTION_ORDER[key]:null;
+  if((!raw||!raw.length) && key.indexOf('cust:')===0 && _CUST_SEED.length) raw=_CUST_SEED;   // fresh customer page -> seed from legacy shared layout
+  if(!Array.isArray(raw)) raw=[];
   const seen={}; const vis=[]; const removed=[];
   raw.forEach(e=>{ if(!e||e.spacer||!e.id||!catSet.has(e.id)||seen[e.id]) return; seen[e.id]=1;
     const w=_panelWidth(e.id,(e.w==='half'?'half':'full')), side=(e.side==='R'?'R':'L');
@@ -1188,7 +1196,7 @@ function addSection(id, visGap){
   SECTION_ORDER[key]=vis.concat(removed); saveOrder(); _withFlip(applySectionToggles);
 }
 function sectionTitle(panel){ const eb=panel.querySelector('.eyebrow'); return ((eb?eb.textContent:'')||'').trim()||'Section'; }
-function toggleSection(id){ if(!id) return; SECTION_STATE[id]=!SECTION_STATE[id]; saveSections(); _withFlip(applySectionToggles); }
+function toggleSection(id){ if(!id) return; const k=_viewKey()+'|'+id; SECTION_STATE[k]=!SECTION_STATE[k]; saveSections(); _withFlip(applySectionToggles); }
 function _isCustView(){ return (typeof ACCOUNT!=='undefined') && ACCOUNT!=='All'; }
 function _orderContainer(){ return document.getElementById(_isCustView()?'custView':'allGrid'); }
 // direct-child .panel elements that participate in reordering for the active view
@@ -1312,7 +1320,10 @@ function applySectionToggles(){
       if(!id || SECTION_EXCLUDE.has(id)) return;
       if(!panel.querySelector('.eyebrow')) return;   // skip empty / not-yet-rendered panels
       panel.classList.add('sec');
-      const collapsed=!!SECTION_STATE[id];
+      const _vk=_viewKey(), _ck=_vk+'|'+id;
+      const collapsed = (_ck in SECTION_STATE) ? !!SECTION_STATE[_ck]
+                        : (_vk.indexOf('cust:')===0 && (id in _LEGACY_SECSTATE)) ? !!_LEGACY_SECSTATE[id]
+                        : false;
       panel.classList.toggle('sec-collapsed', collapsed);
       const exclude=ORDER_EXCLUDE.has(id);
       const fullOnly=FULL_ONLY.has(id), isFull=panel.classList.contains('sec-full');
@@ -1400,7 +1411,7 @@ function _onSecDragEnd(){
   el.classList.toggle('sec-hr', !full && right);
   container.insertBefore(el, slot); try{ container.removeChild(slot); }catch(e){}
   document.body.classList.remove('sec-dragging-active');
-  const key=(container.id==='custView')?'cust':'all';
+  const key=_viewKey();
   const removedEntries=effLayout(key,container).filter(o=>o.removed);   // keep removed cards (+ their width/side)
   const visEntries=reorderItems(container,null,null).map(c=>{ const ws=_cardWS(c); return {id:c.id, w:ws.w, side:ws.side, removed:false}; });
   SECTION_ORDER[key]=visEntries.concat(removedEntries);
