@@ -587,10 +587,9 @@ body.sec-dragging-active .sec-add{display:none}
 // Register the offline service worker so the dashboard works without internet (Add to Home Screen on iPad).
 if('serviceWorker' in navigator){
   window.addEventListener('load',function(){
-    navigator.serviceWorker.register('sw.js').then(function(reg){
-      var first=!navigator.serviceWorker.controller;
-      if(reg && reg.addEventListener) reg.addEventListener('updatefound',function(){});
-      if(first){ navigator.serviceWorker.addEventListener('controllerchange',function(){}); }
+    var firstTime = !navigator.serviceWorker.controller;
+    navigator.serviceWorker.register('sw.js').then(function(){ return navigator.serviceWorker.ready; }).then(function(){
+      if(firstTime){ setTimeout(function(){ if(typeof showToast==='function') showToast('\u2705 Saved for offline \u00b7 now add to Home Screen, then it opens with no internet'); }, 1600); }
     }).catch(function(){});
   });
 }
@@ -847,7 +846,7 @@ if('serviceWorker' in navigator){
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 25 Jun 2026 · 02:45</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 25 Jun 2026 · 03:30</div>
 </div>
 
 <div id="report"></div>
