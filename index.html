@@ -4,11 +4,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Sales Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 /* ───────────────────────── THEME TOKENS ───────────────────────── */
 :root,[data-theme="dark"]{
-  --bg:#030408; --bg2:#0B0E14; --card:#10151D; --card2:#161B26;
+  --bg:#0D1117; --bg2:#161B22; --card:#161B22; --card2:#1C2230;
   --border:#21262D; --border2:#30363D;
   --text:#E6EDF3; --text2:#C9D1D9; --text3:#8B949E; --text4:#6E7681;
   --accent:#58A6FF; --accent2:#388BFD; --track:#21262D;
@@ -77,10 +77,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .chip.acct{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* KPI */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px}
-.panel .kpis{margin-top:4px}
-/* when kpis grid is the sole content of a panel, shrink the head */
-#kpisPanel .head,#kpisPanelCust .head{margin-bottom:8px;padding-bottom:6px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px;margin-bottom:16px}
 .kpi{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px 15px;box-shadow:var(--shadow)}
 .kpi .lab{display:flex;align-items:center;gap:7px;margin-bottom:9px}
 .kpi .dot{width:7px;height:7px;border-radius:2px;background:var(--accent)}
@@ -207,11 +204,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .stockdz{display:block;width:100%;border:1.5px dashed var(--border2);border-radius:10px;padding:18px 14px;text-align:center;cursor:pointer;font-size:12px;color:var(--text3);transition:.15s}
 .stockdz:hover,.stockdz.drag{border-color:var(--accent);color:var(--text);background:var(--card2)}
 .stk-ul{color:var(--accent);cursor:pointer}
-.stock-search{display:flex;align-items:center;gap:8px;margin:10px 0 4px}
-.stock-search input{flex:1;min-width:0;background:var(--card2);border:1px solid var(--border2);border-radius:9px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;-webkit-appearance:none}
-.stock-search input::placeholder{color:var(--text4)}
-.stock-search input:focus{border-color:var(--accent)}
-[data-theme="light"] .stock-search input{border-color:#93C5FD}
 /* Stock table badge for months-of-supply */
 .mos{font-size:10px;color:var(--text4);margin-top:1px}
 .mos.ok{color:var(--good)} .mos.low{color:var(--warn)} .mos.critical{color:var(--bad)}
@@ -329,19 +321,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .panel.sec-dragging{box-shadow:0 18px 48px rgba(0,0,0,.5);opacity:.97;border-color:var(--accent);will-change:transform}
 [data-theme="light"] .panel.sec-dragging{box-shadow:0 18px 48px rgba(15,23,42,.22)}
 .sec-slot{border:2px dashed var(--accent);background:var(--card2);border-radius:14px;margin-bottom:14px;min-height:48px;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
-.sec-slot .so{display:inline-block;padding:3px 11px;margin:0 4px;border:1px solid var(--accent);border-radius:8px;opacity:.45}
-.sec-slot .so.on{opacity:1;background:var(--accent);color:#fff}
 .sec-slot.sec-full{grid-column:1 / -1}
-.sec-slot.sec-hl{grid-column:1 / 2}
-.sec-slot.sec-hr{grid-column:2 / 3}
-body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:none;touch-action:none}
-@media (pointer:coarse){.secgrid>.panel{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
+body.sec-dragging-active{cursor:grabbing;-webkit-user-select:none;user-select:none}
 /* ── half / full section grid ── */
 .secgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 .secgrid>.panel{margin-bottom:0}
 .secgrid>.panel.sec-full{grid-column:1 / -1}
-.secgrid>.panel.sec-hl{grid-column:1 / 2}
-.secgrid>.panel.sec-hr{grid-column:2 / 3}
 .secgrid>#labelDrill{grid-column:1 / -1}
 .secgrid>.sec-slot{align-self:stretch}
 .sec-removed{display:none!important}
@@ -558,23 +543,23 @@ body.sec-dragging-active .sec-add{display:none}
   <section class="filters">
     <div class="frow"><span class="flabel">Month</span><div class="fchips" id="monthChips"></div></div>
     <div class="frow"><span class="flabel">Account</span><div class="fchips" id="acctChips"></div></div>
-    <div class="frow" id="dataFilesRow" style="align-items:center">
-      <span class="flabel">Files</span>
-      <div id="custDataStatusRows" style="display:flex;flex-wrap:wrap;gap:8px;min-width:0"></div>
-    </div>
-    <!-- file inputs: must never be in a display:none element or iOS tap breaks -->
+  </section>
+
+  <!-- data files: Targets/Overdues are global, Stock is per-client; shown on the all-clients overview and on each client -->
+  <div class="panel hide" id="custDataStatus">
+    <div class="head"><span class="eyebrow">📋 Data files</span><span class="hint" id="custDataStatusHint"></span></div>
+    <div class="dsf" id="custDataStatusRows"></div>
+    <!-- dedicated inputs so upload works from the customer view (shared inputs sit in
+         display:none panels, which breaks tapping on iOS) -->
     <input type="file" id="dsTargetInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
     <input type="file" id="dsARInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
     <input type="file" id="dsStockInput" accept=".txt,.TXT" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
     <input type="file" id="dsAOPInput" accept=".xlsx,.xls" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
-  </section>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
 
   <div id="allGrid" class="secgrid">
-  <!-- KPI summary tiles -->
-  <div class="panel sec-full" id="kpisPanel">
-    <div class="head"><span class="eyebrow">📊 Key Metrics</span></div>
-    <div class="kpis" id="kpis"></div>
-  </div>
   <!-- all-accounts report toolbar (mirrors the per-customer one) -->
   <div class="panel" id="allToolbar">
     <div class="head"><span class="eyebrow">🧰 PDF Reports</span><span class="hint">generate a report across all accounts</span></div>
@@ -662,11 +647,6 @@ body.sec-dragging-active .sec-add{display:none}
 
   <!-- customer view: trend, % breakdown + MoM variance -->
   <div id="custView" class="hide secgrid">
-    <!-- KPI summary tiles -->
-    <div class="panel sec-full" id="kpisPanelCust">
-      <div class="head"><span class="eyebrow">📊 Key Metrics</span></div>
-      <div class="kpis" id="kpisCust"></div>
-    </div>
     <!-- per-customer report toolbar -->
     <div class="panel" id="custToolbar">
       <div class="head"><span class="eyebrow">🧰 Customer reports</span><span class="hint">generate a focused PDF for this customer</span></div>
@@ -750,14 +730,10 @@ body.sec-dragging-active .sec-add{display:none}
         <div style="margin-top:5px;font-size:11px">or <span class="stk-ul">tap to select file</span></div>
       </label>
       <input type="file" id="stockFileInput" accept=".txt,.TXT" style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"/>
-      <div id="stockSearchRow" class="stock-search hide">
-        <input id="stockSearch" type="search" inputmode="search" autocomplete="off" placeholder="🔍 Search a SKU to see its stock…" oninput="onStockSearch()" onsearch="onStockSearch()"/>
-      </div>
-      <div id="stockSearchResults" class="hide"></div>
       <div id="stockTable" class="hide"></div>
     </div>
   </div>
-  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 24 Jun 2026 · 15:30</div>
+  <div class="buildstamp" style="text-align:center;color:var(--text4);font-size:10px;padding:20px 0 6px;letter-spacing:.03em;opacity:.85">Sales Dashboard · build 23 Jun 2026 · 07:30</div>
 </div>
 
 <div id="report"></div>
@@ -904,13 +880,10 @@ const STOCK={};
 let TARGET=null;    // { month, customers:[{name,tgt,sizeTgts:{}}] }
 let AR=null;        // { date, customers:[{name,account,total,notDue,b1,b2,b3,b4,b5,overdue}] }
 let AOP=null;       // { uploadedAt, accounts:{ <account>:{ sizes:{label:[12 MM]}, byMonth:[12 MM], annual } } } — full-year 2026 plan, remembered permanently
-let DEMAND=null;    // { uploadedAt, snapshot:'5+7', firstForecastIdx, month, accounts:{ ...same shape as AOP } } — latest rolling-forecast snapshot; drives the monthly Demand target
-let __demandStale=false;   // set true when loadSaved finds an OLD-format saved demand (pre per-month snapshots) so we can prompt a re-upload
 let LABEL_DRILL=null; // label family currently drilled into
 let SIZE_DRILL=null;  // can size currently drilled into within a label
 let MOM_MODE={label:'qty',size:'qty',sku:'qty'}; // per-box toggle: 'qty' = cans, 'var' = MoM %
 let STOCK_VIEW='size'; // stock panel toggle: 'size' = totals per size, 'sku' = SKUs within each size, 'safety' = top-5 SKUs vs safety stock
-let STOCK_QUERY=''; // active SKU search text in the stock card
 
 /* ════════════════════════ PARSE ════════════════════════ */
 function headerKeys(ws){
@@ -995,28 +968,16 @@ const MM=n=>(n/1e6).toFixed(1)+' MM';
 const LS_TARGET='salesdash_target_v1';
 const LS_AR='salesdash_ar_v1';
 const LS_STOCK='salesdash_stock_v1';
-const LS_AOP='salesdash_aop_v1';
-const LS_DEMAND='salesdash_demand_v1';   // latest rolling-forecast snapshot — uploaded monthly with the AOP workbook
-const LS_DATA='salesdash_data_v2';   // sales rows — persists between sessions
+const LS_AOP='salesdash_aop_v1';   // AOP annual plan — uploaded once, never forgotten
 function saveTarget(){ try{ if(TARGET) localStorage.setItem(LS_TARGET,JSON.stringify(TARGET)); else localStorage.removeItem(LS_TARGET); }catch(e){} }
 function saveAR(){ try{ if(AR) localStorage.setItem(LS_AR,JSON.stringify(AR)); else localStorage.removeItem(LS_AR); }catch(e){} }
 function saveStock(){ try{ if(Object.keys(STOCK).length) localStorage.setItem(LS_STOCK,JSON.stringify(STOCK)); else localStorage.removeItem(LS_STOCK); }catch(e){} }
 function saveAOP(){ try{ if(AOP) localStorage.setItem(LS_AOP,JSON.stringify(AOP)); else localStorage.removeItem(LS_AOP); }catch(e){} }
-function saveDemand(){ try{ if(DEMAND) localStorage.setItem(LS_DEMAND,JSON.stringify(DEMAND)); else localStorage.removeItem(LS_DEMAND); }catch(e){} }
-function saveData(){ try{ if(DATA&&DATA.rows&&DATA.rows.length){ localStorage.setItem(LS_DATA,JSON.stringify({rows:DATA.rows,sheet:DATA.sheet||'',lines:DATA.rows.length})); } else { localStorage.removeItem(LS_DATA); } }catch(e){ try{ localStorage.removeItem(LS_DATA); }catch(e2){} } }
 function loadSaved(){
   try{ const t=localStorage.getItem(LS_TARGET); if(t) TARGET=JSON.parse(t); }catch(e){}
   try{ const a=localStorage.getItem(LS_AR); if(a) AR=JSON.parse(a); }catch(e){}
   try{ const s=localStorage.getItem(LS_STOCK); if(s){ const obj=JSON.parse(s); Object.keys(obj).forEach(k=>{STOCK[k]=obj[k];}); } }catch(e){}
   try{ const p=localStorage.getItem(LS_AOP); if(p) AOP=JSON.parse(p); }catch(e){}
-  try{ const dm=localStorage.getItem(LS_DEMAND); if(dm){ DEMAND=JSON.parse(dm);
-    // Stale guard: the OLD single-sheet demand format (before per-month snapshots) has no
-    // 'snapshots' array. Its monthly targets are wrong (every month read from one sheet), so we
-    // discard it and flag a re-upload rather than display stale numbers.
-    if(DEMAND && !Array.isArray(DEMAND.snapshots)){ DEMAND=null; try{localStorage.removeItem(LS_DEMAND);}catch(e2){} __demandStale=true; }
-    else { const t=targetFromDemand(); if(t) TARGET=t; }
-  } }catch(e){}
-  try{ const d=localStorage.getItem(LS_DATA); if(d){ const parsed=JSON.parse(d); if(parsed&&parsed.rows&&parsed.rows.length) DATA=parsed; } }catch(e){}
 }
 // Friendly "uploaded" label from a saved timestamp (e.g. "uploaded 21 Jun, 14:30").
 function uploadedLabel(ts){
@@ -1029,7 +990,7 @@ function uploadedLabel(ts){
 }
 function view(){ return MONTH==='All'?DATA.rows:DATA.rows.filter(r=>r.month===MONTH); }
 function scoped(){ let rs=DATA.rows; if(ACCOUNT!=='All') rs=rs.filter(r=>r.account===ACCOUNT); if(MONTH!=='All') rs=rs.filter(r=>r.month===MONTH); return rs; }
-function setAccount(a){ LABEL_DRILL=null; SIZE_DRILL=null; STOCK_QUERY=''; ACCOUNT=a; render(); const app=document.getElementById('app'); if(app.scrollIntoView) app.scrollIntoView({behavior:'smooth',block:'start'}); }
+function setAccount(a){ LABEL_DRILL=null; SIZE_DRILL=null; ACCOUNT=a; render(); const app=document.getElementById('app'); if(app.scrollIntoView) app.scrollIntoView({behavior:'smooth',block:'start'}); }
 function monthsPresent(){ return MONTHS.filter(m=>DATA.rows.some(r=>r.month===m)); }
 function sumBy(rows,key){const m=new Map();for(const r of rows)m.set(r[key],(m.get(r[key])||0)+r.qty);return m;}
 function sorted(map){return [...map.entries()].sort((a,b)=>b[1]-a[1]);}
@@ -1056,29 +1017,18 @@ let SECTION_STATE={};
 try{ const _ss=localStorage.getItem(LS_SECTIONS); if(_ss) SECTION_STATE=JSON.parse(_ss)||{}; }catch(e){}
 // per-view list of {id, w:'half'|'full'} (older saves stored plain id strings -> treated as full)
 function _normOrder(a){ return (Array.isArray(a)?a:[]).map(x=>{
-  if(x&&x.spacer) return null;                                   // spacers are no longer used (explicit columns now)
-  if(typeof x==='string') return {id:x,w:'full',side:'L',removed:false};
-  const w=((x&&x.w)==='half')?'half':'full';
-  return {id:(x&&x.id)||'', w, side:((x&&x.side)==='R'?'R':'L'), removed:!!(x&&x.removed)};
-}).filter(o=> o && o.id); }
+  if(x&&x.spacer) return {spacer:true};
+  if(typeof x==='string') return {id:x,w:'full',removed:false};
+  return {id:(x&&x.id)||'',w:((x&&x.w)==='half')?'half':'full',removed:!!(x&&x.removed)};
+}).filter(o=> o.spacer || o.id); }
 let SECTION_ORDER={all:[],cust:[]};
 try{ const _so=localStorage.getItem(LS_ORDER); if(_so){ const o=JSON.parse(_so); if(o&&typeof o==='object'){ SECTION_ORDER.all=_normOrder(o.all); SECTION_ORDER.cust=_normOrder(o.cust); } } }catch(e){}
 function saveSections(){ try{ localStorage.setItem(LS_SECTIONS,JSON.stringify(SECTION_STATE)); }catch(e){} }
 function saveOrder(){ try{ localStorage.setItem(LS_ORDER,JSON.stringify(SECTION_ORDER)); }catch(e){} }
 const SECTION_EXCLUDE=new Set(['labelDrill']);                 // no Hide button (own close UX)
-const ORDER_EXCLUDE=new Set(['labelDrill']);  // not draggable / removable (pinned status bar)
+const ORDER_EXCLUDE=new Set(['labelDrill','custDataStatus']);  // not draggable / removable (pinned status bar)
 const FULL_ONLY=new Set(['targetPanelAll','arPanelAll','aopCustPanel']);      // big tables — never half-width (but still removable)
 function _panelWidth(id,w){ return FULL_ONLY.has(id) ? 'full' : ((w==='half')?'half':'full'); }
-// width+side a card currently shows, read from its classes (FULL_ONLY is always full)
-function _cardWS(el){ if(!el) return {w:'full',side:'L'};
-  if(FULL_ONLY.has(el.id) || el.classList.contains('sec-full')) return {w:'full',side:'L'};
-  if(el.classList.contains('sec-hr')) return {w:'half',side:'R'};
-  return {w:'half',side:'L'}; }
-// apply an entry's width+side to a card element: sec-full | sec-hl (left) | sec-hr (right)
-function _applyCW(el, e){ const full=_panelWidth(e.id,e.w)==='full';
-  el.classList.toggle('sec-full', full);
-  el.classList.toggle('sec-hl', !full && e.side!=='R');
-  el.classList.toggle('sec-hr', !full && e.side==='R'); }
 function _viewKey(){ return _isCustView()?'cust':'all'; }
 // Every reorderable panel in a container, INCLUDING removed (hidden) ones — i.e. this page's full catalog.
 function catalogPanels(container){ const out=[]; const kids=(container&&container.children)?container.children:[];
@@ -1100,28 +1050,43 @@ function effLayout(key, container){
   const cat=catalogPanels(container).map(c=>c.id); const catSet=new Set(cat);
   const raw=Array.isArray(SECTION_ORDER[key])?SECTION_ORDER[key]:[];
   const seen={}; const vis=[]; const removed=[];
-  raw.forEach(e=>{ if(!e||e.spacer||!e.id||!catSet.has(e.id)||seen[e.id]) return; seen[e.id]=1;
-    const w=_panelWidth(e.id,(e.w==='half'?'half':'full')), side=(e.side==='R'?'R':'L');
-    (e.removed?removed:vis).push({id:e.id, w, side, removed:!!e.removed}); });
-  cat.forEach(id=>{ if(!seen[id]){ vis.push({id,w:'full',side:'L',removed:false}); seen[id]=1; } });   // new sections -> shown, full
-  return vis.concat(removed);
+  raw.forEach(e=>{ if(_isSpacer(e)){ vis.push({spacer:true}); return; }
+    if(!e||!e.id||!catSet.has(e.id)||seen[e.id]) return; seen[e.id]=1;
+    if(e.removed) removed.push({id:e.id,w:(e.w==='half'?'half':'full'),removed:true});
+    else vis.push({id:e.id,w:(e.w==='half'?'half':'full'),removed:false}); });
+  cat.forEach(id=>{ if(!seen[id]){ vis.push({id,w:'full',removed:false}); seen[id]=1; } });   // new sections -> shown, full
+  return normalizeVis(vis).concat(removed);
 }
 // ── width toggle: half <-> full with position rules ──
 //   half -> full: card grows in place; the half beside it drops to the next row, stays half.
 //   full -> half: card packs LEFT; a hole is left on its right and nothing slides up to fill it.
 function setSecWidth(id, w){ if(FULL_ONLY.has(id)||ORDER_EXCLUDE.has(id)) return;
-  const key=_viewKey(); const L=effLayout(key); const e=L.find(o=>!o.removed&&o.id===id); if(!e) return;
-  if(w==='full') e.w='full'; else { e.w='half'; if(e.side!=='R') e.side='L'; }   // toggle keeps a half on its side; defaults left
-  SECTION_ORDER[key]=L; saveOrder(); _withFlip(applySectionToggles);
+  const key=_viewKey(); const L=effLayout(key); let vis=L.filter(e=>!e.removed); const removed=L.filter(e=>e.removed);
+  let idx=-1; for(let i=0;i<vis.length;i++){ if(!_isSpacer(vis[i])&&vis[i].id===id){ idx=i; break; } }
+  if(idx<0) return;
+  if(w==='full'){
+    if(idx+1<vis.length&&_isSpacer(vis[idx+1])) vis.splice(idx+1,1);
+    if(idx-1>=0&&_isSpacer(vis[idx-1])){ vis.splice(idx-1,1); idx--; }
+    if(_colAt(vis,idx)===1){ let p=idx-1; while(p>=0&&_isSpacer(vis[p])) p--; if(p>=0){ const c=vis.splice(idx,1)[0]; vis.splice(p,0,c); idx=p; } }
+    vis[idx].w='full';
+  } else {
+    vis[idx].w='half'; vis.splice(idx+1,0,{spacer:true}); vis.splice(idx,0,{spacer:true});   // guard+hole; normalize trims
+  }
+  vis=normalizeVis(vis); SECTION_ORDER[key]=vis.concat(removed); saveOrder(); _withFlip(applySectionToggles);
 }
 function removeSection(id){ if(ORDER_EXCLUDE.has(id)) return;
-  const key=_viewKey(); const L=effLayout(key); const e=L.find(o=>!o.removed&&o.id===id); if(!e) return;
-  e.removed=true; SECTION_ORDER[key]=L; saveOrder(); _withFlip(applySectionToggles);
+  const key=_viewKey(); const L=effLayout(key); let vis=L.filter(e=>!e.removed); const removed=L.filter(e=>e.removed);
+  let idx=-1; for(let i=0;i<vis.length;i++){ if(!_isSpacer(vis[i])&&vis[i].id===id){ idx=i; break; } }
+  if(idx<0) return; const w=vis[idx].w;
+  vis.splice(idx,1); if(idx<vis.length&&_isSpacer(vis[idx])) vis.splice(idx,1);   // drop its hole too
+  vis=normalizeVis(vis); removed.push({id,w,removed:true});
+  SECTION_ORDER[key]=vis.concat(removed); saveOrder(); _withFlip(applySectionToggles);
 }
 function addSection(id, visGap){
-  const key=_viewKey(); const L=effLayout(key); const vis=L.filter(e=>!e.removed); const removed=L.filter(e=>e.removed);
-  const ri=removed.findIndex(o=>o.id===id); if(ri<0) return; const item=removed.splice(ri,1)[0]; item.removed=false;
-  const at=Math.max(0,Math.min(visGap|0,vis.length)); vis.splice(at,0,item);
+  const key=_viewKey(); const L=effLayout(key); let vis=L.filter(e=>!e.removed); const removed=L.filter(e=>e.removed);
+  const ridx=removed.findIndex(o=>o.id===id); if(ridx<0) return; const w=removed[ridx].w; removed.splice(ridx,1);
+  let seen=0, at=vis.length; for(let i=0;i<vis.length;i++){ if(_isSpacer(vis[i])) continue; if(seen===visGap){ at=i; break; } seen++; }
+  vis.splice(at,0,{id,w,removed:false}); vis=normalizeVis(vis);
   SECTION_ORDER[key]=vis.concat(removed); saveOrder(); _withFlip(applySectionToggles);
 }
 function sectionTitle(panel){ const eb=panel.querySelector('.eyebrow'); return ((eb?eb.textContent:'')||'').trim()||'Section'; }
@@ -1158,13 +1123,19 @@ function applySectionOrder(){
   const container=_orderContainer(); if(!container) return;
   const key=_viewKey(); const cat=catalogPanels(container); if(cat.length<1) return;
   const byId=new Map(cat.map(c=>[c.id,c]));
-  childrenByClass(container,'sec-spacer').forEach(s=>{ try{ container.removeChild(s); }catch(e){} });   // clear any legacy holes
+  childrenByClass(container,'sec-spacer').forEach(s=>{ try{ container.removeChild(s); }catch(e){} });   // clear old holes
   const lay=effLayout(key,container); SECTION_ORDER[key]=lay;
   const vis=lay.filter(e=>!e.removed);
   const removedSet=new Set(lay.filter(e=>e.removed).map(e=>e.id));
   cat.forEach(c=>{ c.classList.toggle('sec-removed', removedSet.has(c.id)); });
-  vis.forEach(e=>{ const el=byId.get(e.id); if(el) _applyCW(el, e); });   // sec-full | sec-hl | sec-hr -> grid creates empty cells itself
-  reorderDOM(container, vis.map(e=>byId.get(e.id)).filter(Boolean));
+  vis.forEach(e=>{ if(_isSpacer(e)) return; const el=byId.get(e.id); if(el) el.classList.toggle('sec-full', _panelWidth(e.id,e.w)==='full'); });
+  // arrange cards in visible order, then drop in spacer cells where holes belong
+  const cardOrder=vis.filter(e=>!_isSpacer(e)).map(e=>byId.get(e.id)).filter(Boolean);
+  reorderDOM(container, cardOrder);
+  let prev=null;
+  vis.forEach(e=>{ if(_isSpacer(e)){ const sp=document.createElement('div'); sp.className='sec-spacer'; sp.setAttribute('aria-hidden','true');
+      if(prev&&prev.after) prev.after(sp); else if(prev&&prev.parentNode) prev.parentNode.insertBefore(sp, prev.nextSibling); else container.insertBefore(sp, container.firstChild||null); prev=sp; }
+    else { const el=byId.get(e.id); if(el) prev=el; } });
 }
 /* ---- add / remove: the "+" insert bars between rows + the picker dropdown ---- */
 let _addOpenGap=null;
@@ -1277,6 +1248,7 @@ function applySectionToggles(){
             h += '<button type="button" class="sec-remove" data-rm="'+id+'" aria-label="Remove '+esc(title)+'" title="Remove this section">'+SEC_IC.x+'</button>';
           }
           h += '<button type="button" class="sec-toggle" data-sec="'+id+'" aria-label="Hide '+esc(title)+'" title="Hide">'+SEC_IC.eye+'</button>';
+          if(!exclude) h += '<button type="button" class="move-handle" aria-label="Move section" title="Drag to move">'+grip+'</button>';
         }
         cbar.innerHTML=h;
       }
@@ -1288,31 +1260,20 @@ function applySectionToggles(){
 /* ---- pointer drag reorder (mouse + touch); snaps into discrete slots, reflows others ---- */
 let _drag=null,_dragRef=null,_dragAuto=null,_dragRAF=0;const _dragPt={x:0,y:0};
 const _secNarrow=()=>!!(window.matchMedia && window.matchMedia('(max-width:760px)').matches);
-// Drag placeholder label: when a width choice is available, show BOTH options (HALF | FULL) with
-// the one that will be applied highlighted; otherwise just FULL (full-only cards / narrow screens).
-function _slotLabel(full, choice){ return choice ? ('<span class="so'+(full?'':' on')+'">HALF</span><span class="so'+(full?' on':'')+'">FULL</span>') : 'FULL'; }
 function _secMoveTo(x,y){ _drag.el.style.transform='translate('+(x-_drag.gx)+'px,'+(y-_drag.gy)+'px)'; }
 // reading-order test: is the item (rect r) positioned AFTER the pointer?
 function _secIsAfter(px,py,r){ if(py<r.top) return true; if(py>r.bottom) return false; return px < r.left+r.width/2; }
-function _onSecDragMove(e){ if(!_drag) return; if(e.cancelable) e.preventDefault(); _dragPt.x=e.clientX; _dragPt.y=e.clientY;
+function _onSecDragMove(e){ if(!_drag) return; _dragPt.x=e.clientX; _dragPt.y=e.clientY;
   _secMoveTo(e.clientX,e.clientY);                       // cheap transform every move (smooth)
   if(!_dragRAF) _dragRAF=requestAnimationFrame(_dragReflow);   // heavier reflow throttled to a frame
 }
 function _dragReflow(){ _dragRAF=0; if(!_drag) return; const x=_dragPt.x,y=_dragPt.y;
-  const _choice=!FULL_ONLY.has(_drag.id) && !_secNarrow();
-  // Three independent zones across the page: left 25% = HALF-left · middle 50% = FULL · right 25% = HALF-right.
-  // Each is a free choice; the card claims that column on its own. Pairing happens only when you drop a half
-  // beside an existing half (the grid simply fills the empty cell) -- it is never forced on a neighbour.
-  let mode='full';   // 'full' | 'hl' (half-left) | 'hr' (half-right)
-  if(_choice){
+  let full=true;
+  if(!FULL_ONLY.has(_drag.id) && !_secNarrow()){
     const gr=_drag.container.getBoundingClientRect(); const rel=(x-gr.left)/Math.max(1,gr.width);
-    if(rel<0.25) mode='hl'; else if(rel>0.75) mode='hr';
+    full=(rel>=0.34 && rel<=0.66);
   }
-  _drag.slot.classList.toggle('sec-full', mode==='full');
-  _drag.slot.classList.toggle('sec-hl', mode==='hl');
-  _drag.slot.classList.toggle('sec-hr', mode==='hr');
-  _drag.slot.innerHTML=_slotLabel(mode!=='full', _choice);
-  _drag.mode=mode;
+  _drag.slot.classList.toggle('sec-full', full); _drag.slot.textContent = full ? 'FULL' : 'HALF';
   const sibs=reorderItems(_drag.container,_drag.el,_drag.slot); let ref=null;
   for(const sIt of sibs){ if(_secIsAfter(x,y,sIt.getBoundingClientRect())){ ref=sIt; break; } }
   if(ref) _drag.container.insertBefore(_drag.slot, ref);
@@ -1326,71 +1287,41 @@ function _onSecDragEnd(){
   document.removeEventListener('pointermove',_onSecDragMove);
   if(!_drag) return;
   const {el,slot,container}=_drag;
-  const fo=FULL_ONLY.has(el.id);
-  const full = fo || slot.classList.contains('sec-full');
-  const right = !full && slot.classList.contains('sec-hr');
+  const full = slot.classList.contains('sec-full') || FULL_ONLY.has(el.id);
   el.classList.remove('sec-dragging');
   el.style.position='';el.style.width='';el.style.left='';el.style.top='';el.style.transform='';el.style.zIndex='';el.style.pointerEvents='';el.style.margin='';el.style.willChange='';
   el.classList.toggle('sec-full', full);
-  el.classList.toggle('sec-hl', !full && !right);
-  el.classList.toggle('sec-hr', !full && right);
   container.insertBefore(el, slot); try{ container.removeChild(slot); }catch(e){}
   document.body.classList.remove('sec-dragging-active');
   const key=(container.id==='custView')?'cust':'all';
-  const removedEntries=effLayout(key,container).filter(o=>o.removed);   // keep removed cards (+ their width/side)
-  const visEntries=reorderItems(container,null,null).map(c=>{ const ws=_cardWS(c); return {id:c.id, w:ws.w, side:ws.side, removed:false}; });
-  SECTION_ORDER[key]=visEntries.concat(removedEntries);
+  const removedEntries=effLayout(key,container).filter(o=>o.removed);   // keep removed cards (+ their widths)
+  const visEntries=reorderItems(container,null,null).map(c=>({id:c.id, w:c.classList.contains('sec-full')?'full':'half', removed:false}));
+  SECTION_ORDER[key]=visEntries.concat(removedEntries);   // a drag re-packs left-to-right (holes reset)
   saveOrder();
   _drag=null; _dragRef=null;
   applySectionToggles();   // re-ensure controls + reconnect observer
 }
-// Begin a section drag for panel `el` with the pointer at (px,py).
-function _beginSecDrag(el, px, py){
-  const container=el?el.parentNode:null; if(!el||!container) return;
+function _onSecDragStart(e){
+  const handle = e.target && e.target.closest ? e.target.closest('.move-handle') : null;
+  if(!handle) return;
+  const el=handle.closest('.panel'); const container=el?el.parentNode:null; if(!el||!container) return;
+  e.preventDefault();
   if(_secObs) _secObs.disconnect();   // freeze the observer for the duration of the drag
   const r=el.getBoundingClientRect();
-  _drag={ el, container, id:el.id, gx:px-r.left, gy:py-r.top };
-  const slot=document.createElement('div'); const _ws=_cardWS(el);
-  slot.className='sec-slot'+(_ws.w==='full'?' sec-full':(_ws.side==='R'?' sec-hr':' sec-hl'));
-  slot.style.minHeight=r.height+'px'; slot.innerHTML=_slotLabel(_ws.w!=='full', !FULL_ONLY.has(el.id) && !_secNarrow());
+  _drag={ el, container, id:el.id, gx:e.clientX-r.left, gy:e.clientY-r.top };
+  const slot=document.createElement('div');
+  slot.className='sec-slot'+(el.classList.contains('sec-full')?' sec-full':'');
+  slot.style.minHeight=r.height+'px'; slot.textContent=el.classList.contains('sec-full')?'FULL':'HALF';
   if(el.after) el.after(slot); else container.appendChild(slot);
   _drag.slot=slot; _dragRef=null;
   el.classList.add('sec-dragging');
   el.style.position='fixed'; el.style.width=r.width+'px'; el.style.left='0'; el.style.top='0'; el.style.willChange='transform';
   el.style.zIndex='9998'; el.style.pointerEvents='none'; el.style.margin='0';
   document.body.classList.add('sec-dragging-active');
-  _secMoveTo(px,py);
+  _secMoveTo(e.clientX,e.clientY);
   document.addEventListener('pointermove',_onSecDragMove);
   document.addEventListener('pointerup',_onSecDragEnd,{once:true});
-}
-// A card is grabbed from any spot that is NOT an interactive control and (mouse only) NOT on text.
-function _hasOwnText(el){ if(!el||el.nodeType!==1||!el.childNodes) return false;
-  for(let i=0;i<el.childNodes.length;i++){ const n=el.childNodes[i]; if(n.nodeType===3 && n.textContent && n.textContent.trim()) return true; } return false; }
-const _CTRL_SEL='button,a,label,input,select,textarea,[role=\'button\'],.chip,.momtoggle,.barrow.click,.lbl-bar,.size-row,[data-acct],[data-lbl],[data-size],[data-view],[data-mode],[onclick]';
-function _ctrlAt(t){ return !!(t && t.closest && t.closest(_CTRL_SEL)); }
-function _isOnText(t,panel){ let el=t; for(let i=0;i<3 && el && el!==panel; i++){ if(_hasOwnText(el)) return true; el=el.parentElement; } return false; }
-// Touch long-press state.
-let _pressTimer=0,_pressInfo=null;
-function _clearPress(){ if(_pressTimer){ clearTimeout(_pressTimer); _pressTimer=0; } if(_pressInfo){ _pressInfo=null;
-  document.removeEventListener('pointermove',_pressMove); document.removeEventListener('pointerup',_clearPress); document.removeEventListener('pointercancel',_clearPress); } }
-function _pressMove(e){ if(!_pressInfo) return; if(Math.abs(e.clientX-_pressInfo.x)>8||Math.abs(e.clientY-_pressInfo.y)>8) _clearPress(); }
-// Pointer-down: mouse picks up immediately from a blank (non-text) spot; touch needs a tap-and-hold.
-function _onSecPointerDown(e){
-  if(e.pointerType==='mouse' && e.button!==0) return;
-  const t=e.target; const panel=(t&&t.closest)?t.closest('.panel'):null;
-  if(!panel||!panel.id||ORDER_EXCLUDE.has(panel.id)) return;
-  const container=panel.parentNode; if(!container||(container.id!=='allGrid'&&container.id!=='custView')) return;
-  if(_ctrlAt(t)) return;                                   // never hijack a control / tappable row
-  if(e.pointerType==='mouse'){
-    if(_isOnText(t,panel)) return;                         // leave text selectable with the mouse
-    e.preventDefault(); _beginSecDrag(panel, e.clientX, e.clientY);
-  } else {                                                 // touch / pen: tap-and-hold to pick up
-    _clearPress(); _pressInfo={x:e.clientX,y:e.clientY,panel};
-    document.addEventListener('pointermove',_pressMove);
-    document.addEventListener('pointerup',_clearPress,{once:true});
-    document.addEventListener('pointercancel',_clearPress,{once:true});
-    _pressTimer=setTimeout(function(){ const info=_pressInfo; _clearPress(); if(info) _beginSecDrag(info.panel, info.x, info.y); }, 300);
-  }
+  if(handle.setPointerCapture){ try{ handle.setPointerCapture(e.pointerId); }catch(_){} }
 }
 
 let _secWired=false;
@@ -1409,7 +1340,7 @@ function setupSectionObserver(){
       const add=closest('.sec-add-btn');
       if(add && app.contains(add)){ ev.stopPropagation(); ev.preventDefault(); const g=+add.getAttribute('data-visgap'); if(_addOpenGap===g){ closeAddMenu(); } else { openAddMenu(add, g); } return; }
     }, true);
-    app.addEventListener('pointerdown', _onSecPointerDown);   // mouse: drag from a blank spot · touch: long-press
+    app.addEventListener('pointerdown', _onSecDragStart);   // drag handles
     // picker menu (body-level): choose a section to add, or click-away to close
     document.addEventListener('click', function(ev){
       const it=ev.target && ev.target.closest ? ev.target.closest('#secAddMenu [data-addid]') : null;
@@ -1437,16 +1368,6 @@ function render(){
   const isCust = ACCOUNT!=='All';
   document.getElementById('titleLines').textContent=' · '+fmt(DATA.rows.length)+' lines';
 
-  // When a Demand snapshot is loaded, the monthly demand target follows the active month filter
-  // (so filtering \u201cFeb\u201d shows Feb\u2019s demand target vs Feb deliveries). With no filter it
-  // pins to the snapshot\u2019s default forecast month. Rebuilt every render before any TARGET read.
-  if(DEMAND&&DEMAND.accounts){
-    const _mf=targetMonthFilter();
-    const _mi=_mf?MONTHS.indexOf(_mf):-1;
-    const _t=targetFromDemand(_mi);
-    if(_t) TARGET=_t;
-  }
-
   // month chips
   const mchips=['All',...monthsPresent()];
   document.getElementById('monthChips').innerHTML=mchips.map(m=>'<span class="chip'+(MONTH===m?' on':'')+'" data-m="'+m+'">'+m+'</span>').join('');
@@ -1469,77 +1390,23 @@ function render(){
   const peak=mp.map(m=>[m,monthBase.filter(r=>r.month===m).reduce((s,r)=>s+r.qty,0)]).sort((a,b)=>b[1]-a[1])[0];
   const derivedVol=v.filter(r=>r.derived).reduce((s,r)=>s+r.qty,0);
 
-  // ── Key Metric helpers (inline, scoped to current view) ──
-  // % vs AOP
-  let aopPct='—', aopSub='upload AOP file', aopCol='';
-  if(AOP&&AOP.accounts){
-    const scope=isCust?ACCOUNT:'__ALL__';
-    const _mi = MONTH!=='All' ? MONTHS.indexOf(MONTH) : -1;   // month filter active? then month-scope
-    const _accs = scope==='__ALL__' ? Object.values(AOP.accounts) : (AOP.accounts[scope]?[AOP.accounts[scope]]:[]);
-    // AOP target: the filtered month's column when filtered, else the full-year annual
-    let aopTgt=0;
-    if(_mi>=0) for(const a of _accs) aopTgt+=((a.byMonth&&a.byMonth[_mi])||0);
-    else       for(const a of _accs) aopTgt+=(a.annual||0);
-    // actual delivered: that month when filtered, else YTD (all months)
-    const _ar = isCust?acctRows(ACCOUNT):DATA.rows;
-    const actMM=(_mi>=0?_ar.filter(r=>r.month===MONTH):_ar).reduce((s,r)=>s+r.qty,0)/1e6;
-    if(aopTgt>0){
-      const p=actMM/aopTgt*100; aopPct=p.toFixed(1)+'%';
-      aopCol=p>=100?'var(--good)':'var(--bad)'; aopSub=_mi>=0?('of '+MONTH+' AOP'):'of full-year AOP';
-    } else { aopPct='—'; aopSub=_mi>=0?'no AOP this month':'no AOP target'; }
-  }
-  // % vs Demand Target (month-scoped)
-  let tgtPct='—', tgtSub='upload target file', tgtCol='';
-  if(TARGET&&TARGET.customers&&TARGET.customers.length){
-    if(isCust){
-      const cl=ACCOUNT.toLowerCase();
-      const m=TARGET.customers.find(c=>(c.account||'').toLowerCase()===cl||c.name.toLowerCase()===cl)
-        ||TARGET.customers.find(c=>{const a=(c.account||'').toLowerCase(),n=c.name.toLowerCase();return cl.includes(a)||a.includes(cl)||cl.includes(n)||n.includes(cl);});
-      if(m&&m.tgt>0){const d=deliveredTotalFromSales(ACCOUNT);const p=d/m.tgt*100;tgtPct=p.toFixed(1)+'%';tgtCol=p>=100?'var(--good)':'var(--bad)';tgtSub='of '+targetMonthFilter()+' target';}
-      else tgtSub='no target this month';
-    } else {
-      const totalTgt=TARGET.customers.reduce((s,c)=>s+(c.tgt||0),0);
-      const totalDel=TARGET.customers.reduce((s,c)=>s+deliveredTotalFromSales(c.account),0);
-      if(totalTgt>0){const p=totalDel/totalTgt*100;tgtPct=p.toFixed(1)+'%';tgtCol=p>=100?'var(--good)':'var(--bad)';tgtSub='of '+targetMonthFilter()+' target';}
-    }
-  }
-  // Total Overdues (SAR)
-  let ovdVal='—', ovdSub='upload AR file';
-  if(AR&&AR.customers&&AR.customers.length){
-    const fSAR=v=>v>=1e6?(v/1e6).toFixed(1)+'M SAR':v>=1e3?(v/1e3).toFixed(0)+'K SAR':fmt(Math.round(v))+' SAR';
-    if(isCust){
-      const cl=ACCOUNT.toLowerCase();
-      const c=AR.customers.find(x=>(x.account||'').toLowerCase()===cl)||AR.customers.find(x=>x.name.toLowerCase()===cl);
-      ovdVal=c&&c.overdue>0?fSAR(c.overdue):'None'; ovdSub='total overdue';
-    } else {
-      const t=AR.customers.reduce((s,c)=>s+(c.overdue||0),0);
-      ovdVal=t>0?fSAR(t):'None'; ovdSub='total overdue';
-    }
-  }
-  // Total Stock (cans)
-  let stkVal='—', stkSub='upload stock file';
-  const stkKeys=Object.keys(STOCK||{});
-  if(stkKeys.length){
-    if(isCust){
-      const sd=STOCK[ACCOUNT];
-      if(sd&&sd.bySize){const t=Object.values(sd.bySize).reduce((s,x)=>s+(x||0),0);stkVal=MM(t);stkSub=fmt(Math.round(t))+' cans available';}
-    } else {
-      let t=0; for(const k of stkKeys){const sd=STOCK[k];if(sd&&sd.bySize) t+=Object.values(sd.bySize).reduce((s,x)=>s+(x||0),0);}
-      if(t>0){stkVal=MM(t);stkSub=fmt(Math.round(t))+' cans available';}
-    }
-  }
-
-  // KPI tiles — same 6 for both scopes
-  const kpiData=[
-    ['Total Volume',         MM(total),  fmt(total)+' cans', ''],
-    ['% vs AOP',             aopPct,     aopSub,              aopCol],
-    ['% vs Demand Target',   tgtPct,     tgtSub,              tgtCol],
-    ['Total Overdues',       ovdVal,     ovdSub,              ''],
-    ['Total Stocks',         stkVal,     stkSub,              ''],
-    ['Peak Month',           peak?peak[0]:'—', peak?MM(peak[1]):'', ''],
-  ];
-  document.getElementById(isCust?'kpisCust':'kpis').innerHTML=kpiData.map(k=>'<div class="kpi"><div class="lab"><span class="dot"></span><span class="eyebrow">'+k[0]+'</span></div>'
-     +'<div class="val num"'+(k[3]?' style="color:'+k[3]+'"':'')+'>'+(k[1])+'</div><div class="sub num">'+k[2]+'</div></div>').join('');
+  // KPIs (set adapts to scope)
+  const grandAll=DATA.rows.reduce((s,r)=>s+r.qty,0);
+  const kpiData = isCust
+    ? [['Total volume',MM(total),fmt(total)+' cans'],
+       ['Labels',labels.length,'brand families'],
+       ['Sizes',sizesArr.length,'can formats'],
+       ['SKUs',skus.toLocaleString(),'unique products'],
+       ['Peak month',peak?peak[0]:'—',peak?MM(peak[1]):''],
+       ['Share of total',(grandAll?acctRows(ACCOUNT).reduce((s,r)=>s+r.qty,0)/grandAll*100:0).toFixed(1)+'%','of portfolio YTD']]
+    : [['Total volume',MM(total),fmt(total)+' cans'],
+       ['Accounts',sorted(sumBy(v,'account')).length,DATA.rows.length.toLocaleString()+' shipment lines'],
+       ['Labels',labels.length,'brand families'],
+       ['Sizes',sizesArr.length,'can formats'],
+       ['SKUs',skus.toLocaleString(),'unique products'],
+       ['Peak month',peak?peak[0]:'—',peak?MM(peak[1]):'']];
+  document.getElementById('kpis').innerHTML=kpiData.map(k=>'<div class="kpi"><div class="lab"><span class="dot"></span><span class="eyebrow">'+k[0]+'</span></div>'
+     +'<div class="val num">'+k[1]+'</div><div class="sub num">'+k[2]+'</div></div>').join('');
 
   // monthly columns
   const monthVols=mp.map(m=>[m,monthBase.filter(r=>r.month===m).reduce((s,r)=>s+r.qty,0)]);
@@ -1555,6 +1422,7 @@ function render(){
   // ── toggle which view's grid is visible for this scope ──
   document.getElementById('allGrid').classList.toggle('hide', isCust);
   document.getElementById('custView').classList.toggle('hide', !isCust);
+  document.getElementById('custDataStatus').classList.remove('hide'); // shown in both all-clients & customer views
   document.getElementById('allToolbar').classList.remove('hide');     // lives inside #allGrid; never individually hidden
   renderCustDataStatus();
 
@@ -2577,8 +2445,6 @@ function renderStock(){
     dropEl.classList.remove('hide');
     tblEl.classList.add('hide');
     if(toggleEl) toggleEl.classList.add('hide');
-    const sr0=document.getElementById('stockSearchRow'); if(sr0) sr0.classList.add('hide');
-    const rr0=document.getElementById('stockSearchResults'); if(rr0) rr0.classList.add('hide');
     hintEl.textContent='upload SAP stock report (.txt)';
     return;
   }
@@ -2696,45 +2562,6 @@ function renderStock(){
   tblEl.innerHTML=h;
   tblEl.classList.remove('hide');
   document.getElementById('clearStockBtn').onclick=()=>{delete STOCK[ACCOUNT];saveStock();renderStock();renderCustDataStatus();};
-  const sr=document.getElementById('stockSearchRow'); if(sr) sr.classList.remove('hide');
-  const si=document.getElementById('stockSearch'); if(si) si.value=STOCK_QUERY;
-  applyStockSearch();
-}
-// SKU search over the stock card. Matches the SAME data the panel shows (STOCK[ACCOUNT]).
-const _nzq=s=>String(s==null?'':s).toLowerCase().replace(/\s+/g,' ').trim();
-// token normalizer for forgiving search: unify 150ml/150 ml/150, strip punctuation
-const _normTok=s=>String(s==null?'':s).toLowerCase().replace(/(\d)\s*ml\b/g,'$1').replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
-function onStockSearch(){ const i=document.getElementById('stockSearch'); STOCK_QUERY=i?i.value:''; applyStockSearch(); }
-function applyStockSearch(){
-  const data=STOCK[ACCOUNT];
-  const rowEl=document.getElementById('stockSearchRow');
-  const resEl=document.getElementById('stockSearchResults');
-  const tblEl=document.getElementById('stockTable');
-  const togEl=document.getElementById('stockViewToggle');
-  if(!resEl||!tblEl) return;
-  const hasData=!!(data&&data.bySizeSku&&Object.keys(data.bySizeSku).length);
-  if(rowEl) rowEl.classList.toggle('hide', !hasData);
-  const toks=_normTok(STOCK_QUERY).split(' ').filter(Boolean);
-  if(!hasData||!toks.length){ resEl.classList.add('hide'); tblEl.classList.toggle('hide', !hasData); if(togEl) togEl.classList.toggle('hide', !hasData); return; }
-  tblEl.classList.add('hide'); if(togEl) togEl.classList.add('hide');   // search supersedes the views
-  // Forgiving match: every word typed must appear somewhere in the SKU name OR its size — any order,
-  // partial words fine. So "Rita Red 150ml", "150 rita red" and "rita 150" all find the same can.
-  const matches=[];
-  Object.keys(data.bySizeSku).forEach(sz=>{ const m=data.bySizeSku[sz]||{};
-    const szTxt=' '+_normTok((SIZE_LABEL[sz]||'')+' '+sz);
-    Object.keys(m).forEach(sku=>{ if(m[sku]>0){ const hay=_normTok(sku)+szTxt; if(toks.every(t=>hay.indexOf(t)>=0)) matches.push({sz,sku,qty:m[sku]}); } }); });
-  matches.sort((a,b)=>b.qty-a.qty);
-  let h;
-  if(!matches.length){
-    h='<div class="footnote" style="padding:10px 2px">No SKU matches \u201c'+esc(STOCK_QUERY.trim())+'\u201d in this stock report.</div>';
-  } else {
-    const tot=matches.reduce((s,m)=>s+m.qty,0);
-    h='<div class="scrollx"><table class="momt"><thead><tr><th class="l">SKU</th><th class="c">Size</th><th class="r">Available Stock</th></tr></thead><tbody>'
-      + matches.map(m=>'<tr><td class="l">'+esc(m.sku)+'</td><td class="c">'+sizeBadge(m.sz)+'</td><td class="r num cv">'+fmt(Math.round(m.qty))+'</td></tr>').join('')
-      + '<tr class="tfoot"><td class="l"><b>'+matches.length+' match'+(matches.length!==1?'es':'')+'</b></td><td></td><td class="r num cv"><b>'+fmt(Math.round(tot))+'</b></td></tr>'
-      + '</tbody></table></div>';
-  }
-  resEl.innerHTML=h; resEl.classList.remove('hide');
 }
 
 // At-a-glance: which reference files are loaded for THIS customer.
@@ -2743,7 +2570,8 @@ function applyStockSearch(){
 // 'nodata' (file loaded but this customer not in it — shared files only), or
 // 'missing' (offer a tap/drop upload, wired to the existing loader).
 function renderCustDataStatus(){
-  const rowsEl=document.getElementById('custDataStatusRows'); if(!rowsEl) return;
+  const panel=document.getElementById('custDataStatus');
+  if(!panel) return;
   const isAll = ACCOUNT==='All';
   let files, label;
 
@@ -2760,12 +2588,11 @@ function renderCustDataStatus(){
       stk={state:'ok',ts,note:stockKeys.length+' client'+(stockKeys.length>1?'s':'')};
     } else stk={state:'missing',note:'per client'};
     const aop=(AOP&&AOP.accounts&&Object.keys(AOP.accounts).length)?{state:'ok',ts:AOP.uploadedAt}:{state:'missing'};
-    const dem=(DEMAND&&DEMAND.accounts&&Object.keys(DEMAND.accounts).length)?{state:'ok',ts:DEMAND.uploadedAt}:{state:'missing'};
     files=[
-      {ic:'📈', nm:'Demand',        input:'dsAOPInput', loader:'loadAOPFile', s:dem, up:true },
-      {ic:'📅', nm:'AOP',           input:'dsAOPInput', loader:'loadAOPFile', s:aop, up:true },
-      {ic:'💰', nm:'Overdues (AR)', input:'dsARInput',  loader:'loadARFile',  s:ar,  up:true },
-      {ic:'📦', nm:'Stock report',  input:'dsStockInput', loader:'loadStockFile', s:stk, up:false},
+      {ic:'🎯', nm:'Targets',       input:'dsTargetInput', loader:'loadTargetFile', s:tgt, up:true },
+      {ic:'📅', nm:'AOP 2026',      input:'dsAOPInput',    loader:'loadAOPFile',    s:aop, up:true },
+      {ic:'💰', nm:'Overdues (AR)', input:'dsARInput',     loader:'loadARFile',     s:ar,  up:true },
+      {ic:'📦', nm:'Stock report',  input:'dsStockInput',  loader:'loadStockFile',  s:stk, up:false},
     ];
     label='All Clients';
   } else {
@@ -2794,22 +2621,17 @@ function renderCustDataStatus(){
     let aop;
     if(!AOP||!AOP.accounts||!Object.keys(AOP.accounts).length){ aop={state:'missing'}; }
     else { aop={state:(AOP.accounts[ACCOUNT]?'ok':'nodata'),ts:AOP.uploadedAt}; }
-    let dem;
-    if(!DEMAND||!DEMAND.accounts||!Object.keys(DEMAND.accounts).length){ dem={state:'missing'}; }
-    else { dem={state:(DEMAND.accounts[ACCOUNT]?'ok':'nodata'),ts:DEMAND.uploadedAt}; }
     files=[
-      {ic:'📈', nm:'Demand',         input:'dsAOPInput', loader:'loadAOPFile', s:dem, up:true},
-      {ic:'📅', nm:'AOP',            input:'dsAOPInput', loader:'loadAOPFile', s:aop, up:true},
-      {ic:'💰', nm:'Overdues (AR)',  input:'dsARInput',  loader:'loadARFile',  s:ar , up:true},
-      {ic:'📦', nm:'Stock report',   input:'dsStockInput', loader:'loadStockFile', s:stk, up:true},
+      {ic:'🎯', nm:'Targets',        input:'dsTargetInput', loader:'loadTargetFile', s:tgt, up:true},
+      {ic:'📅', nm:'AOP 2026',       input:'dsAOPInput',    loader:'loadAOPFile',    s:aop, up:true},
+      {ic:'💰', nm:'Overdues (AR)',  input:'dsARInput',     loader:'loadARFile',     s:ar , up:true},
+      {ic:'📦', nm:'Stock report',   input:'dsStockInput',  loader:'loadStockFile',  s:stk, up:true},
     ];
     label=ACCOUNT;
   }
 
   const okCount=files.filter(f=>f.s.state==='ok').length;
-  // always show the Files row so users can see status and upload missing files
-  const _dfr=document.getElementById('dataFilesRow');
-  if(_dfr) _dfr.classList.remove('hide');
+  document.getElementById('custDataStatusHint').textContent=okCount+' of '+files.length+' loaded · '+label;
 
   document.getElementById('custDataStatusRows').innerHTML=files.map(f=>{
     const cls=f.s.state==='ok'?'ok':(f.s.state==='nodata'?'nodata':'missing');
@@ -2966,13 +2788,6 @@ function latestSalesMonth(){
   return present.length?present[present.length-1]:null;
 }
 function targetMonthFilter(){
-  // An explicit month filter chip drives every monthly comparison: deliveries AND the demand
-  // target both scope to the chosen month (e.g. filter \u201cFeb\u201d \u2192 Feb delivered vs Feb demand).
-  if(MONTH!=='All') return MONTH;
-  // No month filter: when a rolling-forecast Demand snapshot is loaded (e.g. 5+7), default to the
-  // snapshot's first forecast month (Jun), pinned regardless of how far the sales data has
-  // progressed — so delivered is always scoped to the month the demand target is for.
-  if(DEMAND&&DEMAND.month) return DEMAND.month;
   // Prefer the latest month in the sales data (keeps saved targets current).
   const sm=latestSalesMonth();
   if(sm) return sm;
@@ -3059,8 +2874,7 @@ function renderTarget(){
   const oPct=totalTgt>0?totalDel/totalTgt:0;
   const tmLabel=targetMonthFilter();
   const upL=uploadedLabel(TARGET&&TARGET.uploadedAt);
-  const _isDem=TARGET&&TARGET.source==='demand';
-  hintEl.textContent=(_isDem?('Demand '+(TARGET.snapshot?TARGET.snapshot+' · ':'')+(month||'')+' · '):(month?month+' targets · ':''))+'delivered '+(tmLabel?'for '+tmLabel:'YTD')+' · '+(oPct*100).toFixed(1)+'% overall achieved'+(upL?' · '+upL:'');
+  hintEl.textContent=(month?month+' targets · ':'')+'delivered '+(tmLabel?'for '+tmLabel:'YTD')+' · '+(oPct*100).toFixed(1)+'% overall achieved'+(upL?' · '+upL:'');
   const _rAll=totalTgt-totalDel, _onAll=_rAll<=0, _pcAll=_onAll?'var(--good)':'var(--bad)';
   let h='<div class="aop-pace" style="border-left:3px solid '+_pcAll+';margin-bottom:14px"><span class="aop-pill" style="background:'+_pcAll+'">'+(oPct*100).toFixed(0)+'% of target</span><span>Through '+esc(tmLabel||'the latest month')+', target was <b class="num">'+totalTgt.toFixed(2)+' MM</b> \u2014 delivered <b class="num">'+totalDel.toFixed(2)+' MM</b>, '+(_onAll?'ahead':'behind')+' by <b class="num">'+Math.abs(_rAll).toFixed(2)+' MM</b>.</span></div>';
 h+='<div class="scrollx"><table class="momt" style="margin-bottom:16px"><thead><tr>'
@@ -3080,15 +2894,9 @@ h+='<div class="scrollx"><table class="momt" style="margin-bottom:16px"><thead><
     +'<td class="r num '+(oPct>=1?'up':'down')+'"><b>'+(oPct*100).toFixed(1)+'%</b></td>'
     +'<td class="r num '+(rTot<=0?'up':'down')+'"><b>'+(rTot<=0?'✓ ':'')+Math.abs(rTot).toFixed(2)+'</b></td>'
     +'</tr></tbody></table>';
-  if(TARGET&&TARGET.source==='demand'){
-    h+='<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><label for="dsAOPInput" class="btn" style="font-size:11px;cursor:pointer">↻ Replace AOP + Demand file</label><button class="btn" id="clearTargetBtn" style="font-size:11px">✕ Remove</button></div>';
-    tblEl.innerHTML=h;tblEl.classList.remove('hide');
-    document.getElementById('clearTargetBtn').onclick=()=>{ removeAOPFile(); };
-  } else {
-    h+='<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><label for="dsTargetInput" class="btn" style="font-size:11px;cursor:pointer">↻ Replace file</label><button class="btn" id="clearTargetBtn" style="font-size:11px">✕ Remove</button></div>';
-    tblEl.innerHTML=h;tblEl.classList.remove('hide');
-    document.getElementById('clearTargetBtn').onclick=()=>{TARGET=null;saveTarget();renderTarget();renderCustTarget();renderCustDataStatus();};
-  }
+  h+='<div style="margin-top:8px</div>;display:flex;gap:8px;flex-wrap:wrap"><label for="targetFileInput" class="btn" style="font-size:11px;cursor:pointer">↻ Replace file</label><button class="btn" id="clearTargetBtn" style="font-size:11px">✕ Remove</button></div>';
+  tblEl.innerHTML=h;tblEl.classList.remove('hide');
+  document.getElementById('clearTargetBtn').onclick=()=>{TARGET=null;saveTarget();renderTarget();renderCustTarget();renderCustDataStatus();};
 }
 
 // Replace / Remove / Upload controls shown on the customer Target & Overdue cards.
@@ -3107,13 +2915,10 @@ function renderCustTarget(){
   if(!TARGET||!TARGET.customers||!TARGET.customers.length){
     panel.innerHTML='<div class="head"><span class="eyebrow">🎯 Demand Target VS Delivered</span>'
       +'<span class="hint">no targets loaded</span></div>'
-      +'<div style="padding:10px 0;font-size:12px;color:var(--text4)">Upload the monthly <b>AOP + Demand</b> workbook (the file with the 0+12 … 5+7 sheets) to see this client\u2019s demand target here.</div>'
-      +fileCtrls('dsAOPInput','removeAOPFile',false);
+      +'<div style="padding:10px 0;font-size:12px;color:var(--text4)">Upload your monthly targets file to see this customer\u2019s targets here.</div>'
+      +fileCtrls('dsTargetInput','removeTargetFile',false);
     return;
   }
-  const _isDem=TARGET&&TARGET.source==='demand';
-  const _tin=_isDem?'dsAOPInput':'dsTargetInput';
-  const _trm=_isDem?'removeAOPFile':'removeTargetFile';
   const custLow=ACCOUNT.toLowerCase();
   // Match by normalized account first (sales accounts use companyOf names),
   // then fall back to the friendly name, then fuzzy contains.
@@ -3128,7 +2933,7 @@ function renderCustTarget(){
     panel.innerHTML='<div class="head"><span class="eyebrow">🎯 Demand Target VS Delivered'+(month?' <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--accent2);color:#fff;letter-spacing:.02em;text-transform:none">'+esc(month)+'</span>':'')+'</span>'
       +'<span class="hint">'+(uploadedLabel(TARGET&&TARGET.uploadedAt)||'')+'</span></div>'
       +'<div style="padding:10px 0;font-size:12px;color:var(--text4)">No target data found for <b>'+esc(ACCOUNT)+'</b> in the loaded file.</div>'
-      +fileCtrls(_tin,_trm,true);
+      +fileCtrls('dsTargetInput','removeTargetFile',true);
     return;
   }
   // All delivered data from DATA.rows — match by the current account (ACCOUNT)
@@ -3180,7 +2985,7 @@ h+='<div class="scrollx"><table class="momt"><thead><tr>'
     });
     h+='</tbody></table>';
   }
-  h+=fileCtrls(_tin,_trm,true);
+  h+=fileCtrls('dsTargetInput','removeTargetFile',true);
   panel.innerHTML=h;
 }
 
@@ -3194,14 +2999,7 @@ function loadAOPFile(file){
   reader.onload=e=>{ try{ const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',cellFormula:false,cellHTML:false,cellStyles:false}); parseAOPWorkbook(wb,file.name); }catch(ex){ showToast('⚠️ Could not read AOP file — '+ex.message); } };
   reader.readAsArrayBuffer(file);
 }
-function removeAOPFile(){
-  AOP=null; saveAOP();
-  // The monthly Demand target came from the same workbook — clear it and fall back to a
-  // legacy tracker target if one was ever saved separately.
-  DEMAND=null; saveDemand();
-  TARGET=null; try{ const t=localStorage.getItem(LS_TARGET); if(t) TARGET=JSON.parse(t); }catch(e){}
-  renderAOPAll(); renderCustAOP(); renderTarget(); renderCustTarget(); renderCustDataStatus();
-}
+function removeAOPFile(){ AOP=null; saveAOP(); renderAOPAll(); renderCustAOP(); renderCustDataStatus(); }
 
 function parseAOPWorkbook(wb,fname){
   const sheetName=wb.SheetNames.find(n=>/aop/i.test(n));
@@ -3238,103 +3036,6 @@ function parseAOPWorkbook(wb,fname){
   AOP={uploadedAt:Date.now(), sheet:sheetName, accounts};
   saveAOP(); renderAOPAll(); renderCustAOP(); renderCustDataStatus();
   showToast('📅 AOP 2026 saved · '+Object.keys(accounts).length+' customers · remembered for the year');
-  // The same workbook also carries the rolling-forecast snapshots (0+12 … 5+7). Read the
-  // latest one to drive the monthly Demand target — no more daily sales-tracker upload.
-  parseDemandSnapshot(wb);
-}
-
-/* ════════ DEMAND — monthly target from the rolling-forecast snapshot ════════
-   The AOP workbook contains snapshot sheets named "N+M": N months of locked actuals +
-   M months of forecast (N+M = 12). The first forecast month (index N, e.g. 5+7 → Jun) is
-   the month we are currently targeting, and its per-customer / per-size figures ARE the
-   monthly Demand target. Uploaded monthly (Jul → 6+6, etc.); replaces the daily tracker. */
-
-// Choose the latest snapshot sheet — the one with the most locked actuals (largest N).
-function pickSnapshotSheet(wb){
-  const cands=[];
-  wb.SheetNames.forEach(n=>{ const m=/^\s*(\d{1,2})\s*\+\s*(\d{1,2})\s*$/.exec(n);
-    if(m){ const a=+m[1], b=+m[2]; cands.push({name:n,n:a,sum:a+b}); } });
-  if(!cands.length) return null;
-  const full=cands.filter(c=>c.sum===12);          // proper N+M = 12 snapshots
-  const pool=full.length?full:cands;
-  pool.sort((x,y)=>y.n-x.n);                        // largest N = latest snapshot
-  return pool[0];
-}
-
-// Build the DEMAND object by assembling each month from its OWN snapshot. Each N+M snapshot
-// sheet's FIRST FORECAST column (column N) is the committed demand for month N, captured just
-// before that month began. So month i is read from sheet i+(12-i): Jan from 0+12, Feb from
-// 1+11, Mar from 2+10, … Jun from 5+7 (NOT all twelve months out of the latest sheet).
-function parseDemandSnapshot(wb){
-  const MN=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
-  // Every proper N+M snapshot (sum===12), sorted by N ascending.
-  const snaps=[];
-  wb.SheetNames.forEach(n=>{ const m=/^\s*(\d{1,2})\s*\+\s*(\d{1,2})\s*$/.exec(n);
-    if(m){ const a=+m[1], b=+m[2]; if(a+b===12) snaps.push({name:n, idx:a}); } });
-  if(!snaps.length){ return; }                       // workbook has no N+M snapshot — leave DEMAND as-is
-  snaps.sort((x,y)=>x.idx-y.idx);
-  const accounts={}; let latestIdx=-1, readCount=0;
-  snaps.forEach(sn=>{
-    const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn.name],{header:1,defval:''});
-    let hdr=-1, nameCol=-1, monthCols=[];
-    for(let r=0;r<rows.length;r++){
-      const cells=rows[r].map(c=>String(c==null?'':c).trim().toLowerCase());
-      const nc=cells.findIndex(c=>c.startsWith('customer'));
-      if(nc<0) continue;
-      const mc=[]; cells.forEach((c,i)=>{ const m=MN.indexOf(c.replace(/\.$/,'').slice(0,3)); if(m>=0&&mc[m]==null) mc[m]=i; });
-      if(mc.filter(x=>x!=null).length>=6){ hdr=r; nameCol=nc; monthCols=mc; break; }
-    }
-    if(hdr<0) return;                                 // unreadable sheet — skip it
-    const col=monthCols[sn.idx];                      // this snapshot's own first-forecast month column
-    if(col==null) return;
-    const sizeCol=nameCol+1; let cur=null, got=false;
-    for(let r=hdr+1;r<rows.length;r++){
-      const row=rows[r];
-      const nm=String(row[nameCol]==null?'':row[nameCol]).trim(), low=nm.toLowerCase();
-      if(low.startsWith('grand total')||low==='g. total') break;   // stop before the size-code grand-total block
-      if(nm && !/total/.test(low)) cur=companyOf(nm);              // start of a new customer block
-      const sc=String(row[sizeCol]==null?'':row[sizeCol]).trim();
-      const codeM=/^(\d{2,4})/.exec(sc);
-      if(!cur||!codeM) continue;
-      const label=SIZE_LABEL[codeM[1]]; if(!label) continue;
-      if(!accounts[cur]) accounts[cur]={sizes:{},byMonth:Array(12).fill(0),annual:0};
-      const a=accounts[cur]; if(!a.sizes[label]) a.sizes[label]=Array(12).fill(0);
-      const v=parseFloat(row[col]); const n=isFinite(v)?v:0;
-      a.sizes[label][sn.idx]+=n; a.byMonth[sn.idx]+=n; a.annual+=n; got=true;
-    }
-    if(got){ latestIdx=Math.max(latestIdx,sn.idx); readCount++; }
-  });
-  if(!Object.keys(accounts).length){ showToast('\u26a0\ufe0f Found snapshot sheets but couldn\u2019t read any customer rows.'); return; }
-  const idx=Math.min(Math.max(latestIdx,0),11);       // default month = the latest snapshot's first-forecast month
-  const names=snaps.map(s=>s.name).join(', ');
-  DEMAND={uploadedAt:Date.now(), snapshot:snaps[snaps.length-1].name, snapshots:snaps.map(s=>s.name),
-          firstForecastIdx:idx, month:MONTHS[idx], accounts};
-  saveDemand();
-  const t=targetFromDemand(); if(t){ TARGET=t; }      // demand snapshots drive the monthly target
-  renderTarget(); renderCustTarget(); renderCustDataStatus();
-  showToast('\ud83d\udcc8 Demand plan loaded \u00b7 '+readCount+' snapshot'+(readCount>1?'s':'')+' ('+names+') \u00b7 Jan\u2013'+MONTHS[idx]+' \u00b7 '+Object.keys(accounts).length+' customers');
-}
-
-// Build a TARGET-shaped object from the snapshot's first forecast month so the whole
-// Target-vs-Delivered module (screen + PDF) consumes it unchanged. Sizes sum to the total
-// by construction, so sizeTgtsValid is always true (no reconciliation warnings).
-function targetFromDemand(monthIdx){
-  if(!DEMAND||!DEMAND.accounts) return null;
-  // Default to the snapshot's first forecast month; a month filter passes its own index so the
-  // whole Demand-vs-Delivered module reflects that month.
-  let idx=(monthIdx==null||monthIdx<0)?DEMAND.firstForecastIdx:monthIdx;
-  if(idx==null||idx<0||idx>11) idx=DEMAND.firstForecastIdx;
-  const SIZES=['150ml','185ml','250ml','330ml SLK','355ml SLK'];
-  const customers=[];
-  Object.keys(DEMAND.accounts).forEach(acct=>{
-    const o=DEMAND.accounts[acct];
-    const tgt=(o.byMonth&&o.byMonth[idx])||0;
-    if(tgt<=0.0000001) return;                       // skip clients with no demand this month
-    const sizeTgts={};
-    SIZES.forEach(s=>{ const arr=o.sizes&&o.sizes[s]; sizeTgts[s]=arr?(arr[idx]||0):0; });
-    customers.push({name:acct, account:acct, tgt, sizeTgts, sizeTgtsValid:true});
-  });
-  return {month:MONTHS[idx], customers, uploadedAt:DEMAND.uploadedAt, source:'demand', snapshot:DEMAND.snapshot};
 }
 
 // Latest month index present in the sales data (0=Jan … 11=Dec); -1 if none. Drives the
@@ -3353,14 +3054,11 @@ function aopSectionHTML(scope, part){
   const SC={'150ml':'#7C3AED','185ml':'#2563EB','250ml':'#059669','330ml SLK':'#D97706','355ml SLK':'#DC2626','Other':'#6E7681'};
   const f2=v=>(Math.round(v*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' MM';
   const accs=isAll?Object.keys(AOP.accounts):[scope];
-  // Month filter: when a month chip is active the whole AOP card scopes to that month
-  // (that month's AOP target vs that month's deliveries); otherwise it's the annual/YTD view.
-  const mfIdx = (typeof MONTH!=='undefined' && MONTH!=='All') ? MONTHS.indexOf(MONTH) : -1;
-  // target (MM): by month + by size (by-size scopes to the filtered month when one is active)
+  // target (MM): by month + by size
   const tgtMonth=Array(12).fill(0), tgtSize={}; SIZES.forEach(s=>tgtSize[s]=0);
   accs.forEach(a=>{ const o=AOP.accounts[a]; if(!o) return;
     for(let i=0;i<12;i++) tgtMonth[i]+=(o.byMonth[i]||0);
-    SIZES.forEach(s=>{ const arr=o.sizes&&o.sizes[s]; if(arr) tgtSize[s]+= mfIdx>=0 ? (arr[mfIdx]||0) : arr.reduce((x,y)=>x+(y||0),0); });
+    SIZES.forEach(s=>{ const arr=o.sizes&&o.sizes[s]; if(arr) tgtSize[s]+=arr.reduce((x,y)=>x+(y||0),0); });
   });
   const annual=tgtMonth.reduce((a,b)=>a+b,0);
   // actuals (cans→MM): by month + by size — recomputed live from DATA
@@ -3371,48 +3069,27 @@ function aopSectionHTML(scope, part){
     if(!isAll && r.account!==scope) continue;
     const i=MONTHS.indexOf(r.month); if(i<0) continue;
     if(i<=mi) actMonth[i]=(actMonth[i]||0)+r.qty;
-    if(mfIdx<0 || i===mfIdx){ const lab=SIZE_LABEL[r.size]||'Other'; actSize[lab]=(actSize[lab]||0)+r.qty; }
+    const lab=SIZE_LABEL[r.size]||'Other'; actSize[lab]=(actSize[lab]||0)+r.qty;
   }
   const ytd=(mi>=0?actMonth.slice(0,mi+1).reduce((a,b)=>a+(b||0),0):0)/1e6;
   let planTD=0; for(let i=0;i<=mi;i++) planTD+=(tgtMonth[i]||0);
   const hasTgt=annual>0.0001, hasAct=ytd>0.0001;
   const pctAnnual=hasTgt?ytd/annual*100:null, ahead=ytd-planTD, on=ahead>=0;
-  const mlbl=mi>=0?MONTHS[mi]:'\u2014';
-  // Totals fed to the by-size table footer (month-scoped when a month filter is active).
-  const totAct = mfIdx>=0 ? ((actMonth[mfIdx]==null?0:actMonth[mfIdx])/1e6) : ytd;
-  const totTgt = mfIdx>=0 ? (tgtMonth[mfIdx]||0) : annual;
-  // \u2500\u2500 overview: tiles + progress + pace \u2500\u2500
-  let _over='';
-  if(mfIdx>=0){
-    // Month-filtered view: this month's AOP target vs this month's deliveries.
-    const ml=MONTHS[mfIdx], tM=tgtMonth[mfIdx]||0, aM=(actMonth[mfIdx]==null?0:actMonth[mfIdx])/1e6;
-    const hasT=tM>0.0001, hasA=aM>0.0001, varc=aM-tM, onM=varc>=0, pcM=onM?'var(--good)':'var(--bad)';
-    _over='<div class="aop-tiles">'
-      +'<div class="aop-tile"><div class="lab">Delivered \u00b7 '+ml+'</div><div class="val num" style="color:var(--accent)">'+f2(aM)+'</div><div class="sub num">'+(hasT?(aM/tM*100).toFixed(1)+'% of AOP':'no AOP target')+'</div></div>'
-      +'<div class="aop-tile"><div class="lab">AOP \u00b7 '+ml+'</div><div class="val num">'+f2(tM)+'</div><div class="sub">plan for '+ml+'</div></div>'
-      +'<div class="aop-tile"><div class="lab">Variance</div><div class="val num"'+(hasT?' style="color:'+pcM+'"':'')+'>'+(hasT?(onM?'+':'\u2212')+f2(Math.abs(varc)):'\u2014')+'</div><div class="sub num"'+(hasT?' style="color:'+pcM+'"':'')+'>'+(hasT?(onM?'ahead':'behind'):'no AOP target')+'</div></div>'
-      +'</div>';
-    if(hasT){ _over+='<div style="font-size:12px;color:var(--text3);font-weight:700;margin-bottom:4px">'+ml+' \u2014 delivered vs AOP target</div>'
-        +'<div class="track" style="height:9px"><div class="fill" style="width:'+Math.min(aM/tM*100,100)+'%;background:'+pcM+'"></div></div>'; }
-    if(!hasT){ _over+='<div class="aop-pace" style="border-left:3px solid var(--text4)"><span class="aop-pill" style="background:var(--text4)">No AOP target</span><span>No AOP planned for '+ml+' \u2014 delivered <b class="num">'+f2(aM)+'</b> shown for reference.</span></div>'; }
-    else if(!hasA){ _over+='<div class="aop-pace" style="border-left:3px solid var(--bad)"><span class="aop-pill" style="background:var(--bad)">No deliveries</span><span>'+ml+' AOP target of <b class="num">'+f2(tM)+'</b> set, but no deliveries recorded for '+ml+' yet.</span></div>'; }
-    else { _over+='<div class="aop-pace" style="border-left:3px solid '+pcM+'"><span class="aop-pill" style="background:'+pcM+'">'+(aM/tM*100).toFixed(0)+'% of '+ml+' AOP</span><span>For '+ml+', AOP called for <b class="num">'+f2(tM)+'</b> \u2014 delivered <b class="num">'+f2(aM)+'</b>, '+(onM?'ahead':'behind')+' by <b class="num">'+f2(Math.abs(varc))+'</b>.</span></div>'; }
-  } else {
-    // Annual / YTD view (no month filter).
-    _over='<div class="aop-tiles">'
-      +'<div class="aop-tile"><div class="lab">Delivered YTD</div><div class="val num" style="color:var(--accent)">'+f2(ytd)+'</div><div class="sub num">'+(hasTgt?pctAnnual.toFixed(1)+'% of AOP':'no AOP target')+'</div></div>'
-      +'<div class="aop-tile"><div class="lab">AOP</div><div class="val num">'+f2(annual)+'</div><div class="sub">full-year 2026 AOP</div></div>'
-      +'<div class="aop-tile"><div class="lab">Plan to date \u00b7 Jan\u2013'+mlbl+'</div><div class="val num">'+f2(planTD)+'</div><div class="sub num"'+(hasTgt?' style="color:'+(on?'var(--good)':'var(--bad)')+'"':'')+'>'+(hasTgt?(on?'ahead ':'behind ')+f2(Math.abs(ahead)):'\u2014')+'</div></div>'
-      +'</div>';
-    if(hasTgt){ _over+='<div style="font-size:12px;color:var(--text3);font-weight:700;margin-bottom:4px">Progress toward annual target</div>'
-        +'<div class="track" style="height:9px"><div class="fill" style="width:'+Math.min(pctAnnual,100)+'%;background:var(--accent)"></div></div>'; }
-    if(!hasTgt){ _over+='<div class="aop-pace" style="border-left:3px solid var(--text4)"><span class="aop-pill" style="background:var(--text4)">No AOP target</span><span>Contract closed after the AOP was set \u2014 actuals (<b class="num">'+f2(ytd)+'</b>) shown for reference.</span></div>'; }
-    else if(!hasAct){ _over+='<div class="aop-pace" style="border-left:3px solid var(--bad)"><span class="aop-pill" style="background:var(--bad)">No deliveries yet</span><span>AOP target of <b class="num">'+f2(annual)+'</b> set, but no deliveries recorded yet \u2014 full plan-to-date (<b class="num">'+f2(planTD)+'</b>) outstanding.</span></div>'; }
-    else { const pace=planTD>0?ytd/planTD*100:0, pc=on?'var(--good)':'var(--bad)';
-      _over+='<div class="aop-pace" style="border-left:3px solid '+pc+'"><span class="aop-pill" style="background:'+pc+'">'+pace.toFixed(0)+'% of plan-to-date</span><span>Through '+mlbl+', plan called for <b class="num">'+f2(planTD)+'</b> \u2014 actual is <b class="num">'+f2(ytd)+'</b>, '+(on?'ahead':'behind')+' by <b class="num">'+f2(Math.abs(ahead))+'</b>.</span></div>'; }
-  }
+  const mlbl=mi>=0?MONTHS[mi]:'—';
+  // ── overview: tiles + progress + pace ──
+  let _over='<div class="aop-tiles">'
+    +'<div class="aop-tile"><div class="lab">Delivered YTD</div><div class="val num" style="color:var(--accent)">'+f2(ytd)+'</div><div class="sub num">'+(hasTgt?pctAnnual.toFixed(1)+'% of AOP':'no AOP target')+'</div></div>'
+    +'<div class="aop-tile"><div class="lab">AOP</div><div class="val num">'+f2(annual)+'</div><div class="sub">full-year 2026 AOP</div></div>'
+    +'<div class="aop-tile"><div class="lab">Plan to date \u00b7 Jan\u2013'+mlbl+'</div><div class="val num">'+f2(planTD)+'</div><div class="sub num"'+(hasTgt?' style="color:'+(on?'var(--good)':'var(--bad)')+'"':'')+'>'+(hasTgt?(on?'ahead ':'behind ')+f2(Math.abs(ahead)):'\u2014')+'</div></div>'
+    +'</div>';
+  if(hasTgt){ _over+='<div style="font-size:12px;color:var(--text3);font-weight:700;margin-bottom:4px">Progress toward annual target</div>'
+      +'<div class="track" style="height:9px"><div class="fill" style="width:'+Math.min(pctAnnual,100)+'%;background:var(--accent)"></div></div>'; }
+  if(!hasTgt){ _over+='<div class="aop-pace" style="border-left:3px solid var(--text4)"><span class="aop-pill" style="background:var(--text4)">No AOP target</span><span>Contract closed after the AOP was set \u2014 actuals (<b class="num">'+f2(ytd)+'</b>) shown for reference.</span></div>'; }
+  else if(!hasAct){ _over+='<div class="aop-pace" style="border-left:3px solid var(--bad)"><span class="aop-pill" style="background:var(--bad)">No deliveries yet</span><span>AOP target of <b class="num">'+f2(annual)+'</b> set, but no deliveries recorded yet \u2014 full plan-to-date (<b class="num">'+f2(planTD)+'</b>) outstanding.</span></div>'; }
+  else { const pace=planTD>0?ytd/planTD*100:0, pc=on?'var(--good)':'var(--bad)';
+    _over+='<div class="aop-pace" style="border-left:3px solid '+pc+'"><span class="aop-pill" style="background:'+pc+'">'+pace.toFixed(0)+'% of plan-to-date</span><span>Through '+mlbl+', plan called for <b class="num">'+f2(planTD)+'</b> \u2014 actual is <b class="num">'+f2(ytd)+'</b>, '+(on?'ahead':'behind')+' by <b class="num">'+f2(Math.abs(ahead))+'</b>.</span></div>'; }
   // ── by month (inner content; the card supplies its own title) ──
-  let _month='<div class="aop-mrow">';
+  let _month='<div class="aop-legend"><span><i style="background:var(--border2)"></i>Target</span><span><i style="background:var(--good)"></i>Actual \u2265 target</span><span><i style="background:var(--bad)"></i>Actual &lt; target</span><span><i style="background:var(--accent)"></i>Actual (no target)</span><span style="color:var(--text4)">numbers = <b style="color:var(--accent)">delivered</b> / target (MM)</span></div><div class="aop-mrow">';
   let mx=0.001; for(let i=0;i<12;i++){ mx=Math.max(mx,tgtMonth[i]||0,(actMonth[i]||0)/1e6); }
   for(let i=0;i<12;i++){
     const t=tgtMonth[i]||0, a=actMonth[i], am=a==null?null:a/1e6;
@@ -3438,9 +3115,9 @@ let _size='<div class="scrollx"><table class="momt"><thead><tr><th class="l">Siz
       +'<span class="aop-bar2"><i style="width:'+(hp?Math.min(p,100):0)+'%;background:var(--accent)"></i></span></td>'
       +'<td class="r num '+(hp?_rc:'')+'">'+(hp?(_rem<=0?'\u2713 ':'')+f2(Math.abs(_rem)):'\u2014')+'</td></tr>';
   });
-  const fp=totTgt>0.0001;
-  const _remT=totTgt-totAct, _rcT=_remT<=0?'up':'down';
-  _size+='<tr class="tfoot"><td class="l"><b>Total</b></td><td class="r num cv"><b>'+f2(totAct)+'</b></td><td class="r num"><b>'+f2(totTgt)+'</b></td><td class="r num"><b>'+(fp?(totAct/totTgt*100).toFixed(0)+'%':'\u2014')+'</b></td><td class="r num '+(fp?_rcT:'')+'"><b>'+(fp?(_remT<=0?'\u2713 ':'')+f2(Math.abs(_remT)):'\u2014')+'</b></td></tr>';
+  const fp=annual>0.0001;
+  const _remT=annual-ytd, _rcT=_remT<=0?'up':'down';
+  _size+='<tr class="tfoot"><td class="l"><b>Total</b></td><td class="r num cv"><b>'+f2(ytd)+'</b></td><td class="r num"><b>'+f2(annual)+'</b></td><td class="r num"><b>'+(fp?(ytd/annual*100).toFixed(0)+'%':'\u2014')+'</b></td><td class="r num '+(fp?_rcT:'')+'"><b>'+(fp?(_remT<=0?'\u2713 ':'')+f2(Math.abs(_remT)):'\u2014')+'</b></td></tr>';
   _size+='</tbody></table></div>';
   // ── assemble ──
   if(part==='overview') return _over;
@@ -3452,12 +3129,10 @@ let _size='<div class="scrollx"><table class="momt"><thead><tr><th class="l">Siz
 
 // Section header (eyebrow + dynamic YTD month badge + uploaded-on hint).
 function aopHeadHTML(hintOverride){
-  const filt=(typeof MONTH!=='undefined'&&MONTH!=='All');
   const mi=aopLatestMonthIdx(), ml=mi>=0?MONTHS[mi]:'';
-  const badge=filt?MONTH:(ml?'YTD · '+ml:'');   // filtered month, else YTD-through-latest
   const hint=hintOverride!=null?hintOverride:(uploadedLabel(AOP&&AOP.uploadedAt)||'');
   return '<div class="head"><span class="eyebrow">🎯 AOP VS Delivered'
-    +(badge?' <span class="aop-mb">'+esc(badge)+'</span>':'')+'</span>'
+    +(ml?' <span class="aop-mb">YTD · '+esc(ml)+'</span>':'')+'</span>'
     +'<span class="hint">'+esc(hint)+'</span></div>';
 }
 // header for a split-out AOP sub-card (title only — the data card supplies its own controls)
@@ -3493,21 +3168,12 @@ function renderAOPAll(){
 // Per-customer summary (all clients). Annual + plan-to-date from AOP, YTD live from DATA.
 function aopCustomerTableHTML(){
   const mi=aopLatestMonthIdx();
-  // When a month chip is active, this table scopes to that month (month AOP target vs month
-  // delivered per customer); otherwise it's the annual / YTD view.
-  const mfIdx=(typeof MONTH!=='undefined'&&MONTH!=='All')?MONTHS.indexOf(MONTH):-1;
   const set=new Set(Object.keys(AOP.accounts));
   if(DATA) for(const r of DATA.rows) set.add(r.account);
   const list=[...set].map(a=>{
-    const o=AOP.accounts[a]; let annual=0, planTD=0, ytdC=0;
-    if(mfIdx>=0){
-      annual = o?(o.byMonth[mfIdx]||0):0;   // 'annual' column reused as the month's AOP target
-      planTD = annual;                       // pace denominator = the month target
-      if(DATA) for(const r of DATA.rows){ if(r.account===a && MONTHS.indexOf(r.month)===mfIdx) ytdC+=r.qty; }
-    } else {
-      if(o){ for(let i=0;i<12;i++){ annual+=o.byMonth[i]||0; if(i<=mi) planTD+=o.byMonth[i]||0; } }
-      if(DATA) for(const r of DATA.rows){ if(r.account===a){ const i=MONTHS.indexOf(r.month); if(i>=0&&i<=mi) ytdC+=r.qty; } }
-    }
+    const o=AOP.accounts[a]; let annual=0, planTD=0;
+    if(o){ for(let i=0;i<12;i++){ annual+=o.byMonth[i]||0; if(i<=mi) planTD+=o.byMonth[i]||0; } }
+    let ytdC=0; if(DATA) for(const r of DATA.rows){ if(r.account===a){ const i=MONTHS.indexOf(r.month); if(i>=0&&i<=mi) ytdC+=r.qty; } }
     return {a, annual, ytd:ytdC/1e6, planTD};
   }).sort((x,y)=> y.annual-x.annual || y.ytd-x.ytd || x.a.localeCompare(y.a));
 let h='<div class="scrollx"><table class="momt"><thead><tr><th class="l">Customer</th><th class="r">Delivered</th><th class="r">AOP</th><th class="r">Achieved</th><th class="r">Remaining</th><th class="r">Pace</th></tr></thead><tbody>';
@@ -3803,19 +3469,14 @@ function loadFile(file){
     catch(ex){ res={error:"Couldn't open that file ("+ex.message+'). Make sure it is a real .xlsx export.'}; }
     if(res.error){ errEl.textContent='⚠️ '+res.error; errEl.classList.remove('hide'); return; }
     DATA=res; MONTH='All'; ACCOUNT='All';
-    loadSaved(); // restore saved targets, overdues, AOP, stock
-    saveData();  // persist this sales upload so next session opens directly
+    loadSaved(); // restore saved targets & overdues (only the sales file is uploaded each session)
     document.getElementById('upload').classList.add('hide');
     document.getElementById('app').classList.remove('hide');
     render();
     setupSectionObserver();
-    maybeWarnDemandStale();
   };
   reader.readAsArrayBuffer(file);
 }
-// One-time prompt when an old-format demand plan was found in storage and discarded.
-function maybeWarnDemandStale(){ if(__demandStale){ __demandStale=false;
-  try{ showToast('\ud83d\udcc8 Please re-upload your AOP + Demand workbook \u2014 demand targets now read each month from its own snapshot (0+12\u2192Jan, 1+11\u2192Feb, \u2026). Your old saved copy was cleared.'); }catch(e){} } }
 fileInput.onchange=e=>loadFile(e.target.files[0]);
 dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag');};
 dz.ondragleave=()=>dz.classList.remove('drag');
@@ -3824,60 +3485,15 @@ dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');loadFile(e.dataTran
 document.getElementById('monthChips').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;MONTH=c.dataset.m;render();};
 document.getElementById('acctChips').onclick=e=>{const c=e.target.closest('.chip');if(!c)return;setAccount(c.dataset.a);};
 document.getElementById('acctSearch').oninput=e=>{const v=view();const total=v.reduce((s,r)=>s+r.qty,0);renderAccts(sorted(sumBy(v,'account')),total,e.target.value);};
-document.getElementById('newBtn').onclick=()=>{DATA=null;MONTH='All';ACCOUNT='All';TARGET=null;AR=null;AOP=null;Object.keys(STOCK).forEach(k=>delete STOCK[k]);localStorage.removeItem(LS_DATA);document.getElementById('app').classList.add('hide');document.getElementById('upload').classList.remove('hide');fileInput.value='';};
-// ── Auto-boot: if sales data was saved from a previous session, reveal immediately ──
-(function(){
-  try{
-    loadSaved();
-    if(DATA&&DATA.rows&&DATA.rows.length){
-      MONTH='All'; ACCOUNT='All';
-      document.getElementById('upload').classList.add('hide');
-      document.getElementById('app').classList.remove('hide');
-      render();
-      setupSectionObserver();
-      maybeWarnDemandStale();
-    }
-  }catch(e){ console.warn('Auto-boot failed:',e); }
-})();
+document.getElementById('newBtn').onclick=()=>{DATA=null;MONTH='All';ACCOUNT='All';TARGET=null;AR=null;AOP=null;Object.keys(STOCK).forEach(k=>delete STOCK[k]);document.getElementById('app').classList.add('hide');document.getElementById('upload').classList.remove('hide');fileInput.value='';};
 /* ── PDF button helpers ── */
 function triggerPDF(scope, btn, only){
-  // Open the tab NOW, while we're still inside the user gesture (click).
-  // Doing it inside setTimeout loses the gesture association and gets blocked as a popup on iOS.
-  const pw = (() => { try{ return window.open('','_blank'); } catch(e){ return null; } })();
-
+  // Show loading state, then generate (setTimeout lets the UI repaint first)
   const orig = btn ? btn.textContent : null;
-  if(btn){ btn.textContent='\u23f3 Generating\u2026'; btn.disabled=true; }
-
+  if(btn){ btn.textContent='⏳ Generating…'; btn.disabled=true; }
   setTimeout(()=>{
-    try{
-      if(!DATA){ if(pw) pw.close(); return; }
-      const html=buildReportHTML(scope, only);
-      if(!html){ if(pw) pw.close(); alert('No data found for this report.'); return; }
-
-      if(pw && !pw.closed){
-        // Write directly into the pre-opened tab — no blob URL needed, no navigation risk.
-        pw.document.open('text/html','replace');
-        pw.document.write(html);
-        pw.document.close();
-      } else {
-        // Popup was blocked despite the early open (shouldn't happen often) — fall back to download.
-        const blob=new Blob([html],{type:'text/html;charset=utf-8'});
-        const url=URL.createObjectURL(blob);
-        const a=document.createElement('a');
-        const mp=monthsPresent();
-        const kindSuffix=only==='stock'?'_Stock':only==='overdue'?'_Overdue':only==='target'?'_Target_vs_Delivered':'_Weekly_Update';
-        a.download=(scope==='__ALL__'?(only?'All_Clients'+kindSuffix:'All_Clients_'+mp[0]+'-'+mp[mp.length-1]+'_Report'):(scope.replace(/[^a-z0-9]+/ig,'_')+kindSuffix))+'.html';
-        a.href=url; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(()=>URL.revokeObjectURL(url),30000);
-        showToast('\ud83d\udcc4 Report downloaded \u2014 open it, then tap \u201cSave as PDF\u201d.');
-      }
-    } catch(e){
-      if(pw && !pw.closed) pw.close();
-      console.error('PDF generation error:',e);
-      showToast('\u26a0\ufe0f Could not generate report \u2014 '+e.message);
-    } finally{
-      if(btn){ btn.textContent=orig; btn.disabled=false; }
-    }
+    try{ downloadPDF(scope, only); }
+    finally{ if(btn){ btn.textContent=orig; btn.disabled=false; } }
   }, 40);
 }
 document.getElementById('custPdfBtn').onclick=function(){
